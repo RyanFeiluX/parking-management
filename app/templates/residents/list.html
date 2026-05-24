@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block title %}住户管理{% endblock %}
+{% block header %}住户管理{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col">
+        {% if success %}
+        <div class="alert alert-success">{{ success }}</div>
+        {% endif %}
+        {% if error %}
+        <div class="alert alert-danger">{{ error }}</div>
+        {% endif %}
+        <div class="card">
+            <div class="card-header d-flex justify-content-between">
+                <span>住户列表</span>
+                {% if current_user.role in ['admin', 'super_admin'] %}
+                <a href="/residents/add" class="btn btn-sm btn-primary">添加住户</a>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                <form method="get" class="mb-3">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <input type="text" name="q" class="form-control" placeholder="搜索房号、业主姓名、电话" value="{{ search_query }}">
+                        </div>
+                        <div class="col-md-2">
+                            <button type="submit" class="btn btn-primary">搜索</button>
+                        </div>
+                    </div>
+                </form>
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>房号</th>
+                            <th>业主姓名</th>
+                            <th>联系电话</th>
+                            <th>车辆数</th>
+                            <th>欠费车辆</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in residents %}
+                        <tr>
+                            <td><a href="/residents/{{ item.resident.id }}">{{ item.resident.room_number }}</a></td>
+                            <td>{{ item.resident.owner_name }}</td>
+                            <td>{{ item.resident.phone or '-' }}</td>
+                            <td>{{ item.vehicle_count }}</td>
+                            <td{% if item.expired_count > 0 %} class="text-danger"{% endif %}>{{ item.expired_count }}</td>
+                            <td>
+                                <a href="/residents/{{ item.resident.id }}" class="btn btn-sm btn-info">详情</a>
+                                {% if current_user.role in ['admin', 'super_admin'] %}
+                                <a href="/residents/{{ item.resident.id }}/edit" class="btn btn-sm btn-primary">编辑</a>
+                                <form action="/residents/{{ item.resident.id }}/delete" method="post" class="d-inline" onsubmit="return confirm('确定删除？将同时删除关联车辆和缴费记录')">
+                                    <button type="submit" class="btn btn-sm btn-danger">删除</button>
+                                </form>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

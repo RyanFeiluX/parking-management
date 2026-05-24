@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}编辑车辆{% endblock %}
+{% block header %}编辑车辆{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <form method="post">
+                    <div class="mb-3">
+                        <label class="form-label">车牌号</label>
+                        <input type="text" name="plate_number" class="form-control" value="{{ vehicle.plate_number }}" disabled>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">品牌</label>
+                        <input type="text" name="brand" class="form-control" value="{{ vehicle.brand or '' }}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">颜色</label>
+                        <input type="text" name="color" class="form-control" value="{{ vehicle.color or '' }}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">车辆类型</label>
+                        <select name="vehicle_type" class="form-control">
+                            <option value="小车" {% if vehicle.vehicle_type == '小车' %}selected{% endif %}>小车</option>
+                            <option value="大车" {% if vehicle.vehicle_type == '大车' %}selected{% endif %}>大车</option>
+                            <option value="摩托" {% if vehicle.vehicle_type == '摩托' %}selected{% endif %}>摩托</option>
+                            <option value="新能源" {% if vehicle.vehicle_type == '新能源' %}selected{% endif %}>新能源</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">状态</label>
+                        <select name="status" class="form-control">
+                            <option value="正常" {% if vehicle.status == '正常' %}selected{% endif %}>正常</option>
+                            <option value="停用" {% if vehicle.status == '停用' %}selected{% endif %}>停用</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary">保存</button>
+                    <a href="/residents/{{ vehicle.resident_id }}" class="btn btn-secondary">取消</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}欠费清单{% endblock %}
+{% block header %}欠费清单{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col">
+        <div class="card">
+            <div class="card-header bg-danger text-white">
+                <span>🔴 过期车辆欠费清单</span>
+                <span class="float-right">{{ arrears|length }} 辆</span>
+            </div>
+            <div class="card-body">
+                {% if arrears %}
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>房号</th>
+                            <th>业主</th>
+                            <th>车牌号</th>
+                            <th>状态说明</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in arrears %}
+                        <tr>
+                            <td>{{ item.vehicle.resident.room_number }}</td>
+                            <td>{{ item.vehicle.resident.owner_name }}</td>
+                            <td>{{ item.vehicle.plate_number }}</td>
+                            <td>{{ item.status.detail }}</td>
+                            <td>
+                                <a href="/payments?plate={{ item.vehicle.plate_number }}" class="btn btn-sm btn-primary">快速缴费</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <p class="text-center text-muted">暂无欠费车辆</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

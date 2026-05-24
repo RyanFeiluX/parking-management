@@ -1,0 +1,4 @@
+*.pyc
+venv/lib/python3.11/site-packages/
+venv/bin/
+venv/pyvenv.cfg

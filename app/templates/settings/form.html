@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block title %}系统设置{% endblock %}
+{% block header %}系统设置{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-6">
+        {% if success %}
+        <div class="alert alert-success">{{ success }}</div>
+        {% endif %}
+        <div class="card">
+            <div class="card-header">系统基本设置</div>
+            <div class="card-body">
+                <form method="post" action="/settings/save">
+                    <div class="mb-3">
+                        <label class="form-label">系统标题</label>
+                        <input type="text" name="company_name" class="form-control" value="{{ company_name.value }}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">车辆过期宽限期（天）</label>
+                        <input type="number" name="grace_period_days" class="form-control" value="{{ grace_period.value }}" min="0" max="365">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">API 访问令牌（留空则不启用）</label>
+                        <input type="text" name="api_token" class="form-control" value="{{ api_token.value }}">
+                    </div>
+                    <button type="submit" class="btn btn-primary">保存设置</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="card mt-4">
+            <div class="card-header">临时停车费率规则</div>
+            <div class="card-body">
+                <form method="post" action="/settings/save-temp-rules">
+                    <div class="mb-3">
+                        <label class="form-label">免费停放时长（分钟）</label>
+                        <input type="number" name="free_minutes" class="form-control" value="{{ temp_rules.free_minutes }}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">24小时封顶金额（元，0=不封顶）</label>
+                        <input type="number" name="daily_cap" class="form-control" value="{{ temp_rules.daily_cap }}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">超24小时处理</label>
+                        <select name="overflow" class="form-control">
+                            {% for opt in overflow_options %}
+                            <option value="{{ opt }}" {% if temp_rules.overflow == opt %}selected{% endif %}>
+                                {% if opt == 'daily_reset' %}按天重新计费{% else %}继续累加{% endif %}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">费率阶梯</label>
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>序号</th>
+                                    <th>起始小时</th>
+                                    <th>截止小时</th>
+                                    <th>费用（元）</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for tier in temp_rules.tiers %}
+                                <tr>
+                                    <td>{{ loop.index }}</td>
+                                    <td><input type="number" name="tier_{{ loop.index0 }}_from" class="form-control" value="{{ tier.from_hours }}"></td>
+                                    <td><input type="number" name="tier_{{ loop.index0 }}_to" class="form-control" value="{{ tier.to_hours }}"></td>
+                                    <td><input type="number" name="tier_{{ loop.index0 }}_fee" class="form-control" value="{{ tier.fee }}"></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <button type="submit" class="btn btn-primary">保存规则</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

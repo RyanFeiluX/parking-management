@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+
+{% block title %}代收费{% endblock %}
+{% block header %}代收费{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-6">
+        {% if success %}
+        <div class="alert alert-success">{{ success }}</div>
+        {% endif %}
+        {% if error %}
+        <div class="alert alert-danger">{{ error }}</div>
+        {% endif %}
+        
+        <div class="card">
+            <div class="card-header">查询车辆</div>
+            <div class="card-body">
+                <form method="get">
+                    <div class="mb-3">
+                        <label class="form-label">车牌号</label>
+                        <div class="input-group">
+                            <input type="text" name="plate" class="form-control" value="{{ plate_number }}" placeholder="请输入车牌号">
+                            <button type="submit" class="btn btn-primary">查询</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        {% if vehicle %}
+        <div class="card mt-4">
+            <div class="card-header">车辆信息</div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>车牌号:</strong> {{ vehicle.plate_number }}</p>
+                        <p><strong>所属住户:</strong> {{ vehicle.resident.room_number }} - {{ vehicle.resident.owner_name }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>品牌:</strong> {{ vehicle.brand or '-' }}</p>
+                        <p><strong>颜色:</strong> {{ vehicle.color or '-' }}</p>
+                        <p><strong>类型:</strong> {{ vehicle.vehicle_type }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mt-4">
+            <div class="card-header">缴费信息</div>
+            <div class="card-body">
+                <form method="post" action="/payments/calculate">
+                    <div class="mb-3">
+                        <label class="form-label">缴费周期</label>
+                        <select name="period_type" class="form-control" onchange="this.form.submit()">
+                            <option value="月" {% if period_type == '月' %}selected{% endif %}>月缴</option>
+                            <option value="季" {% if period_type == '季' %}selected{% endif %}>季缴</option>
+                            <option value="年" {% if period_type == '年' %}selected{% endif %}>年缴</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">数量</label>
+                        <input type="number" name="months" class="form-control" value="{{ months or 1 }}" min="1" onchange="this.form.submit()">
+                    </div>
+                    <input type="hidden" name="plate_number" value="{{ vehicle.plate_number }}">
+                </form>
+            </div>
+        </div>
+
+        {% if amount_info %}
+        <div class="card mt-4">
+            <div class="card-header">费用计算</div>
+            <div class="card-body">
+                <p>{{ amount_info.summary }}</p>
+                <div class="text-right">
+                    <h3 class="text-primary">应付金额: {{ amount_info.amount }} 元</h3>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mt-4">
+            <div class="card-header">确认缴费</div>
+            <div class="card-body">
+                <form method="post" action="/payments/pay">
+                    <input type="hidden" name="vehicle_id" value="{{ vehicle.id }}">
+                    <input type="hidden" name="period_type" value="{{ period_type or '月' }}">
+                    <input type="hidden" name="months" value="{{ months or 1 }}">
+                    <input type="hidden" name="amount" value="{{ amount_info.amount }}">
+                    
+                    <div class="mb-3">
+                        <label class="form-label">缴费方式</label>
+                        <select name="payment_method" class="form-control" required>
+                            <option value="现金">现金</option>
+                            <option value="微信">微信</option>
+                            <option value="支付宝">支付宝</option>
+                            <option value="转账">转账</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">备注</label>
+                        <textarea name="remark" class="form-control" rows="2"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">确认缴费</button>
+                </form>
+            </div>
+        </div>
+        {% endif %}
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

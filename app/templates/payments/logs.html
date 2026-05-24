@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block title %}缴费记录{% endblock %}
+{% block header %}缴费记录查询{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col">
+        <div class="card">
+            <div class="card-header">
+                <span>缴费记录</span>
+            </div>
+            <div class="card-body">
+                <form method="get" class="mb-4">
+                    <div class="row">
+                        <div class="col-md-2">
+                            <input type="date" name="start_date" class="form-control" value="{{ start_date }}">
+                        </div>
+                        <div class="col-md-2">
+                            <input type="date" name="end_date" class="form-control" value="{{ end_date }}">
+                        </div>
+                        <div class="col-md-2">
+                            <input type="text" name="plate_number" class="form-control" placeholder="车牌号" value="{{ plate_number }}">
+                        </div>
+                        <div class="col-md-2">
+                            <input type="text" name="room_number" class="form-control" placeholder="房号" value="{{ room_number }}">
+                        </div>
+                        <div class="col-md-2">
+                            <select name="payment_method" class="form-control">
+                                <option value="">全部方式</option>
+                                <option value="现金">现金</option>
+                                <option value="微信">微信</option>
+                                <option value="支付宝">支付宝</option>
+                                <option value="转账">转账</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <button type="submit" class="btn btn-primary">筛选</button>
+                        </div>
+                    </div>
+                </form>
+
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>时间</th>
+                            <th>车牌号</th>
+                            <th>住户</th>
+                            <th>缴费周期</th>
+                            <th>金额</th>
+                            <th>方式</th>
+                            <th>操作人</th>
+                            <th>备注</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in payments %}
+                        <tr>
+                            <td>{{ item.payment.paid_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                            <td>{{ item.vehicle.plate_number }}</td>
+                            <td>{{ item.resident.room_number if item.resident else '-' }}</td>
+                            <td>{{ item.payment.period_type }}{{ item.payment.period_start }}-{{ item.payment.period_end }}</td>
+                            <td>{{ item.payment.amount }}</td>
+                            <td>{{ item.payment.payment_method or '-' }}</td>
+                            <td>{{ item.operator.display_name if item.operator else '-' }}</td>
+                            <td>{{ item.payment.remark or '-' }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

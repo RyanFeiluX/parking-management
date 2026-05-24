@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+
+{% block title %}首页{% endblock %}
+{% block header %}首页仪表盘{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-3 col-md-6 mb-4">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col">
+                        <div class="text-sm font-weight-medium">住户总数</div>
+                        <div class="text-2xl font-bold">{{ resident_count }}</div>
+                    </div>
+                    <div class="col-auto">🏠</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-4">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col">
+                        <div class="text-sm font-weight-medium">车辆总数</div>
+                        <div class="text-2xl font-bold">{{ vehicle_count }}</div>
+                    </div>
+                    <div class="col-auto">🚗</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-4">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col">
+                        <div class="text-sm font-weight-medium">本月收费</div>
+                        <div class="text-2xl font-bold">{{ "%.2f"|format(monthly_total) }}</div>
+                    </div>
+                    <div class="col-auto">💰</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-4">
+        <div class="card bg-warning text-white">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col">
+                        <div class="text-sm font-weight-medium">本年收费</div>
+                        <div class="text-2xl font-bold">{{ "%.2f"|format(yearly_total) }}</div>
+                    </div>
+                    <div class="col-auto">📊</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">车辆状态分布</div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col">
+                        <div class="text-3xl">🟢</div>
+                        <div class="text-2xl font-bold text-success">{{ free_count }}</div>
+                        <div class="text-sm text-muted">免费</div>
+                    </div>
+                    <div class="col">
+                        <div class="text-3xl">🟡</div>
+                        <div class="text-2xl font-bold text-warning">{{ temp_count }}</div>
+                        <div class="text-sm text-muted">临时</div>
+                    </div>
+                    <div class="col">
+                        <div class="text-3xl">🔴</div>
+                        <div class="text-2xl font-bold text-danger">{{ expired_count }}</div>
+                        <div class="text-sm text-muted">过期</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">快捷操作</div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-6 mb-3">
+                        <a href="/payments" class="btn btn-primary btn-block">💳 代收费</a>
+                    </div>
+                    <div class="col-6 mb-3">
+                        <a href="/vehicles/status" class="btn btn-info btn-block">🚗 车辆状态</a>
+                    </div>
+                    {% if current_user.role in ['admin', 'super_admin'] %}
+                    <div class="col-6 mb-3">
+                        <a href="/residents/add" class="btn btn-success btn-block">➕ 添加住户</a>
+                    </div>
+                    <div class="col-6 mb-3">
+                        <a href="/fee-tiers" class="btn btn-warning btn-block">💰 收费标准</a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% endblock %}

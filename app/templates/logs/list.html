@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block title %}系统日志{% endblock %}
+{% block header %}系统操作日志{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col">
+        <div class="card">
+            <div class="card-header">
+                <span>操作日志</span>
+            </div>
+            <div class="card-body">
+                <form method="get" class="mb-4">
+                    <div class="row">
+                        <div class="col-md-2">
+                            <input type="date" name="start_date" class="form-control" value="{{ start_date }}">
+                        </div>
+                        <div class="col-md-2">
+                            <input type="date" name="end_date" class="form-control" value="{{ end_date }}">
+                        </div>
+                        <div class="col-md-2">
+                            <select name="action_type" class="form-control">
+                                <option value="">全部类型</option>
+                                {% for action in action_types %}
+                                <option value="{{ action }}" {% if action_type == action %}selected{% endif %}>{{ action }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <input type="text" name="username" class="form-control" placeholder="操作人" value="{{ username }}">
+                        </div>
+                        <div class="col-md-2">
+                            <button type="submit" class="btn btn-primary">筛选</button>
+                        </div>
+                    </div>
+                </form>
+
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>时间</th>
+                            <th>操作人</th>
+                            <th>操作类型</th>
+                            <th>操作对象</th>
+                            <th>详情</th>
+                            <th>IP</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in logs %}
+                        <tr>
+                            <td>{{ item.log.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                            <td>{{ item.user.display_name if item.user else '系统' }}</td>
+                            <td>{{ item.log.action_type }}</td>
+                            <td>{{ item.log.target }}</td>
+                            <td>{{ item.log.detail }}</td>
+                            <td>{{ item.log.ip_address }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

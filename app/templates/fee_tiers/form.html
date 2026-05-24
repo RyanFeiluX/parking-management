@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block title %}{% if tier %}编辑档位{% else %}添加档位{% endif %}{% endblock %}
+{% block header %}{% if tier %}编辑档位{% else %}添加档位{% endif %}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                {% if error %}
+                <div class="alert alert-danger">{{ error }}</div>
+                {% endif %}
+                <form method="post">
+                    <div class="mb-3">
+                        <label class="form-label">序号起始</label>
+                        <input type="number" name="seq_from" class="form-control" value="{{ tier.seq_from if tier else '' }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">序号截止</label>
+                        <input type="number" name="seq_to" class="form-control" value="{{ tier.seq_to if tier else '' }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">月费（元）</label>
+                        <input type="number" name="monthly_fee" class="form-control" value="{{ tier.monthly_fee if tier else '' }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">季费（元，留空则 = 月费 × 3）</label>
+                        <input type="number" name="quarterly_fee" class="form-control" value="{{ tier.quarterly_fee if tier else '' }}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">年费（元，留空则 = 月费 × 12）</label>
+                        <input type="number" name="yearly_fee" class="form-control" value="{{ tier.yearly_fee if tier else '' }}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">生效日期</label>
+                        <input type="date" name="effective_date" class="form-control" value="{{ tier.effective_date.isoformat() if tier else today }}" min="{{ today }}" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">保存</button>
+                    <a href="/fee-tiers" class="btn btn-secondary">取消</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

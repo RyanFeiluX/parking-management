@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block title %}{% if discount %}编辑优惠策略{% else %}添加优惠策略{% endif %}{% endblock %}
+{% block header %}{% if discount %}编辑优惠策略{% else %}添加优惠策略{% endif %}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                {% if error %}
+                <div class="alert alert-danger">{{ error }}</div>
+                {% endif %}
+                <form method="post">
+                    <div class="mb-3">
+                        <label class="form-label">优惠名称</label>
+                        <input type="text" name="name" class="form-control" value="{{ discount.name if discount else '' }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">优惠类型</label>
+                        <select name="discount_type" class="form-control" required>
+                            {% for dt in discount_types %}
+                            <option value="{{ dt }}" {% if discount and discount.discount_type == dt %}selected{% endif %}>
+                                {% if dt == 'free' %}免费
+                                {% elif dt == 'discount_percent' %}折扣（如0.8为八折）
+                                {% else %}固定金额{% endif %}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">优惠值</label>
+                        <input type="number" step="0.01" name="discount_value" class="form-control" value="{{ discount.discount_value if discount else '' }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">适用范围类型</label>
+                        <select name="scope_type" class="form-control" required>
+                            {% for st in scope_types %}
+                            <option value="{{ st }}" {% if discount and discount.scope_type == st %}selected{% endif %}>
+                                {% if st == 'all' %}全部车辆
+                                {% elif st == 'vehicle_type' %}按车辆类型
+                                {% else %}按房号前缀{% endif %}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">范围值</label>
+                        <input type="text" name="scope_value" class="form-control" value="{{ discount.scope_value if discount else '' }}" placeholder="如：新能源、物业-">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">适用序号范围（车辆排序序号）</label>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <input type="number" name="apply_seq_from" class="form-control" value="{{ discount.apply_seq_from if discount else 1 }}" placeholder="起始">
+                            </div>
+                            <div class="col-md-6">
+                                <input type="number" name="apply_seq_to" class="form-control" value="{{ discount.apply_seq_to if discount else 999 }}" placeholder="截止">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">生效日期</label>
+                        <input type="date" name="effective_date" class="form-control" value="{{ discount.effective_date.isoformat() if discount else today }}" min="{{ today }}" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">保存</button>
+                    <a href="/discounts" class="btn btn-secondary">取消</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

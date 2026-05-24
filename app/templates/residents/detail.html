@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+
+{% block title %}住户详情{% endblock %}
+{% block header %}住户详情{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col">
+        {% if error %}
+        <div class="alert alert-danger">{{ error }}</div>
+        {% endif %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h3>房号: {{ resident.room_number }}</h3>
+                        <p class="text-muted">业主: {{ resident.owner_name }} | 电话: {{ resident.phone or '-' }}</p>
+                    </div>
+                    {% if current_user.role in ['admin', 'super_admin'] %}
+                    <div>
+                        <a href="/residents/{{ resident.id }}/edit" class="btn btn-sm btn-primary">编辑住户</a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header d-flex justify-content-between">
+                <span>车辆列表</span>
+                {% if current_user.role in ['admin', 'super_admin'] %}
+                <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addVehicleModal">添加车辆</button>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>序号</th>
+                            <th>车牌号</th>
+                            <th>品牌/颜色</th>
+                            <th>类型</th>
+                            <th>月费</th>
+                            <th>缴费状态</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in vehicles %}
+                        <tr>
+                            <td>{{ item.vehicle.sort_order }}</td>
+                            <td>{{ item.vehicle.plate_number }}</td>
+                            <td>{{ item.vehicle.brand or '-' }} / {{ item.vehicle.color or '-' }}</td>
+                            <td>{{ item.vehicle.vehicle_type }}</td>
+                            <td>{{ item.status.detail.split('至')[0] if item.status.status == '免费' else '-' }}</td>
+                            <td>
+                                {% if item.status.status == '免费' %}
+                                <span class="badge bg-success">🟢 免费</span>
+                                {% elif item.status.status == '临时' %}
+                                <span class="badge bg-warning">🟡 临时</span>
+                                {% else %}
+                                <span class="badge bg-danger">🔴 过期</span>
+                                {% endif %}
+                                {{ item.status.detail }}
+                            </td>
+                            <td>
+                                <a href="/vehicles/{{ item.vehicle.id }}/edit" class="btn btn-sm btn-info">编辑</a>
+                                {% if current_user.role in ['admin', 'super_admin'] %}
+                                {% if item.vehicle.sort_order > 1 %}
+                                <form action="/vehicles/{{ item.vehicle.id }}/move-up" method="post" class="d-inline">
+                                    <button type="submit" class="btn btn-sm btn-secondary">↑上移</button>
+                                </form>
+                                {% endif %}
+                                {% if item.vehicle.sort_order < vehicles|length %}
+                                <form action="/vehicles/{{ item.vehicle.id }}/move-down" method="post" class="d-inline">
+                                    <button type="submit" class="btn btn-sm btn-secondary">↓下移</button>
+                                </form>
+                                {% endif %}
+                                <form action="/vehicles/{{ item.vehicle.id }}/delete" method="post" class="d-inline" onsubmit="return confirm('确定删除？')">
+                                    <button type="submit" class="btn btn-sm btn-danger">删除</button>
+                                </form>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% if not vehicles %}
+                <p class="text-center text-muted">暂无车辆</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="addVehicleModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">添加车辆</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form action="/vehicles/{{ resident.id }}/add" method="post">
+                    <div class="mb-3">
+                        <label class="form-label">车牌号</label>
+                        <input type="text" name="plate_number" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">品牌</label>
+                        <input type="text" name="brand" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">颜色</label>
+                        <input type="text" name="color" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">车辆类型</label>
+                        <select name="vehicle_type" class="form-control">
+                            <option value="小车">小车</option>
+                            <option value="大车">大车</option>
+                            <option value="摩托">摩托</option>
+                            <option value="新能源">新能源</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary">添加</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

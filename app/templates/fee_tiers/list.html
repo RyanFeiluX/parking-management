@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block title %}收费标准{% endblock %}
+{% block header %}收费档位规则{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col">
+        {% if success %}
+        <div class="alert alert-success">{{ success }}</div>
+        {% endif %}
+        {% if error %}
+        <div class="alert alert-danger">{{ error }}</div>
+        {% endif %}
+        <div class="card">
+            <div class="card-header d-flex justify-content-between">
+                <span>收费档位</span>
+                <div>
+                    <a href="/fee-tiers/add" class="btn btn-sm btn-primary">添加档位</a>
+                    <a href="/fee-tiers?show_history={{ 'false' if show_history else 'true' }}" class="btn btn-sm btn-secondary">
+                        {% if show_history %}隐藏历史{% else %}显示历史{% endif %}
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>序号范围</th>
+                            <th>月费</th>
+                            <th>季费</th>
+                            <th>年费</th>
+                            <th>生效日期</th>
+                            <th>状态</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for tier in tiers %}
+                        <tr>
+                            <td>{{ tier.seq_from }}~{{ tier.seq_to }}</td>
+                            <td>{{ tier.monthly_fee }}元</td>
+                            <td>{{ tier.quarterly_fee or (tier.monthly_fee * 3) }}元</td>
+                            <td>{{ tier.yearly_fee or (tier.monthly_fee * 12) }}元</td>
+                            <td>{{ tier.effective_date }}</td>
+                            <td>
+                                {% if tier.expired_at %}
+                                <span class="text-muted">⏹ 已过期</span>
+                                {% else %}
+                                <span class="text-success">✅ 当前</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if not tier.expired_at %}
+                                <a href="/fee-tiers/{{ tier.id }}/edit" class="btn btn-sm btn-info">编辑</a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

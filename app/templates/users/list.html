@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block title %}用户管理{% endblock %}
+{% block header %}用户管理{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col">
+        {% if success %}
+        <div class="alert alert-success">{{ success }}</div>
+        {% endif %}
+        {% if error %}
+        <div class="alert alert-danger">{{ error }}</div>
+        {% endif %}
+        <div class="card">
+            <div class="card-header d-flex justify-content-between">
+                <span>用户列表</span>
+                <a href="/users/add" class="btn btn-sm btn-primary">添加用户</a>
+            </div>
+            <div class="card-body">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>用户名</th>
+                            <th>显示名称</th>
+                            <th>角色</th>
+                            <th>状态</th>
+                            <th>最后登录</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user in users %}
+                        <tr>
+                            <td>{{ user.username }}</td>
+                            <td>{{ user.display_name }}</td>
+                            <td>{{ user.role }}</td>
+                            <td>{% if user.is_active %}<span class="text-success">启用</span>{% else %}<span class="text-danger">停用</span>{% endif %}</td>
+                            <td>{{ user.last_login.strftime('%Y-%m-%d %H:%M') if user.last_login else '-' }}</td>
+                            <td>
+                                <a href="/users/{{ user.id }}/edit" class="btn btn-sm btn-info">编辑</a>
+                                <form action="/users/{{ user.id }}/toggle" method="post" class="d-inline">
+                                    <button type="submit" class="btn btn-sm {% if user.is_active %}btn-warning{% else %}btn-success{% endif %}">
+                                        {% if user.is_active %}停用{% else %}启用{% endif %}
+                                    </button>
+                                </form>
+                                {% if user.id != current_user.user_id %}
+                                <form action="/users/{{ user.id }}/delete" method="post" class="d-inline" onsubmit="return confirm('确定删除？')">
+                                    <button type="submit" class="btn btn-sm btn-danger">删除</button>
+                                </form>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block title %}优惠策略{% endblock %}
+{% block header %}优惠策略配置{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col">
+        {% if success %}
+        <div class="alert alert-success">{{ success }}</div>
+        {% endif %}
+        {% if error %}
+        <div class="alert alert-danger">{{ error }}</div>
+        {% endif %}
+        <div class="card">
+            <div class="card-header d-flex justify-content-between">
+                <span>优惠策略</span>
+                <div>
+                    <a href="/discounts/add" class="btn btn-sm btn-primary">添加策略</a>
+                    <a href="/discounts?show_history={{ 'false' if show_history else 'true' }}" class="btn btn-sm btn-secondary">
+                        {% if show_history %}隐藏历史{% else %}显示历史{% endif %}
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>名称</th>
+                            <th>类型</th>
+                            <th>优惠值</th>
+                            <th>适用范围</th>
+                            <th>序号范围</th>
+                            <th>生效日期</th>
+                            <th>状态</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for discount in discounts %}
+                        <tr>
+                            <td>{{ discount.name }}</td>
+                            <td>
+                                {% if discount.discount_type == 'free' %}免费
+                                {% elif discount.discount_type == 'discount_percent' %}折扣
+                                {% else %}固定金额{% endif %}
+                            </td>
+                            <td>
+                                {% if discount.discount_type == 'free' %}免费
+                                {% elif discount.discount_type == 'discount_percent' %}{{ discount.discount_value * 100 }}折
+                                {% else %}{{ discount.discount_value }}元{% endif %}
+                            </td>
+                            <td>
+                                {% if discount.scope_type == 'all' %}全部
+                                {% elif discount.scope_type == 'vehicle_type' %}{{ discount.scope_value }}
+                                {% else %}房号前缀: {{ discount.scope_value }}{% endif %}
+                            </td>
+                            <td>{{ discount.apply_seq_from }}~{{ discount.apply_seq_to }}</td>
+                            <td>{{ discount.effective_date }}</td>
+                            <td>
+                                {% if discount.expired_at %}
+                                <span class="text-muted">⏹ 已过期</span>
+                                {% else %}
+                                <span class="text-success">✅ 当前</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if not discount.expired_at %}
+                                <a href="/discounts/{{ discount.id }}/edit" class="btn btn-sm btn-info">编辑</a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

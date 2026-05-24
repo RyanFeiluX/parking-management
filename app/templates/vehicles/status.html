@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+
+{% block title %}车辆状态{% endblock %}
+{% block header %}车辆状态查询{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <div class="btn-group" role="group">
+            <a href="/vehicles/status?filter=all" class="btn {% if filter_type == 'all' %}btn-primary{% else %}btn-secondary{% endif %}">全部</a>
+            <a href="/vehicles/status?filter=registered" class="btn {% if filter_type == 'registered' %}btn-primary{% else %}btn-secondary{% endif %}">已登记</a>
+            <a href="/vehicles/status?filter=unregistered" class="btn {% if filter_type == 'unregistered' %}btn-primary{% else %}btn-secondary{% endif %}">未登记</a>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-3">
+    <div class="col-md-4">
+        <div class="card bg-success text-white">
+            <div class="card-body text-center">
+                <div class="text-4xl mb-2">🟢</div>
+                <div class="text-2xl font-bold">{{ free_vehicles|length }}</div>
+                <div class="text-sm">免费</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-warning text-white">
+            <div class="card-body text-center">
+                <div class="text-4xl mb-2">🟡</div>
+                <div class="text-2xl font-bold">{{ temp_vehicles|length }}</div>
+                <div class="text-sm">临时</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-danger text-white">
+            <div class="card-body text-center">
+                <div class="text-4xl mb-2">🔴</div>
+                <div class="text-2xl font-bold">{{ expired_vehicles|length }}</div>
+                <div class="text-sm">过期</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if free_vehicles %}
+<div class="card mb-4">
+    <div class="card-header bg-success text-white">🟢 免费 ({{ free_vehicles|length }})</div>
+    <div class="card-body">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>房号</th>
+                    <th>车牌号</th>
+                    <th>缴费至</th>
+                    <th>月费</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in free_vehicles %}
+                <tr>
+                    <td>{{ item.vehicle.resident.room_number if item.vehicle.resident else '-' }}</td>
+                    <td>{{ item.vehicle.plate_number }}</td>
+                    <td>{{ item.status.status_end }}</td>
+                    <td>{{ item.status.detail.split('至')[0] }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+{% if temp_vehicles %}
+<div class="card mb-4">
+    <div class="card-header bg-warning text-white">🟡 临时 ({{ temp_vehicles|length }})</div>
+    <div class="card-body">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>房号</th>
+                    <th>车牌号</th>
+                    <th>状态说明</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in temp_vehicles %}
+                <tr>
+                    <td>{{ item.vehicle.resident.room_number if item.vehicle.resident else '-' }}</td>
+                    <td>{{ item.vehicle.plate_number }}</td>
+                    <td>{{ item.status.detail }}</td>
+                    <td>
+                        {% if item.vehicle.resident %}
+                        <a href="/payments?plate={{ item.vehicle.plate_number }}" class="btn btn-sm btn-primary">快速缴费</a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+{% if expired_vehicles %}
+<div class="card">
+    <div class="card-header bg-danger text-white">🔴 过期 ({{ expired_vehicles|length }})</div>
+    <div class="card-body">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>房号</th>
+                    <th>车牌号</th>
+                    <th>月费</th>
+                    <th>上次缴至</th>
+                    <th>状态说明</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in expired_vehicles %}
+                <tr>
+                    <td>{{ item.vehicle.resident.room_number if item.vehicle.resident else '-' }}</td>
+                    <td>{{ item.vehicle.plate_number }}</td>
+                    <td>-</td>
+                    <td>{{ item.status.status_start }}</td>
+                    <td>{{ item.status.detail }}</td>
+                    <td>
+                        {% if item.vehicle.resident %}
+                        <a href="/payments?plate={{ item.vehicle.plate_number }}" class="btn btn-sm btn-primary">快速缴费</a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+{% if not free_vehicles and not temp_vehicles and not expired_vehicles %}
+<div class="card">
+    <div class="card-body text-center text-muted">
+        暂无车辆数据
+    </div>
+</div>
+{% endif %}
+{% endblock %}
