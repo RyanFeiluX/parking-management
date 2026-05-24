@@ -19,12 +19,99 @@
                 <form method="get">
                     <div class="mb-3">
                         <label class="form-label">车牌号</label>
-                        <div class="input-group">
-                            <input type="text" name="plate" class="form-control" value="{{ plate_number }}" placeholder="请输入车牌号">
+                        <div class="input-group mb-2">
+                            <input type="text" id="plateInput" name="plate" class="form-control" value="{{ plate_number }}" placeholder="请输入车牌号" maxlength="8">
                             <button type="submit" class="btn btn-primary">查询</button>
                         </div>
                     </div>
                 </form>
+
+                <div class="mt-4">
+                    <div class="text-muted mb-2">车牌输入键盘：</div>
+                    <div class="plate-keyboard">
+                        <div class="keyboard-row mb-2">
+                            <button class="key-btn btn btn-sm btn-outline-secondary" onclick="addChar('京')">京</button>
+                            <button class="key-btn btn btn-sm btn-outline-secondary" onclick="addChar('津')">津</button>
+                            <button class="key-btn btn btn-sm btn-outline-secondary" onclick="addChar('冀')">冀</button>
+                            <button class="key-btn btn btn-sm btn-outline-secondary" onclick="addChar('晋')">晋</button>
+                            <button class="key-btn btn btn-sm btn-outline-secondary" onclick="addChar('蒙')">蒙</button>
+                            <button class="key-btn btn btn-sm btn-outline-secondary" onclick="addChar('辽')">辽</button>
+                            <button class="key-btn btn btn-sm btn-outline-secondary" onclick="addChar('吉')">吉</button>
+                            <button class="key-btn btn btn-sm btn-outline-secondary" onclick="addChar('黑')">黑</button>
+                            <button class="key-btn btn btn-sm btn-outline-secondary" onclick="addChar('沪')">沪</button>
+                            <button class="key-btn btn btn-sm btn-outline-secondary" onclick="addChar('苏')">苏</button>
+                            <button class="key-btn btn btn-sm btn-outline-secondary" onclick="addChar('浙')">浙</button>
+                            <button class="key-btn btn btn-sm btn-outline-secondary" onclick="addChar('皖')">皖</button>
+                        </div>
+                        <div class="keyboard-row mb-2">
+                            <button class="key-btn btn btn-sm btn-outline-secondary" onclick="addChar('闽')">闽</button>
+                            <button class="key-btn btn btn-sm btn-outline-secondary" onclick="addChar('赣')">赣</button>
+                            <button class="key-btn btn btn-sm btn-outline-secondary" onclick="addChar('鲁')">鲁</button>
+                            <button class="key-btn btn btn-sm btn-outline-secondary" onclick="addChar('豫')">豫</button>
+                            <button class="key-btn btn btn-sm btn-outline-secondary" onclick="addChar('鄂')">鄂</button>
+                            <button class="key-btn btn btn-sm btn-outline-secondary" onclick="addChar('湘')">湘</button>
+                            <button class="key-btn btn btn-sm btn-outline-secondary" onclick="addChar('粤')">粤</button>
+                            <button class="key-btn btn btn-sm btn-outline-secondary" onclick="addChar('桂')">桂</button>
+                            <button class="key-btn btn btn-sm btn-outline-secondary" onclick="addChar('琼')">琼</button>
+                            <button class="key-btn btn btn-sm btn-outline-secondary" onclick="addChar('渝')">渝</button>
+                            <button class="key-btn btn btn-sm btn-outline-secondary" onclick="addChar('川')">川</button>
+                            <button class="key-btn btn btn-sm btn-outline-secondary" onclick="addChar('贵')">贵</button>
+                        </div>
+                        <div class="keyboard-row mb-2">
+                            <button class="key-btn btn btn-sm btn-outline-secondary" onclick="addChar('云')">云</button>
+                            <button class="key-btn btn btn-sm btn-outline-secondary" onclick="addChar('藏')">藏</button>
+                            <button class="key-btn btn btn-sm btn-outline-secondary" onclick="addChar('陕')">陕</button>
+                            <button class="key-btn btn btn-sm btn-outline-secondary" onclick="addChar('甘')">甘</button>
+                            <button class="key-btn btn btn-sm btn-outline-secondary" onclick="addChar('青')">青</button>
+                            <button class="key-btn btn btn-sm btn-outline-secondary" onclick="addChar('宁')">宁</button>
+                            <button class="key-btn btn btn-sm btn-outline-secondary" onclick="addChar('新')">新</button>
+                            <button class="key-btn btn btn-sm btn-outline-secondary" onclick="addChar('港')">港</button>
+                            <button class="key-btn btn btn-sm btn-outline-secondary" onclick="addChar('澳')">澳</button>
+                            <button class="key-btn btn btn-sm btn-outline-secondary" onclick="addChar('台')">台</button>
+                            <button class="key-btn btn btn-sm btn-outline-danger" onclick="deleteChar()">⌫</button>
+                        </div>
+                        <div class="keyboard-row mb-2">
+                            <button class="key-btn btn btn-sm btn-outline-secondary" onclick="addChar('A')">A</button>
+                            <button class="key-btn btn btn-sm btn-outline-secondary" onclick="addChar('B')">B</button>
+                            <button class="key-btn btn btn-sm btn-outline-secondary" onclick="addChar('C')">C</button>
+                            <button class="key-btn btn btn-sm btn-outline-secondary" onclick="addChar('D')">D</button>
+                            <button class="key-btn btn btn-sm btn-outline-secondary" onclick="addChar('E')">E</button>
+                            <button class="key-btn btn btn-sm btn-outline-secondary" onclick="addChar('F')">F</button>
+                            <button class="key-btn btn btn-sm btn-outline-secondary" onclick="addChar('G')">G</button>
+                            <button class="key-btn btn btn-sm btn-outline-secondary" onclick="addChar('H')">H</button>
+                            <button class="key-btn btn btn-sm btn-outline-secondary" onclick="addChar('J')">J</button>
+                            <button class="key-btn btn btn-sm btn-outline-secondary" onclick="addChar('K')">K</button>
+                            <button class="key-btn btn btn-sm btn-outline-secondary" onclick="addChar('L')">L</button>
+                            <button class="key-btn btn btn-sm btn-outline-secondary" onclick="addChar('M')">M</button>
+                        </div>
+                        <div class="keyboard-row mb-2">
+                            <button class="key-btn btn btn-sm btn-outline-secondary" onclick="addChar('N')">N</button>
+                            <button class="key-btn btn btn-sm btn-outline-secondary" onclick="addChar('P')">P</button>
+                            <button class="key-btn btn btn-sm btn-outline-secondary" onclick="addChar('Q')">Q</button>
+                            <button class="key-btn btn btn-sm btn-outline-secondary" onclick="addChar('R')">R</button>
+                            <button class="key-btn btn btn-sm btn-outline-secondary" onclick="addChar('S')">S</button>
+                            <button class="key-btn btn btn-sm btn-outline-secondary" onclick="addChar('T')">T</button>
+                            <button class="key-btn btn btn-sm btn-outline-secondary" onclick="addChar('U')">U</button>
+                            <button class="key-btn btn btn-sm btn-outline-secondary" onclick="addChar('V')">V</button>
+                            <button class="key-btn btn btn-sm btn-outline-secondary" onclick="addChar('W')">W</button>
+                            <button class="key-btn btn btn-sm btn-outline-secondary" onclick="addChar('X')">X</button>
+                            <button class="key-btn btn btn-sm btn-outline-secondary" onclick="addChar('Y')">Y</button>
+                            <button class="key-btn btn btn-sm btn-outline-secondary" onclick="addChar('Z')">Z</button>
+                        </div>
+                        <div class="keyboard-row mb-2">
+                            <button class="key-btn btn btn-sm btn-outline-secondary" onclick="addChar('1')">1</button>
+                            <button class="key-btn btn btn-sm btn-outline-secondary" onclick="addChar('2')">2</button>
+                            <button class="key-btn btn btn-sm btn-outline-secondary" onclick="addChar('3')">3</button>
+                            <button class="key-btn btn btn-sm btn-outline-secondary" onclick="addChar('4')">4</button>
+                            <button class="key-btn btn btn-sm btn-outline-secondary" onclick="addChar('5')">5</button>
+                            <button class="key-btn btn btn-sm btn-outline-secondary" onclick="addChar('6')">6</button>
+                            <button class="key-btn btn btn-sm btn-outline-secondary" onclick="addChar('7')">7</button>
+                            <button class="key-btn btn btn-sm btn-outline-secondary" onclick="addChar('8')">8</button>
+                            <button class="key-btn btn btn-sm btn-outline-secondary" onclick="addChar('9')">9</button>
+                            <button class="key-btn btn btn-sm btn-outline-secondary" onclick="addChar('0')">0</button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -125,4 +212,20 @@
         {% endif %}
     </div>
 </div>
+
+<script>
+function addChar(char) {
+    var input = document.getElementById('plateInput');
+    if (input.value.length < 8) {
+        input.value += char;
+        input.focus();
+    }
+}
+
+function deleteChar() {
+    var input = document.getElementById('plateInput');
+    input.value = input.value.slice(0, -1);
+    input.focus();
+}
+</script>
 {% endblock %}
