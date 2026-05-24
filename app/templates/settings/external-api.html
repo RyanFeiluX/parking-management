@@ -27,9 +27,11 @@
             <div class="card-header">外部接口配置</div>
             <div class="card-body">
                 <form method="post" action="/settings/save-external-api">
-                    <div class="mb-3">
-                        <label class="form-label">API 访问令牌（留空则不启用）</label>
-                        <input type="text" name="api_token" class="form-control" value="{{ api_token.value }}">
+                    <div class="row mb-3 align-items-center">
+                        <label class="col-sm-4 col-form-label">API 访问令牌（留空则不启用）</label>
+                        <div class="col-sm-8">
+                            <input type="text" name="api_token" class="form-control" value="{{ api_token.value }}">
+                        </div>
                     </div>
                     <button type="submit" class="btn btn-primary" id="saveBtn" disabled>保存设置</button>
                 </form>

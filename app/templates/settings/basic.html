@@ -27,52 +27,60 @@
             <div class="card-header">系统基本设置</div>
             <div class="card-body">
                 <form method="post" action="/settings/save" id="settingsForm">
-                    <div class="mb-3">
-                        <label class="form-label">系统标题</label>
-                        <input type="text" name="company_name" class="form-control" value="{{ company_name.value }}">
+                    <div class="row mb-3 align-items-center">
+                        <label class="col-sm-3 col-form-label">系统标题</label>
+                        <div class="col-sm-9">
+                            <input type="text" name="company_name" class="form-control" value="{{ company_name.value }}">
+                        </div>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">车辆过期宽限期（天）</label>
-                        <input type="number" name="grace_period_days" class="form-control" value="{{ grace_period.value }}" min="0" max="365">
+                    <div class="row mb-3 align-items-center">
+                        <label class="col-sm-3 col-form-label">车辆过期宽限期（天）</label>
+                        <div class="col-sm-9">
+                            <input type="number" name="grace_period_days" class="form-control" value="{{ grace_period.value }}" min="0" max="365">
+                        </div>
                     </div>
                     <hr>
                     <h6 class="text-muted mb-3">房号配置</h6>
-                    <div class="mb-3">
-                        <label class="form-label">区域选项</label>
-                        <input type="text" name="area_options" class="form-control" value="{{ area_options.value }}" placeholder="例如：之荣径,之泰径">
-                        <small class="text-muted">多个选项用逗号分隔</small>
+                    <div class="row mb-3 align-items-center">
+                        <label class="col-sm-3 col-form-label">区域选项</label>
+                        <div class="col-sm-9">
+                            <input type="text" name="area_options" class="form-control" value="{{ area_options.value }}" placeholder="例如：之荣径,之泰径">
+                            <small class="text-muted">多个选项用逗号分隔</small>
+                        </div>
                     </div>
                     
-                    <div class="mb-3">
-                        <label class="form-label">房号格式规则</label>
-                        <div class="table-responsive">
-                            <table class="table table-bordered table-sm" id="rulesTable">
-                                <thead>
-                                    <tr>
-                                        <th style="width: 15%">区域</th>
-                                        <th style="width: 12%">楼号</th>
-                                        <th style="width: 12%">单元号</th>
-                                        <th style="width: 12%">房间号</th>
-                                        <th style="width: 35%">生成格式</th>
-                                        <th style="width: 14%">操作</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="rulesBody">
-                                    <!-- 规则将在这里动态添加 -->
-                                </tbody>
-                            </table>
-                        </div>
-                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="addRule()">
-                            <span class="me-1">+</span> 添加规则
-                        </button>
-                        <input type="hidden" name="room_format_patterns" id="roomFormatPatterns">
-                        <div class="card mt-2 bg-light">
-                            <div class="card-body py-2">
-                                <small class="text-muted">
-                                    <strong>说明：</strong><br>
-                                    • 点击右侧按钮切换字段状态：启用（深色背景）或禁用（灰色背景表示该字段不填）<br>
-                                    • 生成格式中使用 {area} {building} {unit} {room} 占位符
-                                </small>
+                    <div class="row mb-3">
+                        <label class="col-sm-3 col-form-label pt-0">房号格式规则</label>
+                        <div class="col-sm-9">
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-sm" id="rulesTable">
+                                    <thead>
+                                        <tr>
+                                            <th style="width: 15%">区域</th>
+                                            <th style="width: 12%">楼号</th>
+                                            <th style="width: 12%">单元号</th>
+                                            <th style="width: 12%">房间号</th>
+                                            <th style="width: 35%">生成格式</th>
+                                            <th style="width: 14%">操作</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="rulesBody">
+                                        <!-- 规则将在这里动态添加 -->
+                                    </tbody>
+                                </table>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-primary mb-2" onclick="addRule()">
+                                <span class="me-1">+</span> 添加规则
+                            </button>
+                            <input type="hidden" name="room_format_patterns" id="roomFormatPatterns">
+                            <div class="card bg-light">
+                                <div class="card-body py-2">
+                                    <small class="text-muted">
+                                        <strong>说明：</strong><br>
+                                        • 点击右侧按钮切换字段状态：启用（深色背景）或禁用（灰色背景表示该字段不填）<br>
+                                        • 生成格式中使用 {area} {building} {unit} {room} 占位符
+                                    </small>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -204,6 +212,7 @@
                     btn.textContent = '×';
                 }
                 updateHiddenField();
+                checkChanges();
             }
         }
     }
@@ -215,6 +224,7 @@
     function removeRule(rowId) {
         document.getElementById(rowId).remove();
         updateHiddenField();
+        checkChanges();
     }
     
     function updateHiddenField() {
@@ -223,20 +233,21 @@
         const rows = tbody.querySelectorAll('tr');
         
         rows.forEach((row, index) => {
-            const inputs = row.querySelectorAll('input[type="text"]');
-            const selects = row.querySelectorAll('select');
+            const inputs = row.querySelectorAll('input[type="text"][data-field]');
+            const formatInput = row.querySelector('input[type="text"]:not([data-field])');
+            const buttons = row.querySelectorAll('button.btn:not(.btn-outline-danger)');
             
-            if (inputs.length >= 5 && selects.length >= 4) {
+            if (inputs.length >= 4 && formatInput && buttons.length >= 4) {
                 rules.push({
                     area_example: inputs[0].value,
-                    area_optional: selects[0].value === 'optional',
+                    area_optional: buttons[0].classList.contains('btn-secondary'),
                     building_example: inputs[1].value,
-                    building_optional: selects[1].value === 'optional',
+                    building_optional: buttons[1].classList.contains('btn-secondary'),
                     unit_example: inputs[2].value,
-                    unit_optional: selects[2].value === 'optional',
+                    unit_optional: buttons[2].classList.contains('btn-secondary'),
                     room_example: inputs[3].value,
-                    room_optional: selects[3].value === 'optional',
-                    format: inputs[4].value
+                    room_optional: buttons[3].classList.contains('btn-secondary'),
+                    format: formatInput.value
                 });
             }
         });
@@ -254,6 +265,16 @@
     // 保存按钮逻辑
     let initialData = null;
     
+    function captureInitialData() {
+        const form = document.getElementById('settingsForm');
+        const currentData = new FormData(form);
+        const currentValues = {};
+        currentData.forEach((value, key) => {
+            currentValues[key] = value;
+        });
+        initialData = JSON.stringify(currentValues);
+    }
+    
     function checkChanges() {
         const form = document.getElementById('settingsForm');
         const saveBtn = document.getElementById('saveBtn');
@@ -263,15 +284,19 @@
             currentValues[key] = value;
         });
         
-        if (!initialData) {
-            initialData = JSON.stringify(currentValues);
-        }
-        
-        saveBtn.disabled = JSON.stringify(currentValues) === initialData;
+        const hasChanges = JSON.stringify(currentValues) !== initialData;
+        saveBtn.disabled = !hasChanges;
     }
     
     document.addEventListener('DOMContentLoaded', () => {
         renderRules();
+        
+        // 渲染完成后立即保存初始值
+        setTimeout(() => {
+            captureInitialData();
+            // 确保初始状态按钮是禁用的
+            document.getElementById('saveBtn').disabled = true;
+        }, 0);
         
         // 监听基本设置字段变化
         document.getElementById('settingsForm').querySelectorAll('input[name="company_name"], input[name="grace_period_days"], input[name="area_options"]').forEach(el => {
