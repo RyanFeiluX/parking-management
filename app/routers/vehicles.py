@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Request, Depends
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
-from datetime import datetime
+from datetime import datetime, date
 
 from ..models import Vehicle, Resident, OperationLog
 from ..deps import require_role, require_login
@@ -9,7 +9,9 @@ from ..deps import require_role, require_login
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
 
-def log_operation(db: Session, user_id: int, action_type: str, target: str, detail: str, ip_address: str):
+def log_operation(db: Session, user_id: int, action_type: str, target: str, detail: str, ip_address: str = None):
+    if ip_address is None:
+        ip_address = "unknown"
     log = OperationLog(
         user_id=user_id,
         action_type=action_type,
@@ -27,6 +29,9 @@ async def add_vehicle(request: Request, resident_id: int, user: dict = Depends(r
     brand = form_data.get("brand")
     color = form_data.get("color")
     vehicle_type = form_data.get("vehicle_type", "小车")
+    is_garage = form_data.get("is_garage") == "on"
+    garage_number = form_data.get("garage_number", "").strip() or None
+    garage_valid_until_str = form_data.get("garage_valid_until")
     
     db = request.state.db
     resident = db.query(Resident).filter_by(id=resident_id).first()
@@ -45,6 +50,24 @@ async def add_vehicle(request: Request, resident_id: int, user: dict = Depends(r
         vehicles_with_status = get_vehicles_with_status(resident, db)
         return templates.TemplateResponse("residents/detail.html", {"request": request, "current_user": user, "resident": resident, "vehicles": vehicles_with_status, "error": "车牌号已存在"})
     
+    # 检查车库编号唯一性
+    if garage_number:
+        existing_garage = db.query(Vehicle).filter(
+            Vehicle.garage_number == garage_number,
+            Vehicle.id != 0
+        ).first()
+        if existing_garage:
+            vehicles_with_status = get_vehicles_with_status(resident, db)
+            return templates.TemplateResponse("residents/detail.html", {"request": request, "current_user": user, "resident": resident, "vehicles": vehicles_with_status, "error": f"车库编号 {garage_number} 已被车辆 {existing_garage.plate_number} 使用"})
+    
+    # 解析车库有效期
+    garage_valid_until = None
+    if garage_valid_until_str and is_garage:
+        try:
+            garage_valid_until = datetime.strptime(garage_valid_until_str, "%Y-%m-%d").date()
+        except ValueError:
+            pass
+    
     max_sort = current_count
     vehicle = Vehicle(
         plate_number=plate_number,
@@ -52,13 +75,16 @@ async def add_vehicle(request: Request, resident_id: int, user: dict = Depends(r
         color=color,
         vehicle_type=vehicle_type,
         sort_order=max_sort + 1,
-        resident_id=resident_id
+        resident_id=resident_id,
+        is_garage=is_garage,
+        garage_number=garage_number if is_garage else None,
+        garage_valid_until=garage_valid_until if is_garage else None
     )
     db.add(vehicle)
     db.commit()
     
     client_host = request.client.host if request.client else "unknown"
-    log_operation(db, user["user_id"], "create_vehicle", f"车辆 {plate_number}", f"为住户 {resident.room_number} 添加车辆", client_host)
+    log_operation(db, user["user_id"], "create_vehicle", f"车辆 {plate_number}", f"为住户 {resident.room_number} 添加车辆{'（车库车）' if is_garage else ''}", client_host)
     
     return templates.TemplateResponse("residents/detail.html", {"request": request, "current_user": user, "resident": resident, "vehicles": get_vehicles_with_status(resident, db), "success": "车辆添加成功"})
 
@@ -86,23 +112,47 @@ async def edit_vehicle(request: Request, vehicle_id: int, user: dict = Depends(r
     color = form_data.get("color")
     vehicle_type = form_data.get("vehicle_type")
     status = form_data.get("status")
+    is_garage = form_data.get("is_garage") == "on"
+    garage_number = form_data.get("garage_number", "").strip() or None
+    garage_valid_until_str = form_data.get("garage_valid_until")
     
     db = request.state.db
     vehicle = db.query(Vehicle).filter_by(id=vehicle_id).first()
     if not vehicle:
         return templates.TemplateResponse("residents/list.html", {"request": request, "current_user": user, "residents": db.query(Resident).all(), "error": "车辆不存在"})
     
+    # 检查车库编号唯一性（排除自己）
+    if garage_number:
+        existing_garage = db.query(Vehicle).filter(
+            Vehicle.garage_number == garage_number,
+            Vehicle.id != vehicle.id
+        ).first()
+        if existing_garage:
+            resident = vehicle.resident
+            return templates.TemplateResponse("residents/detail.html", {"request": request, "current_user": user, "resident": resident, "vehicles": get_vehicles_with_status(resident, db), "error": f"车库编号 {garage_number} 已被车辆 {existing_garage.plate_number} 使用"})
+    
+    # 解析车库有效期
+    garage_valid_until = None
+    if garage_valid_until_str and is_garage:
+        try:
+            garage_valid_until = datetime.strptime(garage_valid_until_str, "%Y-%m-%d").date()
+        except ValueError:
+            pass
+    
     vehicle.brand = brand
     vehicle.color = color
     vehicle.vehicle_type = vehicle_type
     vehicle.status = status
+    vehicle.is_garage = is_garage
+    vehicle.garage_number = garage_number if is_garage else None
+    vehicle.garage_valid_until = garage_valid_until if is_garage else None
     db.commit()
     
     client_host = request.client.host if request.client else "unknown"
-    log_operation(db, user["user_id"], "update_vehicle", f"车辆 {vehicle.plate_number}", "修改车辆信息", client_host)
+    log_operation(db, user["user_id"], "update_vehicle", f"车辆 {vehicle.plate_number}", f"修改车辆信息{'（车库车）' if is_garage else ''}", client_host)
     
     resident = vehicle.resident
-    return templates.TemplateResponse("residents/detail.html", {"request": request, "current_user": user, "resident": resident, "vehicles": get_vehicles_with_status(resident, db)})
+    return templates.TemplateResponse("residents/detail.html", {"request": request, "current_user": user, "resident": resident, "vehicles": get_vehicles_with_status(resident, db), "success": "车辆信息已更新"})
 
 @router.post("/{vehicle_id}/delete")
 async def delete_vehicle(request: Request, vehicle_id: int, user: dict = Depends(require_role("admin", "super_admin"))):

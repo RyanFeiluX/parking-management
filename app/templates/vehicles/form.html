@@ -37,6 +37,25 @@
                             <option value="停用" {% if vehicle.status == '停用' %}selected{% endif %}>停用</option>
                         </select>
                     </div>
+                    <hr>
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="isGarage" name="is_garage" {% if vehicle.is_garage %}checked{% endif %}>
+                            <label class="form-check-label" for="isGarage">
+                                <strong>车库车</strong>（有效期内免费，过期需到前台办理）
+                            </label>
+                        </div>
+                    </div>
+                    <div id="garageFields" {% if not vehicle.is_garage %}style="display: none;"{% endif %}>
+                        <div class="mb-3">
+                            <label class="form-label">车库编号</label>
+                            <input type="text" name="garage_number" class="form-control" value="{{ vehicle.garage_number or '' }}" placeholder="如：A001">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">有效期至</label>
+                            <input type="date" name="garage_valid_until" class="form-control" value="{{ vehicle.garage_valid_until.strftime('%Y-%m-%d') if vehicle.garage_valid_until else '' }}">
+                        </div>
+                    </div>
                     <button type="submit" class="btn btn-primary">保存</button>
                     <a href="/residents/{{ vehicle.resident_id }}" class="btn btn-secondary">取消</a>
                 </form>
@@ -44,4 +63,15 @@
         </div>
     </div>
 </div>
+
+<script>
+document.getElementById('isGarage').addEventListener('change', function() {
+    var garageFields = document.getElementById('garageFields');
+    if (this.checked) {
+        garageFields.style.display = 'block';
+    } else {
+        garageFields.style.display = 'none';
+    }
+});
+</script>
 {% endblock %}

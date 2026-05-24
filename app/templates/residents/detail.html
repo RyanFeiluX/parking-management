@@ -56,10 +56,21 @@
                         {% for item in vehicles %}
                         <tr>
                             <td>{{ item.vehicle.sort_order }}</td>
-                            <td>{{ item.vehicle.plate_number }}</td>
+                            <td>
+                                {{ item.vehicle.plate_number }}
+                                {% if item.vehicle.is_garage %}
+                                <span class="badge bg-info ms-1">车库</span>
+                                {% endif %}
+                            </td>
                             <td>{{ item.vehicle.brand or '-' }} / {{ item.vehicle.color or '-' }}</td>
                             <td>{{ item.vehicle.vehicle_type }}</td>
-                            <td>{{ item.status.detail.split('至')[0] if item.status.status == '免费' else '-' }}</td>
+                            <td>
+                                {% if item.vehicle.is_garage %}
+                                {{ item.vehicle.garage_number or '-' }}
+                                {% else %}
+                                {{ item.status.detail.split('至')[0] if item.status.status == '免费' else '-' }}
+                                {% endif %}
+                            </td>
                             <td>
                                 {% if item.status.status == '免费' %}
                                 <span class="badge bg-success">🟢 免费</span>
@@ -130,10 +141,40 @@
                             <option value="新能源">新能源</option>
                         </select>
                     </div>
+                    <hr>
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="isGarage" name="is_garage">
+                            <label class="form-check-label" for="isGarage">
+                                <strong>车库车</strong>（有效期内免费，过期需缴费）
+                            </label>
+                        </div>
+                    </div>
+                    <div id="garageFields" style="display: none;">
+                        <div class="mb-3">
+                            <label class="form-label">车库编号</label>
+                            <input type="text" name="garage_number" class="form-control" placeholder="如：A001">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">有效期至</label>
+                            <input type="date" name="garage_valid_until" class="form-control">
+                        </div>
+                    </div>
                     <button type="submit" class="btn btn-primary">添加</button>
                 </form>
             </div>
         </div>
     </div>
 </div>
+
+<script>
+document.getElementById('isGarage').addEventListener('change', function() {
+    var garageFields = document.getElementById('garageFields');
+    if (this.checked) {
+        garageFields.style.display = 'block';
+    } else {
+        garageFields.style.display = 'none';
+    }
+});
+</script>
 {% endblock %}

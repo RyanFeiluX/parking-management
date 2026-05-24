@@ -34,7 +34,11 @@
             <div class="card-body">
                 <div class="row">
                     <div class="col-md-6">
-                        <p><strong>车牌号:</strong> {{ vehicle.plate_number }}</p>
+                        <p><strong>车牌号:</strong> {{ vehicle.plate_number }}
+                        {% if vehicle.is_garage %}
+                        <span class="badge bg-info ms-2">车库车</span>
+                        {% endif %}
+                        </p>
                         <p><strong>所属住户:</strong> {{ vehicle.resident.room_number }} - {{ vehicle.resident.owner_name }}</p>
                     </div>
                     <div class="col-md-6">
@@ -43,9 +47,21 @@
                         <p><strong>类型:</strong> {{ vehicle.vehicle_type }}</p>
                     </div>
                 </div>
+                {% if vehicle.is_garage %}
+                <div class="mt-3 p-3 bg-info-subtle rounded">
+                    <p class="text-info"><strong>车库车说明:</strong> 此车辆已登记为车库车，有效期内无需缴纳停车费。如需延期，请前往前台办理车库延期手续。</p>
+                    {% if vehicle.garage_number %}
+                    <p class="text-info"><strong>车库编号:</strong> {{ vehicle.garage_number }}</p>
+                    {% endif %}
+                    {% if vehicle.garage_valid_until %}
+                    <p class="text-info"><strong>有效期至:</strong> {{ vehicle.garage_valid_until.strftime('%Y-%m-%d') }}</p>
+                    {% endif %}
+                </div>
+                {% endif %}
             </div>
         </div>
 
+        {% if not vehicle.is_garage %}
         <div class="card mt-4">
             <div class="card-header">缴费信息</div>
             <div class="card-body">
@@ -104,6 +120,7 @@
                 </form>
             </div>
         </div>
+        {% endif %}
         {% endif %}
         {% endif %}
     </div>

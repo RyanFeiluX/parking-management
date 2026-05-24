@@ -37,6 +37,10 @@ class Vehicle(Base):
     sort_order = Column(Integer, nullable=False, default=1)
     status = Column(String(10), default="正常")
     resident_id = Column(Integer, ForeignKey("residents.id"), nullable=True)
+    # 车库属性
+    is_garage = Column(Boolean, default=False)  # 是否车库车
+    garage_number = Column(String(50), nullable=True)  # 车库编号（唯一）
+    garage_valid_until = Column(Date, nullable=True)  # 车库有效期
     created_at = Column(DateTime, default=datetime.now)
     updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
     resident = relationship("Resident", back_populates="vehicles")
