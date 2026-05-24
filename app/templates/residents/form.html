@@ -5,7 +5,7 @@
 
 {% block content %}
 <div class="row">
-    <div class="col-md-6">
+    <div class="col-md-8">
         <div class="card">
             <div class="card-body">
                 {% if error %}
@@ -19,8 +19,30 @@
                     </div>
                     {% else %}
                     <div class="mb-3">
-                        <label class="form-label">房号</label>
-                        <input type="text" name="room_number" class="form-control" required>
+                        <label class="form-label">房号（分段填写）</label>
+                        <div class="row g-2">
+                            <div class="col-md-3">
+                                <select name="area" class="form-control" id="areaSelect">
+                                    <option value="">--区域--</option>
+                                    {% for option in area_options %}
+                                    <option value="{{ option }}">{{ option }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <input type="text" name="building" class="form-control" id="buildingInput" placeholder="楼号" maxlength="3" required>
+                            </div>
+                            <div class="col-md-2">
+                                <input type="text" name="unit" class="form-control" id="unitInput" placeholder="单元号" maxlength="3">
+                            </div>
+                            <div class="col-md-3">
+                                <input type="text" name="room" class="form-control" id="roomInput" placeholder="房间号" maxlength="5" required>
+                            </div>
+                            <div class="col-md-2">
+                                <button type="button" class="btn btn-outline-secondary w-100" onclick="previewRoomNumber()">预览</button>
+                            </div>
+                        </div>
+                        <div id="roomPreview" class="mt-2 text-muted small"></div>
                     </div>
                     {% endif %}
                     <div class="mb-3">
@@ -42,4 +64,38 @@
         </div>
     </div>
 </div>
+
+{% if not resident %}
+<script>
+function previewRoomNumber() {
+    var area = document.getElementById('areaSelect').value;
+    var building = document.getElementById('buildingInput').value;
+    var unit = document.getElementById('unitInput').value;
+    var room = document.getElementById('roomInput').value;
+    
+    var preview = document.getElementById('roomPreview');
+    
+    // 简单的预览逻辑（完整格式）
+    var roomNum = "";
+    if (building && room) {
+        if (area) roomNum += area;
+        roomNum += building + "幢";
+        if (unit) roomNum += unit + "单元";
+        roomNum += room + "室";
+    }
+    
+    if (roomNum) {
+        preview.innerHTML = "预览: <strong>" + roomNum + "</strong>";
+    } else {
+        preview.innerHTML = "请至少填写楼号和房间号";
+    }
+}
+
+// 实时预览
+document.getElementById('areaSelect').addEventListener('change', previewRoomNumber);
+document.getElementById('buildingInput').addEventListener('input', previewRoomNumber);
+document.getElementById('unitInput').addEventListener('input', previewRoomNumber);
+document.getElementById('roomInput').addEventListener('input', previewRoomNumber);
+</script>
+{% endif %}
 {% endblock %}

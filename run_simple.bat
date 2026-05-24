@@ -6,7 +6,7 @@ echo Parking Management System Launcher
 echo ================================================
 echo.
 
-D:\ProgramData\anaconda3\python.exe run.py
+python run.py
 
 echo.
 echo Application stopped

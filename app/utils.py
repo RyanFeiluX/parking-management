@@ -204,3 +204,179 @@ def calculate_payment_amount(vehicle, period_type, months, db):
         "tier": tier,
         "discount": discount
     }
+
+def generate_room_number(area: str, building: str, unit: str, room: str, db: Session) -> str:
+    """
+    根据分段信息生成房号
+    :param area: 区域（如 "A区"）
+    :param building: 楼号（如 "1"）
+    :param unit: 单元号（如 "2"，可为空）
+    :param room: 房间号（如 "301"）
+    :param db: 数据库会话
+    :return: 格式化的房号
+    """
+    # 清理输入
+    area = area.strip() if area else ""
+    building = building.strip() if building else ""
+    unit = unit.strip() if unit else ""
+    room = room.strip() if room else ""
+    
+    # 获取格式规则
+    patterns_str = get_system_setting(db, "room_format_patterns", "A区1幢2单元301室,A区1幢301室,1幢2单元301室,1幢301室")
+    patterns = [p.strip() for p in patterns_str.split(",") if p.strip()]
+    
+    # 准备变量字典
+    has_area = bool(area)
+    has_unit = bool(unit)
+    
+    # 按优先级匹配格式
+    for pattern in patterns:
+        # 检测模式需要的字段
+        need_area = "{area}" in pattern
+        need_unit = "{unit}" in pattern
+        
+        # 检查是否匹配
+        if need_area and not has_area:
+            continue
+        if need_unit and not has_unit:
+            continue
+        
+        # 生成房号
+        result = pattern
+        if area:
+            result = result.replace("{area}", area)
+        else:
+            result = result.replace("{area}", "")
+        if building:
+            result = result.replace("{building}", building)
+        if unit:
+            result = result.replace("{unit}", unit)
+        if room:
+            result = result.replace("{room}", room)
+        
+        # 清理多余的栋、单元等字样（当对应的值为空时）
+        if not building:
+            result = result.replace("{building}", "")
+        if not unit:
+            result = result.replace("{unit}", "")
+        
+        # 清理连续的特殊字符
+        result = result.replace("栋栋", "栋")
+        result = result.replace("单元单元", "单元")
+        result = result.replace("室室", "室")
+        
+        # 清理末尾的栋、单元等
+        result = result.rstrip("栋单元室")
+        
+        return result if result else f"{building}栋{room}室" if building and room else ""
+    
+    # 默认格式
+    if building and room:
+        if area and unit:
+            return f"{area}{building}栋{unit}单元{room}室"
+        elif area:
+            return f"{area}{building}栋{room}室"
+        elif unit:
+            return f"{building}栋{unit}单元{room}室"
+        else:
+            return f"{building}栋{room}室"
+    
+    return ""
+
+def get_area_options(db: Session) -> list:
+    """
+    获取区域选项列表
+    :param db: 数据库会话
+    :return: 区域选项列表
+    """
+    options_str = get_system_setting(db, "area_options", "A区,B区,C区,D区")
+    return [opt.strip() for opt in options_str.split(",") if opt.strip()]
+
+
+def calculate_temp_parking_fee(minutes: int, db: Session) -> dict:
+    """
+    计算临时停车费用
+    :param minutes: 停车时长（分钟）
+    :param db: 数据库会话
+    :return: 费用信息字典
+    """
+    rules_str = get_system_setting(db, "temp_parking_rules", '')
+    try:
+        rules = json.loads(rules_str)
+    except json.JSONDecodeError:
+        rules = {
+            "free_minutes": 30,
+            "daily_cap": 20.00,
+            "tiers": [
+                {"from_hours": 0, "to_hours": 1, "fee": 4.0},
+                {"from_hours": 1, "to_hours": 2, "fee": 8.0},
+                {"from_hours": 2, "to_hours": 12, "fee": 12.0},
+                {"from_hours": 12, "to_hours": 24, "fee": 16.0}
+            ],
+            "overflow": "daily_reset",
+            "rate_type": "tier"
+        }
+    
+    free_minutes = rules.get("free_minutes", 30)
+    daily_cap = rules.get("daily_cap", 20.0)
+    overflow = rules.get("overflow", "daily_reset")
+    rate_type = rules.get("rate_type", "tier")
+    
+    if minutes <= free_minutes:
+        return {
+            "fee": 0.0,
+            "discounted_fee": 0.0,
+            "free_minutes": free_minutes,
+            "charged_minutes": 0,
+            "rate_type": rate_type,
+            "detail": f"免费停放（{minutes}分钟 ≤ {free_minutes}分钟）"
+        }
+    
+    charged_minutes = minutes - free_minutes
+    hours = charged_minutes / 60.0
+    
+    if rate_type == "tier":
+        tiers = rules.get("tiers", [])
+        tiers.sort(key=lambda x: x["from_hours"])
+        
+        total_fee = 0.0
+        tier_details = []
+        
+        for tier in tiers:
+            from_h = tier["from_hours"]
+            to_h = tier["to_hours"]
+            tier_fee = tier["fee"]
+            
+            overlap_start = max(hours, from_h)
+            overlap_end = min(hours, to_h)
+            
+            if overlap_end > overlap_start:
+                total_fee += tier_fee
+                tier_details.append(f"{from_h}-{to_h}小时: {tier_fee}元")
+            elif hours > to_h:
+                total_fee += tier_fee
+                tier_details.append(f"{from_h}-{to_h}小时: {tier_fee}元")
+            elif hours <= to_h:
+                total_fee += tier_fee
+                tier_details.append(f"{from_h}-{to_h}小时: {tier_fee}元")
+                break
+    else:
+        flat_interval = rules.get("flat_interval", 30)
+        flat_rate = rules.get("flat_rate", 5.0)
+        
+        intervals = (charged_minutes + flat_interval - 1) // flat_interval
+        total_fee = intervals * flat_rate
+        tier_details = [f"{intervals} × {flat_interval}分钟 = {total_fee:.2f}元"]
+    
+    if daily_cap > 0 and total_fee > daily_cap:
+        total_fee = daily_cap
+        tier_details.append(f"超过24小时封顶金额，实收{daily_cap}元")
+    
+    return {
+        "fee": round(total_fee, 2),
+        "discounted_fee": round(total_fee, 2),
+        "free_minutes": free_minutes,
+        "charged_minutes": charged_minutes,
+        "rate_type": rate_type,
+        "detail": "; ".join(tier_details)
+    }

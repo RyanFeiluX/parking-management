@@ -25,6 +25,18 @@
                         <label class="form-label">API 访问令牌（留空则不启用）</label>
                         <input type="text" name="api_token" class="form-control" value="{{ api_token.value }}">
                     </div>
+                    <hr>
+                    <h6 class="text-muted mb-3">房号配置</h6>
+                    <div class="mb-3">
+                        <label class="form-label">区域选项</label>
+                        <input type="text" name="area_options" class="form-control" value="{{ area_options.value }}" placeholder="例如：A区,B区,C区,D区">
+                        <small class="text-muted">多个选项用逗号分隔</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">房号格式规则</label>
+                        <textarea name="room_format_patterns" class="form-control" rows="3" placeholder="例如：A区1栋2单元301室,A区1栋301室,1栋2单元301室,1栋301室">{{ room_format_patterns.value }}</textarea>
+                        <small class="text-muted">多个规则用逗号分隔，按优先级匹配。变量：{area}=区域, {building}=楼号, {unit}=单元号, {room}=房间号</small>
+                    </div>
                     <button type="submit" class="btn btn-primary">保存设置</button>
                 </form>
             </div>
@@ -53,6 +65,14 @@
                         </select>
                     </div>
                     <div class="mb-3">
+                        <label class="form-label">费率类型</label>
+                        <select name="rate_type" class="form-control" onchange="toggleRateConfig()">
+                            <option value="tier" {% if temp_rules.rate_type == 'tier' or not temp_rules.rate_type %}selected{% endif %}>阶梯费率</option>
+                            <option value="flat" {% if temp_rules.rate_type == 'flat' %}selected{% endif %}>时长费率</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3" id="tier-config" {% if temp_rules.rate_type == 'flat' %}style="display: none;"{% endif %}>
                         <label class="form-label">费率阶梯</label>
                         <table class="table">
                             <thead>
@@ -75,6 +95,30 @@
                             </tbody>
                         </table>
                     </div>
+                    
+                    <div class="mb-3" id="flat-config" {% if temp_rules.rate_type != 'flat' %}style="display: none;"{% endif %}>
+                        <label class="form-label">时长费率配置</label>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label class="form-label">计费单位（分钟）</label>
+                                <input type="number" name="flat_interval" class="form-control" value="{{ temp_rules.flat_interval or 30 }}" min="1" max="1440">
+                                <small class="text-muted">例如：30表示每30分钟计费一次</small>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">单位费用（元）</label>
+                                <input type="number" name="flat_rate" class="form-control" value="{{ temp_rules.flat_rate or 5.0 }}" step="0.5">
+                                <small class="text-muted">每个计费单位的费用</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <script>
+                        function toggleRateConfig() {
+                            var rateType = document.querySelector('select[name="rate_type"]').value;
+                            document.getElementById('tier-config').style.display = rateType === 'tier' ? 'block' : 'none';
+                            document.getElementById('flat-config').style.display = rateType === 'flat' ? 'block' : 'none';
+                        }
+                    </script>
                     <button type="submit" class="btn btn-primary">保存规则</button>
                 </form>
             </div>

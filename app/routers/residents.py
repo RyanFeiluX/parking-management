@@ -5,6 +5,7 @@ from datetime import datetime
 
 from ..models import Resident, Vehicle, PaymentRecord, OperationLog
 from ..deps import require_role, require_login
+from ..utils import generate_room_number, get_area_options
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
@@ -59,21 +60,43 @@ async def list_residents(request: Request, user: dict = Depends(require_login)):
 
 @router.get("/add")
 async def add_resident_page(request: Request, user: dict = Depends(require_role("admin", "super_admin"))):
-    return templates.TemplateResponse("residents/form.html", {"request": request, "current_user": user})
+    db = request.state.db
+    area_options = get_area_options(db)
+    return templates.TemplateResponse("residents/form.html", {"request": request, "current_user": user, "area_options": area_options})
 
 @router.post("/add")
 async def add_resident(request: Request, user: dict = Depends(require_role("admin", "super_admin"))):
     form_data = await request.form()
-    room_number = form_data.get("room_number")
+    area = form_data.get("area", "")
+    building = form_data.get("building", "")
+    unit = form_data.get("unit", "")
+    room = form_data.get("room", "")
     owner_name = form_data.get("owner_name")
     phone = form_data.get("phone")
     remark = form_data.get("remark")
     
     db = request.state.db
+    area_options = get_area_options(db)
+    
+    # 生成房号
+    room_number = generate_room_number(area, building, unit, room, db)
+    
+    if not room_number:
+        return templates.TemplateResponse("residents/form.html", {
+            "request": request,
+            "current_user": user,
+            "error": "请至少填写楼号和房间号",
+            "area_options": area_options
+        })
     
     existing = db.query(Resident).filter_by(room_number=room_number).first()
     if existing:
-        return templates.TemplateResponse("residents/form.html", {"request": request, "current_user": user, "error": "房号已存在"})
+        return templates.TemplateResponse("residents/form.html", {
+            "request": request,
+            "current_user": user,
+            "error": f"房号 {room_number} 已存在",
+            "area_options": area_options
+        })
     
     resident = Resident(
         room_number=room_number,
