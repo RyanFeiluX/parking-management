@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block title %}临时停车费率规则{% endblock %}
+{% block header %}临时停车费率规则{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-6">
+        {% if success %}
+        <div class="alert alert-success">{{ success }}</div>
+        {% endif %}
+        
+        <!-- 分页导航 -->
+        <ul class="nav nav-tabs mb-4">
+            <li class="nav-item">
+                <a class="nav-link" href="/settings">系统基本设置</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link active" href="/settings/temp-rules">临时停车费率规则</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/settings/external-api">外部接口配置</a>
+            </li>
+        </ul>
+        
+        <div class="card">
+            <div class="card-header">临时停车费率规则</div>
+            <div class="card-body">
+                <form method="post" action="/settings/save-temp-rules">
+                    <div class="mb-3">
+                        <label class="form-label">免费停放时长（分钟）</label>
+                        <input type="number" name="free_minutes" class="form-control" value="{{ temp_rules.free_minutes }}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">24小时封顶金额（元，0=不封顶）</label>
+                        <input type="number" name="daily_cap" class="form-control" value="{{ temp_rules.daily_cap }}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">超24小时处理</label>
+                        <select name="overflow" class="form-control">
+                            {% for opt in overflow_options %}
+                            <option value="{{ opt }}" {% if temp_rules.overflow == opt %}selected{% endif %}>
+                                {% if opt == 'daily_reset' %}按天重新计费{% else %}继续累加{% endif %}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">费率类型</label>
+                        <select name="rate_type" class="form-control" onchange="toggleRateConfig()">
+                            <option value="tier" {% if temp_rules.rate_type == 'tier' or not temp_rules.rate_type %}selected{% endif %}>阶梯费率</option>
+                            <option value="flat" {% if temp_rules.rate_type == 'flat' %}selected{% endif %}>时长费率</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3" id="tier-config" {% if temp_rules.rate_type == 'flat' %}style="display: none;"{% endif %}>
+                        <label class="form-label">费率阶梯</label>
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>序号</th>
+                                    <th>起始小时</th>
+                                    <th>截止小时</th>
+                                    <th>费用（元）</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for tier in temp_rules.tiers %}
+                                <tr>
+                                    <td>{{ loop.index }}</td>
+                                    <td><input type="number" name="tier_{{ loop.index0 }}_from" class="form-control" value="{{ tier.from_hours }}"></td>
+                                    <td><input type="number" name="tier_{{ loop.index0 }}_to" class="form-control" value="{{ tier.to_hours }}"></td>
+                                    <td><input type="number" name="tier_{{ loop.index0 }}_fee" class="form-control" value="{{ tier.fee }}"></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="mb-3" id="flat-config" {% if temp_rules.rate_type != 'flat' %}style="display: none;"{% endif %}>
+                        <label class="form-label">时长费率配置</label>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label class="form-label">计费单位（分钟）</label>
+                                <input type="number" name="flat_interval" class="form-control" value="{{ temp_rules.flat_interval or 30 }}" min="1" max="1440">
+                                <small class="text-muted">例如：30表示每30分钟计费一次</small>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">单位费用（元）</label>
+                                <input type="number" name="flat_rate" class="form-control" value="{{ temp_rules.flat_rate or 5.0 }}" step="0.5">
+                                <small class="text-muted">每个计费单位的费用</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <script>
+                        function toggleRateConfig() {
+                            var rateType = document.querySelector('select[name="rate_type"]').value;
+                            document.getElementById('tier-config').style.display = rateType === 'tier' ? 'block' : 'none';
+                            document.getElementById('flat-config').style.display = rateType === 'flat' ? 'block' : 'none';
+                        }
+                    </script>
+                    <button type="submit" class="btn btn-primary">保存规则</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

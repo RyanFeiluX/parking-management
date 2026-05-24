@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block title %}外部接口配置{% endblock %}
+{% block header %}外部接口配置{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-6">
+        {% if success %}
+        <div class="alert alert-success">{{ success }}</div>
+        {% endif %}
+        
+        <!-- 分页导航 -->
+        <ul class="nav nav-tabs mb-4">
+            <li class="nav-item">
+                <a class="nav-link" href="/settings">系统基本设置</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/settings/temp-rules">临时停车费率规则</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link active" href="/settings/external-api">外部接口配置</a>
+            </li>
+        </ul>
+        
+        <div class="card">
+            <div class="card-header">外部接口配置</div>
+            <div class="card-body">
+                <form method="post" action="/settings/save-external-api">
+                    <div class="mb-3">
+                        <label class="form-label">API 访问令牌（留空则不启用）</label>
+                        <input type="text" name="api_token" class="form-control" value="{{ api_token.value }}">
+                    </div>
+                    <button type="submit" class="btn btn-primary">保存设置</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

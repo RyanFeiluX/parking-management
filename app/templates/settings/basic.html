@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block title %}系统基本设置{% endblock %}
+{% block header %}系统基本设置{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-6">
+        {% if success %}
+        <div class="alert alert-success">{{ success }}</div>
+        {% endif %}
+        
+        <!-- 分页导航 -->
+        <ul class="nav nav-tabs mb-4">
+            <li class="nav-item">
+                <a class="nav-link active" href="/settings">系统基本设置</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/settings/temp-rules">临时停车费率规则</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/settings/external-api">外部接口配置</a>
+            </li>
+        </ul>
+        
+        <div class="card">
+            <div class="card-header">系统基本设置</div>
+            <div class="card-body">
+                <form method="post" action="/settings/save">
+                    <div class="mb-3">
+                        <label class="form-label">系统标题</label>
+                        <input type="text" name="company_name" class="form-control" value="{{ company_name.value }}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">车辆过期宽限期（天）</label>
+                        <input type="number" name="grace_period_days" class="form-control" value="{{ grace_period.value }}" min="0" max="365">
+                    </div>
+                    <hr>
+                    <h6 class="text-muted mb-3">房号配置</h6>
+                    <div class="mb-3">
+                        <label class="form-label">区域选项</label>
+                        <input type="text" name="area_options" class="form-control" value="{{ area_options.value }}" placeholder="例如：A区,B区,C区,D区">
+                        <small class="text-muted">多个选项用逗号分隔</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">房号格式规则</label>
+                        <textarea name="room_format_patterns" class="form-control" rows="3" placeholder="例如：A区1栋2单元301室,A区1栋301室,1栋2单元301室,1栋301室">{{ room_format_patterns.value }}</textarea>
+                        <small class="text-muted">多个规则用逗号分隔，按优先级匹配。变量：{area}=区域, {building}=楼号, {unit}=单元号, {room}=房间号</small>
+                    </div>
+                    <button type="submit" class="btn btn-primary">保存设置</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
