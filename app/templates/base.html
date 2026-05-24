@@ -94,7 +94,19 @@
     {% block guest_content %}{% endblock %}
     {% endif %}
     
+    <!-- 通知条 -->
+    <div id="notification" class="position-fixed top-0 end-0 p-3" style="z-index: 2000; display: none;">
+        <div class="toast show" role="alert" style="min-width: 300px;">
+            <div class="toast-header bg-success text-white">
+                <strong class="me-auto">成功</strong>
+                <button type="button" class="btn-close btn-close-white" onclick="hideNotification()"></button>
+            </div>
+            <div class="toast-body" id="notificationMessage"></div>
+        </div>
+    </div>
+    
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/static/js/notification.js"></script>
     {% block scripts %}{% endblock %}
 </body>
 </html>

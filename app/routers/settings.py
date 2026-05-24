@@ -129,20 +129,7 @@ async def save_settings(request: Request, user: dict = Depends(require_role("sup
     
     db = request.state.db
     
-    grace_period = get_or_create_setting(db, "grace_period_days", "15")
-    grace_period.value = form_data.get("grace_period_days", "15")
-    db.commit()
-    
-    company_name = get_or_create_setting(db, "company_name", "")
-    company_name.value = form_data.get("company_name", "")
-    db.commit()
-    
-    # 保存区域选项
-    area_options = get_or_create_setting(db, "area_options", "之荣径,之泰径")
-    area_options.value = form_data.get("area_options", "之荣径,之泰径")
-    db.commit()
-    
-    # 保存房号格式规则
+    # 默认规则
     default_rules = [
         {"area_example": "之荣径", "area_optional": False, "building_example": "8", "building_optional": False, "unit_example": "", "unit_optional": True, "room_example": "202", "room_optional": False, "format": "{area}{building}号{room}"},
         {"area_example": "之荣径", "area_optional": False, "building_example": "1", "building_optional": False, "unit_example": "", "unit_optional": True, "room_example": "", "room_optional": True, "format": "{area}{building}号"},
@@ -151,17 +138,37 @@ async def save_settings(request: Request, user: dict = Depends(require_role("sup
         {"area_example": "", "area_optional": True, "building_example": "3", "building_optional": False, "unit_example": "", "unit_optional": True, "room_example": "101", "room_optional": False, "format": "{building}号{room}"}
     ]
     
-    room_format_patterns = get_or_create_setting(db, "room_format_patterns", json.dumps(default_rules))
-    room_format_patterns.value = form_data.get("room_format_patterns", json.dumps(default_rules))
-    db.commit()
+    # 获取并验证房号格式规则
+    room_format_patterns_value = form_data.get("room_format_patterns", "")
+    # 如果是空值，使用默认规则
+    if not room_format_patterns_value or room_format_patterns_value.strip() == "":
+        room_format_patterns_value = json.dumps(default_rules)
     
-    # 尝试解析已保存的规则
+    # 验证JSON格式是否有效
     try:
-        rules_json = json.loads(room_format_patterns.value)
+        rules_json = json.loads(room_format_patterns_value)
         if not isinstance(rules_json, list):
             rules_json = default_rules
+            room_format_patterns_value = json.dumps(default_rules)
     except (json.JSONDecodeError, TypeError):
         rules_json = default_rules
+        room_format_patterns_value = json.dumps(default_rules)
+    
+    # 保存各个设置
+    grace_period = get_or_create_setting(db, "grace_period_days", "15")
+    grace_period.value = form_data.get("grace_period_days", "15")
+    
+    company_name = get_or_create_setting(db, "company_name", "")
+    company_name.value = form_data.get("company_name", "")
+    
+    area_options = get_or_create_setting(db, "area_options", "之荣径,之泰径")
+    area_options.value = form_data.get("area_options", "之荣径,之泰径")
+    
+    room_format_patterns = get_or_create_setting(db, "room_format_patterns", json.dumps(default_rules))
+    room_format_patterns.value = room_format_patterns_value
+    
+    # 一次性提交所有修改
+    db.commit()
     
     client_host = request.client.host if request.client else "unknown"
     log_operation(db, user["user_id"], "system_backup", "系统设置", "更新系统设置", client_host)

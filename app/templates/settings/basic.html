@@ -4,6 +4,9 @@
 {% block header %}系统基本设置{% endblock %}
 
 {% block content %}
+<div id="page-data" {% if success %}data-success="{{ success }}"{% endif %}></div>
+<!-- 存储房号规则JSON数据 -->
+<script id="rulesJsonData" type="application/json">{{ rules_json_str|safe }}</script>
 <div class="row">
     <div class="col-md-10">
         <!-- 分页导航 -->
@@ -22,11 +25,6 @@
         <div class="card">
             <div class="card-header">系统基本设置</div>
             <div class="card-body">
-                {% if success %}
-                <div class="alert alert-success">
-                    {{ success }}
-                </div>
-                {% endif %}
                 <form method="post" action="/settings/save" id="settingsForm">
                     <div class="row mb-3 align-items-center">
                         <label class="col-sm-3 col-form-label">系统标题</label>
@@ -94,15 +92,19 @@
 </div>
 <script>
     // 解析现有规则
-    const rulesDataStr = '{{ rules_json_str|safe }}';
+    let rulesDataStr = '';
     let ruleCounter = 0;
     
     function parseRules() {
         let parsed = [];
-        try {
-            parsed = JSON.parse(rulesDataStr);
-        } catch(e) {
-            parsed = [];
+        // 从script#rulesJsonData标签获取数据
+        const scriptTag = document.getElementById('rulesJsonData');
+        if (scriptTag) {
+            try {
+                parsed = JSON.parse(scriptTag.textContent);
+            } catch(e) {
+                parsed = [];
+            }
         }
         if (!parsed || !Array.isArray(parsed)) {
             return [];
@@ -298,8 +300,9 @@
     document.addEventListener('DOMContentLoaded', () => {
         renderRules();
         
-        // 渲染完成后立即保存初始值
+        // 渲染完成后立即更新隐藏字段并保存初始值
         setTimeout(() => {
+            updateHiddenField();  // 确保隐藏字段有值
             captureInitialData();
             // 确保初始状态按钮是禁用的
             document.getElementById('saveBtn').disabled = true;
@@ -310,6 +313,13 @@
             el.addEventListener('input', checkChanges);
             el.addEventListener('change', checkChanges);
         });
+        
+        // 显示成功通知
+        const pageData = document.getElementById('page-data');
+        const successMsg = pageData.dataset.success;
+        if (successMsg) {
+            showNotification(successMsg);
+        }
     });
 </script>
 {% endblock %}

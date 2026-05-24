@@ -5,6 +5,7 @@ from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 from datetime import datetime, date
 from typing import Optional
+import json
 
 from .database import engine, get_db, Base
 from .models import User, SystemSetting
@@ -14,6 +15,14 @@ from .deps import get_user, require_role
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 templates = Jinja2Templates(directory="app/templates")
+
+# Add custom escapejs filter
+def escapejs_filter(value):
+    if value is None:
+        return ""
+    return json.dumps(str(value))[1:-1]  # Remove the surrounding quotes from json.dumps
+
+templates.env.filters["escapejs"] = escapejs_filter
 
 Base.metadata.create_all(bind=engine)
 
@@ -33,8 +42,16 @@ def init_default_settings(db: Session):
 @app.middleware("http")
 async def db_session_middleware(request: Request, call_next):
     request.state.db = next(get_db())
-    response = await call_next(request)
-    return response
+    try:
+        response = await call_next(request)
+        return response
+    except Exception as e:
+        print(f"\n!!! EXCEPTION OCCURRED !!!")
+        import traceback
+        traceback.print_exc()
+        raise
+    finally:
+        pass
 
 @app.get("/")
 async def index(request: Request):

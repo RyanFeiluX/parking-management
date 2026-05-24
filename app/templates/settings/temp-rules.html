@@ -4,6 +4,7 @@
 {% block header %}临时停车费率规则{% endblock %}
 
 {% block content %}
+<div id="page-data" {% if success %}data-success="{{ success }}"{% endif %}></div>
 <div class="row">
     <div class="col-md-6">
         <!-- 分页导航 -->
@@ -22,11 +23,6 @@
         <div class="card">
             <div class="card-header">临时停车费率规则</div>
             <div class="card-body">
-                {% if success %}
-                <div class="alert alert-success">
-                    {{ success }}
-                </div>
-                {% endif %}
                 <form method="post" action="/settings/save-temp-rules">
                     <div class="row mb-3 align-items-center">
                         <label class="col-sm-4 col-form-label">免费停放时长（分钟）</label>
@@ -161,6 +157,13 @@
         document.addEventListener('DOMContentLoaded', () => {
             captureInitialData();
             saveBtn.disabled = true;
+            
+            // 显示成功通知
+            const pageData = document.getElementById('page-data');
+            const successMsg = pageData.dataset.success;
+            if (successMsg) {
+                showNotification(successMsg);
+            }
         });
         
         // 监听输入变化
