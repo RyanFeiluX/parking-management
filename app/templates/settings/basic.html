@@ -6,10 +6,6 @@
 {% block content %}
 <div class="row">
     <div class="col-md-10">
-        {% if success %}
-        <div class="alert alert-success">{{ success }}</div>
-        {% endif %}
-        
         <!-- 分页导航 -->
         <ul class="nav nav-tabs mb-4">
             <li class="nav-item">
@@ -26,6 +22,11 @@
         <div class="card">
             <div class="card-header">系统基本设置</div>
             <div class="card-body">
+                {% if success %}
+                <div class="alert alert-success">
+                    {{ success }}
+                </div>
+                {% endif %}
                 <form method="post" action="/settings/save" id="settingsForm">
                     <div class="row mb-3 align-items-center">
                         <label class="col-sm-3 col-form-label">系统标题</label>
@@ -93,14 +94,20 @@
 </div>
 <script>
     // 解析现有规则
-    const rulesData = {{ rules_json|tojson|safe }};
+    const rulesDataStr = '{{ rules_json_str|safe }}';
     let ruleCounter = 0;
     
     function parseRules() {
-        if (!rulesData || !Array.isArray(rulesData)) {
+        let parsed = [];
+        try {
+            parsed = JSON.parse(rulesDataStr);
+        } catch(e) {
+            parsed = [];
+        }
+        if (!parsed || !Array.isArray(parsed)) {
             return [];
         }
-        return rulesData;
+        return parsed;
     }
     
     function renderRules() {

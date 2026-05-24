@@ -64,7 +64,8 @@ async def basic_settings_page(request: Request, user: dict = Depends(require_rol
         "company_name": company_name,
         "area_options": area_options,
         "room_format_patterns": room_format_patterns,
-        "rules_json": rules_json
+        "rules_json_str": json.dumps(rules_json),
+        "success": None
     })
 
 
@@ -83,7 +84,8 @@ async def temp_rules_page(request: Request, user: dict = Depends(require_role("s
         "request": request,
         "current_user": user,
         "temp_rules": rules_data or {},
-        "overflow_options": ["daily_reset", "continue"]
+        "overflow_options": ["daily_reset", "continue"],
+        "success": None
     })
 
 
@@ -96,7 +98,8 @@ async def external_api_page(request: Request, user: dict = Depends(require_role(
     return templates.TemplateResponse("settings/external-api.html", {
         "request": request,
         "current_user": user,
-        "api_token": api_token
+        "api_token": api_token,
+        "success": None
     })
 
 
@@ -170,7 +173,7 @@ async def save_settings(request: Request, user: dict = Depends(require_role("sup
         "company_name": company_name,
         "area_options": area_options,
         "room_format_patterns": room_format_patterns,
-        "rules_json": rules_json,
+        "rules_json_str": json.dumps(rules_json),
         "success": "系统设置已更新"
     })
 

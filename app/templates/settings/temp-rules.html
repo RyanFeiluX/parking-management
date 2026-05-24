@@ -6,10 +6,6 @@
 {% block content %}
 <div class="row">
     <div class="col-md-6">
-        {% if success %}
-        <div class="alert alert-success">{{ success }}</div>
-        {% endif %}
-        
         <!-- 分页导航 -->
         <ul class="nav nav-tabs mb-4">
             <li class="nav-item">
@@ -26,6 +22,11 @@
         <div class="card">
             <div class="card-header">临时停车费率规则</div>
             <div class="card-body">
+                {% if success %}
+                <div class="alert alert-success">
+                    {{ success }}
+                </div>
+                {% endif %}
                 <form method="post" action="/settings/save-temp-rules">
                     <div class="row mb-3 align-items-center">
                         <label class="col-sm-4 col-form-label">免费停放时长（分钟）</label>
@@ -133,23 +134,34 @@
     (function() {
         const form = document.querySelector('form[action="/settings/save-temp-rules"]');
         const saveBtn = document.getElementById('saveBtn');
-        const initialValues = new Map();
+        let initialData = null;
         
-        // 保存初始值
-        form.querySelectorAll('input, textarea, select').forEach(el => {
-            initialValues.set(el.name, el.value);
-        });
-        
-        // 检查是否有变化
-        window.checkChanges = function() {
-            let hasChanges = false;
-            form.querySelectorAll('input, textarea, select').forEach(el => {
-                if (el.value !== initialValues.get(el.name)) {
-                    hasChanges = true;
-                }
+        function captureInitialData() {
+            const currentData = new FormData(form);
+            const currentValues = {};
+            currentData.forEach((value, key) => {
+                currentValues[key] = value;
             });
+            initialData = JSON.stringify(currentValues);
+        }
+        
+        function checkChanges() {
+            const currentData = new FormData(form);
+            const currentValues = {};
+            currentData.forEach((value, key) => {
+                currentValues[key] = value;
+            });
+            const hasChanges = JSON.stringify(currentValues) !== initialData;
             saveBtn.disabled = !hasChanges;
         }
+        
+        window.checkChanges = checkChanges;
+        
+        // 页面加载完成后保存初始值
+        document.addEventListener('DOMContentLoaded', () => {
+            captureInitialData();
+            saveBtn.disabled = true;
+        });
         
         // 监听输入变化
         form.querySelectorAll('input, textarea, select').forEach(el => {
