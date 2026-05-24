@@ -5,7 +5,7 @@
 
 {% block content %}
 <div class="row">
-    <div class="col-md-6">
+    <div class="col-md-10">
         {% if success %}
         <div class="alert alert-success">{{ success }}</div>
         {% endif %}
@@ -26,7 +26,7 @@
         <div class="card">
             <div class="card-header">系统基本设置</div>
             <div class="card-body">
-                <form method="post" action="/settings/save">
+                <form method="post" action="/settings/save" id="settingsForm">
                     <div class="mb-3">
                         <label class="form-label">系统标题</label>
                         <input type="text" name="company_name" class="form-control" value="{{ company_name.value }}">
@@ -39,18 +39,245 @@
                     <h6 class="text-muted mb-3">房号配置</h6>
                     <div class="mb-3">
                         <label class="form-label">区域选项</label>
-                        <input type="text" name="area_options" class="form-control" value="{{ area_options.value }}" placeholder="例如：A区,B区,C区,D区">
+                        <input type="text" name="area_options" class="form-control" value="{{ area_options.value }}" placeholder="例如：之荣径,之泰径">
                         <small class="text-muted">多个选项用逗号分隔</small>
                     </div>
+                    
                     <div class="mb-3">
                         <label class="form-label">房号格式规则</label>
-                        <textarea name="room_format_patterns" class="form-control" rows="3" placeholder="例如：A区1栋2单元301室,A区1栋301室,1栋2单元301室,1栋301室">{{ room_format_patterns.value }}</textarea>
-                        <small class="text-muted">多个规则用逗号分隔，按优先级匹配。变量：{area}=区域, {building}=楼号, {unit}=单元号, {room}=房间号</small>
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-sm" id="rulesTable">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 15%">区域</th>
+                                        <th style="width: 12%">楼号</th>
+                                        <th style="width: 12%">单元号</th>
+                                        <th style="width: 12%">房间号</th>
+                                        <th style="width: 35%">生成格式</th>
+                                        <th style="width: 14%">操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="rulesBody">
+                                    <!-- 规则将在这里动态添加 -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="addRule()">
+                            <span class="me-1">+</span> 添加规则
+                        </button>
+                        <input type="hidden" name="room_format_patterns" id="roomFormatPatterns">
+                        <div class="card mt-2 bg-light">
+                            <div class="card-body py-2">
+                                <small class="text-muted">
+                                    <strong>说明：</strong><br>
+                                    • 点击右侧按钮切换字段状态：启用（深色背景）或禁用（灰色背景表示该字段不填）<br>
+                                    • 生成格式中使用 {area} {building} {unit} {room} 占位符
+                                </small>
+                            </div>
+                        </div>
                     </div>
-                    <button type="submit" class="btn btn-primary">保存设置</button>
+                    
+                    <button type="submit" class="btn btn-primary" id="saveBtn" disabled>保存设置</button>
                 </form>
             </div>
         </div>
     </div>
 </div>
+<script>
+    // 解析现有规则
+    const rulesData = {{ rules_json|tojson|safe }};
+    let ruleCounter = 0;
+    
+    function parseRules() {
+        if (!rulesData || !Array.isArray(rulesData)) {
+            return [];
+        }
+        return rulesData;
+    }
+    
+    function renderRules() {
+        const rules = parseRules();
+        const tbody = document.getElementById('rulesBody');
+        tbody.innerHTML = '';
+        ruleCounter = 0;
+        
+        if (rules.length === 0) {
+            // 添加默认规则
+            addRuleRow('之荣径', false, '8', false, '', true, '202', false, '{area}{building}号{room}');
+            addRuleRow('之荣径', false, '1', false, '', true, '', true, '{area}{building}号');
+            addRuleRow('之泰径', false, '5', false, '', true, '502', false, '{area}{building}号{room}');
+            addRuleRow('', true, '2', false, '3', false, '602', false, '{building}-{unit}-{room}');
+            addRuleRow('', true, '3', false, '', true, '101', false, '{building}号{room}');
+            addRuleRow('', true, '', true, '', true, '', true, '');
+        } else {
+            rules.forEach(rule => {
+                addRuleRow(
+                    rule.area_example || '',
+                    rule.area_optional || false,
+                    rule.building_example || '',
+                    rule.building_optional || false,
+                    rule.unit_example || '',
+                    rule.unit_optional || false,
+                    rule.room_example || '',
+                    rule.room_optional || false,
+                    rule.format || ''
+                );
+            });
+        }
+    }
+    
+    function addRuleRow(areaEx, areaOpt, buildingEx, buildingOpt, unitEx, unitOpt, roomEx, roomOpt, format) {
+        const tbody = document.getElementById('rulesBody');
+        const rowId = 'rule_' + ruleCounter++;
+        
+        const tr = document.createElement('tr');
+        tr.id = rowId;
+        tr.innerHTML = `
+            <td>
+                <div class="input-group input-group-sm">
+                    <input type="text" class="form-control" placeholder="示例值" value="${escapeHtml(areaEx)}" data-field="area" ${areaOpt ? 'disabled style="background-color: #e9ecef;"' : ''}>
+                    <button class="btn ${areaOpt ? 'btn-secondary' : 'btn-dark'}" type="button" onclick="toggleField(this, '${rowId}', 'area')">${areaOpt ? '×' : '✓'}</button>
+                </div>
+            </td>
+            <td>
+                <div class="input-group input-group-sm">
+                    <input type="text" class="form-control" placeholder="示例值" value="${escapeHtml(buildingEx)}" data-field="building" ${buildingOpt ? 'disabled style="background-color: #e9ecef;"' : ''}>
+                    <button class="btn ${buildingOpt ? 'btn-secondary' : 'btn-dark'}" type="button" onclick="toggleField(this, '${rowId}', 'building')">${buildingOpt ? '×' : '✓'}</button>
+                </div>
+            </td>
+            <td>
+                <div class="input-group input-group-sm">
+                    <input type="text" class="form-control" placeholder="示例值" value="${escapeHtml(unitEx)}" data-field="unit" ${unitOpt ? 'disabled style="background-color: #e9ecef;"' : ''}>
+                    <button class="btn ${unitOpt ? 'btn-secondary' : 'btn-dark'}" type="button" onclick="toggleField(this, '${rowId}', 'unit')">${unitOpt ? '×' : '✓'}</button>
+                </div>
+            </td>
+            <td>
+                <div class="input-group input-group-sm">
+                    <input type="text" class="form-control" placeholder="示例值" value="${escapeHtml(roomEx)}" data-field="room" ${roomOpt ? 'disabled style="background-color: #e9ecef;"' : ''}>
+                    <button class="btn ${roomOpt ? 'btn-secondary' : 'btn-dark'}" type="button" onclick="toggleField(this, '${rowId}', 'room')">${roomOpt ? '×' : '✓'}</button>
+                </div>
+            </td>
+            <td>
+                <input type="text" class="form-control form-control-sm" placeholder="{area}{building}号{room}" value="${escapeHtml(format)}">
+            </td>
+            <td>
+                <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeRule('${rowId}')">×</button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+        
+        // 监听变化
+        tr.querySelectorAll('input[type="text"]').forEach(input => {
+            input.addEventListener('input', updateHiddenField);
+            input.addEventListener('change', updateHiddenField);
+        });
+        
+        updateHiddenField();
+    }
+    
+    function toggleField(btn, rowId, fieldName) {
+        const row = document.getElementById(rowId);
+        if (row) {
+            const inputs = row.querySelectorAll('input[type="text"][data-field]');
+            let targetInput = null;
+            inputs.forEach(input => {
+                if (input.dataset.field === fieldName) {
+                    targetInput = input;
+                }
+            });
+            
+            if (targetInput) {
+                if (targetInput.disabled) {
+                    // 启用字段
+                    targetInput.disabled = false;
+                    targetInput.style.backgroundColor = '';
+                    btn.classList.remove('btn-secondary');
+                    btn.classList.add('btn-dark');
+                    btn.textContent = '✓';
+                } else {
+                    // 禁用字段
+                    targetInput.disabled = true;
+                    targetInput.style.backgroundColor = '#e9ecef';
+                    targetInput.value = '';
+                    btn.classList.remove('btn-dark');
+                    btn.classList.add('btn-secondary');
+                    btn.textContent = '×';
+                }
+                updateHiddenField();
+            }
+        }
+    }
+    
+    function addRule() {
+        addRuleRow('', true, '', true, '', true, '', true, '');
+    }
+    
+    function removeRule(rowId) {
+        document.getElementById(rowId).remove();
+        updateHiddenField();
+    }
+    
+    function updateHiddenField() {
+        const rules = [];
+        const tbody = document.getElementById('rulesBody');
+        const rows = tbody.querySelectorAll('tr');
+        
+        rows.forEach((row, index) => {
+            const inputs = row.querySelectorAll('input[type="text"]');
+            const selects = row.querySelectorAll('select');
+            
+            if (inputs.length >= 5 && selects.length >= 4) {
+                rules.push({
+                    area_example: inputs[0].value,
+                    area_optional: selects[0].value === 'optional',
+                    building_example: inputs[1].value,
+                    building_optional: selects[1].value === 'optional',
+                    unit_example: inputs[2].value,
+                    unit_optional: selects[2].value === 'optional',
+                    room_example: inputs[3].value,
+                    room_optional: selects[3].value === 'optional',
+                    format: inputs[4].value
+                });
+            }
+        });
+        
+        document.getElementById('roomFormatPatterns').value = JSON.stringify(rules);
+        checkChanges();
+    }
+    
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+    
+    // 保存按钮逻辑
+    let initialData = null;
+    
+    function checkChanges() {
+        const form = document.getElementById('settingsForm');
+        const saveBtn = document.getElementById('saveBtn');
+        const currentData = new FormData(form);
+        const currentValues = {};
+        currentData.forEach((value, key) => {
+            currentValues[key] = value;
+        });
+        
+        if (!initialData) {
+            initialData = JSON.stringify(currentValues);
+        }
+        
+        saveBtn.disabled = JSON.stringify(currentValues) === initialData;
+    }
+    
+    document.addEventListener('DOMContentLoaded', () => {
+        renderRules();
+        
+        // 监听基本设置字段变化
+        document.getElementById('settingsForm').querySelectorAll('input[name="company_name"], input[name="grace_period_days"], input[name="area_options"]').forEach(el => {
+            el.addEventListener('input', checkChanges);
+            el.addEventListener('change', checkChanges);
+        });
+    });
+</script>
 {% endblock %}

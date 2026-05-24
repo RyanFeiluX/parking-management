@@ -36,8 +36,26 @@ async def basic_settings_page(request: Request, user: dict = Depends(require_rol
     
     grace_period = get_or_create_setting(db, "grace_period_days", "15", "车辆过期宽限期(天)")
     company_name = get_or_create_setting(db, "company_name", "小区停车管理系统", "系统标题")
-    area_options = get_or_create_setting(db, "area_options", "A区,B区,C区,D区", "区域选项，多个选项用逗号分隔")
-    room_format_patterns = get_or_create_setting(db, "room_format_patterns", "A区1幢2单元301室,A区1幢301室,1幢2单元301室,1幢301室", "房号格式规则，多个规则用逗号分隔，按优先级匹配")
+    area_options = get_or_create_setting(db, "area_options", "之荣径,之泰径", "区域选项，多个选项用逗号分隔")
+    
+    # 默认规则
+    default_rules = [
+        {"area_example": "之荣径", "area_optional": False, "building_example": "8", "building_optional": False, "unit_example": "", "unit_optional": True, "room_example": "202", "room_optional": False, "format": "{area}{building}号{room}"},
+        {"area_example": "之荣径", "area_optional": False, "building_example": "1", "building_optional": False, "unit_example": "", "unit_optional": True, "room_example": "", "room_optional": True, "format": "{area}{building}号"},
+        {"area_example": "之泰径", "area_optional": False, "building_example": "5", "building_optional": False, "unit_example": "", "unit_optional": True, "room_example": "502", "room_optional": False, "format": "{area}{building}号{room}"},
+        {"area_example": "", "area_optional": True, "building_example": "2", "building_optional": False, "unit_example": "3", "unit_optional": False, "room_example": "602", "room_optional": False, "format": "{building}-{unit}-{room}"},
+        {"area_example": "", "area_optional": True, "building_example": "3", "building_optional": False, "unit_example": "", "unit_optional": True, "room_example": "101", "room_optional": False, "format": "{building}号{room}"}
+    ]
+    
+    room_format_patterns = get_or_create_setting(db, "room_format_patterns", json.dumps(default_rules), "房号格式规则")
+    
+    # 尝试解析现有规则
+    try:
+        rules_json = json.loads(room_format_patterns.value)
+        if not isinstance(rules_json, list):
+            rules_json = default_rules
+    except (json.JSONDecodeError, TypeError):
+        rules_json = default_rules
     
     return templates.TemplateResponse("settings/basic.html", {
         "request": request,
@@ -45,7 +63,8 @@ async def basic_settings_page(request: Request, user: dict = Depends(require_rol
         "grace_period": grace_period,
         "company_name": company_name,
         "area_options": area_options,
-        "room_format_patterns": room_format_patterns
+        "room_format_patterns": room_format_patterns,
+        "rules_json": rules_json
     })
 
 
@@ -116,14 +135,30 @@ async def save_settings(request: Request, user: dict = Depends(require_role("sup
     db.commit()
     
     # 保存区域选项
-    area_options = get_or_create_setting(db, "area_options", "A区,B区,C区,D区")
-    area_options.value = form_data.get("area_options", "A区,B区,C区,D区")
+    area_options = get_or_create_setting(db, "area_options", "之荣径,之泰径")
+    area_options.value = form_data.get("area_options", "之荣径,之泰径")
     db.commit()
     
     # 保存房号格式规则
-    room_format_patterns = get_or_create_setting(db, "room_format_patterns", "A区1幢2单元301室,A幢1栋301室,1幢2单元301室,1幢301室")
-    room_format_patterns.value = form_data.get("room_format_patterns", "A区1幢2单元301室,A区1幢301室,1幢2单元301室,1幢301室")
+    default_rules = [
+        {"area_example": "之荣径", "area_optional": False, "building_example": "8", "building_optional": False, "unit_example": "", "unit_optional": True, "room_example": "202", "room_optional": False, "format": "{area}{building}号{room}"},
+        {"area_example": "之荣径", "area_optional": False, "building_example": "1", "building_optional": False, "unit_example": "", "unit_optional": True, "room_example": "", "room_optional": True, "format": "{area}{building}号"},
+        {"area_example": "之泰径", "area_optional": False, "building_example": "5", "building_optional": False, "unit_example": "", "unit_optional": True, "room_example": "502", "room_optional": False, "format": "{area}{building}号{room}"},
+        {"area_example": "", "area_optional": True, "building_example": "2", "building_optional": False, "unit_example": "3", "unit_optional": False, "room_example": "602", "room_optional": False, "format": "{building}-{unit}-{room}"},
+        {"area_example": "", "area_optional": True, "building_example": "3", "building_optional": False, "unit_example": "", "unit_optional": True, "room_example": "101", "room_optional": False, "format": "{building}号{room}"}
+    ]
+    
+    room_format_patterns = get_or_create_setting(db, "room_format_patterns", json.dumps(default_rules))
+    room_format_patterns.value = form_data.get("room_format_patterns", json.dumps(default_rules))
     db.commit()
+    
+    # 尝试解析已保存的规则
+    try:
+        rules_json = json.loads(room_format_patterns.value)
+        if not isinstance(rules_json, list):
+            rules_json = default_rules
+    except (json.JSONDecodeError, TypeError):
+        rules_json = default_rules
     
     client_host = request.client.host if request.client else "unknown"
     log_operation(db, user["user_id"], "system_backup", "系统设置", "更新系统设置", client_host)
@@ -135,6 +170,7 @@ async def save_settings(request: Request, user: dict = Depends(require_role("sup
         "company_name": company_name,
         "area_options": area_options,
         "room_format_patterns": room_format_patterns,
+        "rules_json": rules_json,
         "success": "系统设置已更新"
     })
 

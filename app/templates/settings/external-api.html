@@ -31,10 +31,39 @@
                         <label class="form-label">API 访问令牌（留空则不启用）</label>
                         <input type="text" name="api_token" class="form-control" value="{{ api_token.value }}">
                     </div>
-                    <button type="submit" class="btn btn-primary">保存设置</button>
+                    <button type="submit" class="btn btn-primary" id="saveBtn" disabled>保存设置</button>
                 </form>
             </div>
         </div>
     </div>
 </div>
+<script>
+    (function() {
+        const form = document.querySelector('form[action="/settings/save-external-api"]');
+        const saveBtn = document.getElementById('saveBtn');
+        const initialValues = new Map();
+        
+        // 保存初始值
+        form.querySelectorAll('input, textarea, select').forEach(el => {
+            initialValues.set(el.name, el.value);
+        });
+        
+        // 检查是否有变化
+        function checkChanges() {
+            let hasChanges = false;
+            form.querySelectorAll('input, textarea, select').forEach(el => {
+                if (el.value !== initialValues.get(el.name)) {
+                    hasChanges = true;
+                }
+            });
+            saveBtn.disabled = !hasChanges;
+        }
+        
+        // 监听输入变化
+        form.querySelectorAll('input, textarea, select').forEach(el => {
+            el.addEventListener('input', checkChanges);
+            el.addEventListener('change', checkChanges);
+        });
+    })();
+</script>
 {% endblock %}

@@ -98,12 +98,44 @@
                             var rateType = document.querySelector('select[name="rate_type"]').value;
                             document.getElementById('tier-config').style.display = rateType === 'tier' ? 'block' : 'none';
                             document.getElementById('flat-config').style.display = rateType === 'flat' ? 'block' : 'none';
+                            if (typeof checkChanges === 'function') {
+                                checkChanges();
+                            }
                         }
                     </script>
-                    <button type="submit" class="btn btn-primary">保存规则</button>
+                    <button type="submit" class="btn btn-primary" id="saveBtn" disabled>保存规则</button>
                 </form>
             </div>
         </div>
     </div>
 </div>
+<script>
+    (function() {
+        const form = document.querySelector('form[action="/settings/save-temp-rules"]');
+        const saveBtn = document.getElementById('saveBtn');
+        const initialValues = new Map();
+        
+        // 保存初始值
+        form.querySelectorAll('input, textarea, select').forEach(el => {
+            initialValues.set(el.name, el.value);
+        });
+        
+        // 检查是否有变化
+        window.checkChanges = function() {
+            let hasChanges = false;
+            form.querySelectorAll('input, textarea, select').forEach(el => {
+                if (el.value !== initialValues.get(el.name)) {
+                    hasChanges = true;
+                }
+            });
+            saveBtn.disabled = !hasChanges;
+        }
+        
+        // 监听输入变化
+        form.querySelectorAll('input, textarea, select').forEach(el => {
+            el.addEventListener('input', checkChanges);
+            el.addEventListener('change', checkChanges);
+        });
+    })();
+</script>
 {% endblock %}

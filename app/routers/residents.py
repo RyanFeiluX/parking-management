@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Request, Depends
 from fastapi.templating import Jinja2Templates
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from datetime import datetime
 
@@ -63,6 +64,12 @@ async def add_resident_page(request: Request, user: dict = Depends(require_role(
     db = request.state.db
     area_options = get_area_options(db)
     return templates.TemplateResponse("residents/form.html", {"request": request, "current_user": user, "area_options": area_options})
+
+@router.get("/api/preview-room-number")
+async def preview_room_number_api(request: Request, area: str = "", building: str = "", unit: str = "", room: str = ""):
+    db = request.state.db
+    room_number = generate_room_number(area, building, unit, room, db)
+    return JSONResponse({"room_number": room_number})
 
 @router.post("/add")
 async def add_resident(request: Request, user: dict = Depends(require_role("admin", "super_admin"))):

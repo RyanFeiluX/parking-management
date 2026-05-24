@@ -208,10 +208,10 @@ def calculate_payment_amount(vehicle, period_type, months, db):
 def generate_room_number(area: str, building: str, unit: str, room: str, db: Session) -> str:
     """
     根据分段信息生成房号
-    :param area: 区域（如 "A区"）
-    :param building: 楼号（如 "1"）
-    :param unit: 单元号（如 "2"，可为空）
-    :param room: 房间号（如 "301"）
+    :param area: 区域（如 "之荣径"）
+    :param building: 楼号（如 "8"）
+    :param unit: 单元号（如 "1"，可为空）
+    :param room: 房间号（如 "202"）
     :param db: 数据库会话
     :return: 格式化的房号
     """
@@ -221,32 +221,67 @@ def generate_room_number(area: str, building: str, unit: str, room: str, db: Ses
     unit = unit.strip() if unit else ""
     room = room.strip() if room else ""
     
+    # 默认规则
+    default_rules = [
+        {"area_example": "之荣径", "area_optional": False, "building_example": "8", "building_optional": False, "unit_example": "", "unit_optional": True, "room_example": "202", "room_optional": False, "format": "{area}{building}号{room}"},
+        {"area_example": "之荣径", "area_optional": False, "building_example": "1", "building_optional": False, "unit_example": "", "unit_optional": True, "room_example": "", "room_optional": True, "format": "{area}{building}号"},
+        {"area_example": "之泰径", "area_optional": False, "building_example": "5", "building_optional": False, "unit_example": "", "unit_optional": True, "room_example": "502", "room_optional": False, "format": "{area}{building}号{room}"},
+        {"area_example": "", "area_optional": True, "building_example": "2", "building_optional": False, "unit_example": "3", "unit_optional": False, "room_example": "602", "room_optional": False, "format": "{building}-{unit}-{room}"},
+        {"area_example": "", "area_optional": True, "building_example": "3", "building_optional": False, "unit_example": "", "unit_optional": True, "room_example": "101", "room_optional": False, "format": "{building}号{room}"}
+    ]
+    
     # 获取格式规则
-    patterns_str = get_system_setting(db, "room_format_patterns", "A区1幢2单元301室,A区1幢301室,1幢2单元301室,1幢301室")
-    patterns = [p.strip() for p in patterns_str.split(",") if p.strip()]
+    patterns_str = get_system_setting(db, "room_format_patterns", "")
     
-    # 准备变量字典
-    has_area = bool(area)
-    has_unit = bool(unit)
+    rules = default_rules
+    if patterns_str:
+        try:
+            parsed_rules = json.loads(patterns_str)
+            if isinstance(parsed_rules, list) and len(parsed_rules) > 0:
+                rules = parsed_rules
+        except (json.JSONDecodeError, TypeError):
+            rules = default_rules
     
-    # 按优先级匹配格式
-    for pattern in patterns:
-        # 检测模式需要的字段
-        need_area = "{area}" in pattern
-        need_unit = "{unit}" in pattern
+    # 按优先级匹配规则
+    for rule in rules:
+        # 解析规则条件
+        area_opt = rule.get("area_optional", False)
+        building_opt = rule.get("building_optional", False)
+        unit_opt = rule.get("unit_optional", True)
+        room_opt = rule.get("room_optional", False)
+        format_str = rule.get("format", "")
         
-        # 检查是否匹配
-        if need_area and not has_area:
-            continue
-        if need_unit and not has_unit:
+        if not format_str:
             continue
         
-        # 生成房号
-        result = pattern
+        # 检查区域字段
+        if area_opt and area:
+            continue  # 规则要求不填区域，但实际填了
+        if not area_opt and not area:
+            continue  # 规则要求填区域，但实际没填
+        
+        # 检查楼号字段
+        if building_opt and building:
+            continue  # 规则要求不填楼号，但实际填了
+        if not building_opt and not building:
+            continue  # 规则要求填楼号，但实际没填
+        
+        # 检查单元号字段
+        if unit_opt and unit:
+            continue  # 规则要求不填单元号，但实际填了
+        if not unit_opt and not unit:
+            continue  # 规则要求填单元号，但实际没填
+        
+        # 检查房间号字段
+        if room_opt and room:
+            continue  # 规则要求不填房间号，但实际填了
+        if not room_opt and not room:
+            continue  # 规则要求填房间号，但实际没填
+        
+        # 找到匹配的规则！现在用实际值替换占位符
+        result = format_str
         if area:
             result = result.replace("{area}", area)
-        else:
-            result = result.replace("{area}", "")
         if building:
             result = result.replace("{building}", building)
         if unit:
@@ -254,33 +289,24 @@ def generate_room_number(area: str, building: str, unit: str, room: str, db: Ses
         if room:
             result = result.replace("{room}", room)
         
-        # 清理多余的栋、单元等字样（当对应的值为空时）
-        if not building:
-            result = result.replace("{building}", "")
-        if not unit:
-            result = result.replace("{unit}", "")
+        # 清理多余的占位符
+        result = result.replace("{area}", "").replace("{building}", "").replace("{unit}", "").replace("{room}", "")
         
-        # 清理连续的特殊字符
-        result = result.replace("栋栋", "栋")
-        result = result.replace("单元单元", "单元")
-        result = result.replace("室室", "室")
-        
-        # 清理末尾的栋、单元等
-        result = result.rstrip("栋单元室")
-        
-        return result if result else f"{building}栋{room}室" if building and room else ""
+        if result:
+            return result
     
     # 默认格式
-    if building and room:
-        if area and unit:
-            return f"{area}{building}栋{unit}单元{room}室"
-        elif area:
-            return f"{area}{building}栋{room}室"
-        elif unit:
-            return f"{building}栋{unit}单元{room}室"
+    if building:
+        if area and unit and room:
+            return f"{area}{building}幢{unit}单元{room}室"
+        elif area and room:
+            return f"{area}{building}号{room}"
+        elif unit and room:
+            return f"{building}-{unit}-{room}"
+        elif room:
+            return f"{building}号{room}"
         else:
-            return f"{building}栋{room}室"
-    
+            return f"{area}{building}号"
     return ""
 
 def get_area_options(db: Session) -> list:
