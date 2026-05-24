@@ -59,7 +59,13 @@ async def require_role(request: Request, *roles: str) -> Dict:
 
 def set_session_cookie(response: RedirectResponse, user_id: int, username: str, role: str) -> RedirectResponse:
     session_data = create_session_data(user_id, username, role)
-    response.set_cookie(key="parking_session", value=session_data, httponly=True, max_age=1800)
+    response.set_cookie(
+        key="parking_session",
+        value=session_data,
+        httponly=True,
+        samesite="lax",
+        secure=False
+    )
     return response
 
 def clear_session_cookie(response: RedirectResponse) -> RedirectResponse:

@@ -55,7 +55,8 @@ async def add_vehicle(request: Request, resident_id: int, user: dict = Depends(r
     db.add(vehicle)
     db.commit()
     
-    log_operation(db, user["user_id"], "create_vehicle", f"车辆 {plate_number}", f"为住户 {resident.room_number} 添加车辆", request.client.host)
+    client_host = request.client.host if request.client else "unknown"
+    log_operation(db, user["user_id"], "create_vehicle", f"车辆 {plate_number}", f"为住户 {resident.room_number} 添加车辆", client_host)
     
     return templates.TemplateResponse("residents/detail.html", {"request": request, "current_user": user, "resident": resident, "vehicles": get_vehicles_with_status(resident, db)})
 
@@ -95,7 +96,8 @@ async def edit_vehicle(request: Request, vehicle_id: int, user: dict = Depends(r
     vehicle.status = status
     db.commit()
     
-    log_operation(db, user["user_id"], "update_vehicle", f"车辆 {vehicle.plate_number}", "修改车辆信息", request.client.host)
+    client_host = request.client.host if request.client else "unknown"
+    log_operation(db, user["user_id"], "update_vehicle", f"车辆 {vehicle.plate_number}", "修改车辆信息", client_host)
     
     resident = vehicle.resident
     return templates.TemplateResponse("residents/detail.html", {"request": request, "current_user": user, "resident": resident, "vehicles": get_vehicles_with_status(resident, db)})
@@ -118,7 +120,8 @@ async def delete_vehicle(request: Request, vehicle_id: int, user: dict = Depends
     
     db.commit()
     
-    log_operation(db, user["user_id"], "delete_vehicle", target_name, f"从住户 {resident.room_number} 删除车辆", request.client.host)
+    client_host = request.client.host if request.client else "unknown"
+    log_operation(db, user["user_id"], "delete_vehicle", target_name, f"从住户 {resident.room_number} 删除车辆", client_host)
     
     return templates.TemplateResponse("residents/detail.html", {"request": request, "current_user": user, "resident": resident, "vehicles": get_vehicles_with_status(resident, db)})
 
@@ -138,7 +141,8 @@ async def move_up(request: Request, vehicle_id: int, user: dict = Depends(requir
         vehicle.sort_order, prev_vehicle.sort_order = prev_vehicle.sort_order, vehicle.sort_order
         db.commit()
     
-    log_operation(db, user["user_id"], "update_vehicle", f"车辆 {vehicle.plate_number}", f"排序上移", request.client.host)
+    client_host = request.client.host if request.client else "unknown"
+    log_operation(db, user["user_id"], "update_vehicle", f"车辆 {vehicle.plate_number}", f"排序上移", client_host)
     
     resident = vehicle.resident
     return templates.TemplateResponse("residents/detail.html", {"request": request, "current_user": user, "resident": resident, "vehicles": get_vehicles_with_status(resident, db)})
@@ -160,7 +164,8 @@ async def move_down(request: Request, vehicle_id: int, user: dict = Depends(requ
         vehicle.sort_order, next_vehicle.sort_order = next_vehicle.sort_order, vehicle.sort_order
         db.commit()
     
-    log_operation(db, user["user_id"], "update_vehicle", f"车辆 {vehicle.plate_number}", f"排序下移", request.client.host)
+    client_host = request.client.host if request.client else "unknown"
+    log_operation(db, user["user_id"], "update_vehicle", f"车辆 {vehicle.plate_number}", f"排序下移", client_host)
     
     resident = vehicle.resident
     return templates.TemplateResponse("residents/detail.html", {"request": request, "current_user": user, "resident": resident, "vehicles": get_vehicles_with_status(resident, db)})

@@ -10,7 +10,9 @@ from ..deps import require_role
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
 
-def log_operation(db: Session, user_id: int, action_type: str, target: str, detail: str, ip_address: str):
+def log_operation(db: Session, user_id: int, action_type: str, target: str, detail: str, ip_address: str = None):
+    if ip_address is None:
+        ip_address = "unknown"
     log = OperationLog(
         user_id=user_id,
         action_type=action_type,
@@ -58,7 +60,8 @@ async def add_user(request: Request, user: dict = Depends(require_role("super_ad
     db.add(new_user)
     db.commit()
     
-    log_operation(db, user["user_id"], "create_user", f"用户 {username}", f"创建用户: {display_name} ({role})", request.client.host)
+    client_host = request.client.host if request.client else "unknown"
+    log_operation(db, user["user_id"], "create_user", f"用户 {username}", f"创建用户: {display_name} ({role})", client_host)
     
     return templates.TemplateResponse("users/list.html", {"request": request, "current_user": user, "users": db.query(User).all(), "success": "用户创建成功"})
 
@@ -93,7 +96,8 @@ async def edit_user(request: Request, user_id: int, current_user: dict = Depends
     
     db.commit()
     
-    log_operation(db, current_user["user_id"], "update_user", f"用户 {user.username}", f"修改用户: {display_name} ({role})", request.client.host)
+    client_host = request.client.host if request.client else "unknown"
+    log_operation(db, current_user["user_id"], "update_user", f"用户 {user.username}", f"修改用户: {display_name} ({role})", client_host)
     
     return templates.TemplateResponse("users/list.html", {"request": request, "current_user": current_user, "users": db.query(User).all(), "success": "用户修改成功"})
 
@@ -110,7 +114,8 @@ async def toggle_user(request: Request, user_id: int, current_user: dict = Depen
     user.is_active = not user.is_active
     db.commit()
     
-    log_operation(db, current_user["user_id"], "update_user", f"用户 {user.username}", f"{'启用' if user.is_active else '停用'}用户", request.client.host)
+    client_host = request.client.host if request.client else "unknown"
+    log_operation(db, current_user["user_id"], "update_user", f"用户 {user.username}", f"{'启用' if user.is_active else '停用'}用户", client_host)
     
     return templates.TemplateResponse("users/list.html", {"request": request, "current_user": current_user, "users": db.query(User).all(), "success": "用户状态已更新"})
 
@@ -128,6 +133,7 @@ async def delete_user(request: Request, user_id: int, current_user: dict = Depen
     db.delete(user)
     db.commit()
     
-    log_operation(db, current_user["user_id"], "delete_user", f"用户 {target_name}", "删除用户", request.client.host)
+    client_host = request.client.host if request.client else "unknown"
+    log_operation(db, current_user["user_id"], "delete_user", f"用户 {target_name}", "删除用户", client_host)
     
     return templates.TemplateResponse("users/list.html", {"request": request, "current_user": current_user, "users": db.query(User).all(), "success": "用户已删除"})

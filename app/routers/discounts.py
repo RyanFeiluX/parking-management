@@ -9,7 +9,9 @@ from ..deps import require_role
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
 
-def log_operation(db: Session, user_id: int, action_type: str, target: str, detail: str, ip_address: str):
+def log_operation(db: Session, user_id: int, action_type: str, target: str, detail: str, ip_address: str = None):
+    if ip_address is None:
+        ip_address = "unknown"
     log = OperationLog(
         user_id=user_id,
         action_type=action_type,
@@ -167,7 +169,8 @@ async def edit_discount(request: Request, discount_id: int, user: dict = Depends
     db.add(new_discount)
     db.commit()
     
-    log_operation(db, user["user_id"], "update_discount", f"优惠策略 {name}", "更新优惠策略", request.client.host)
+    client_host = request.client.host if request.client else "unknown"
+    log_operation(db, user["user_id"], "update_discount", f"优惠策略 {name}", "更新优惠策略", client_host)
     
     return templates.TemplateResponse("discounts/list.html", {
         "request": request,

@@ -10,7 +10,9 @@ from ..deps import require_role, require_login
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
 
-def log_operation(db: Session, user_id: int, action_type: str, target: str, detail: str, ip_address: str):
+def log_operation(db: Session, user_id: int, action_type: str, target: str, detail: str, ip_address: str = None):
+    if ip_address is None:
+        ip_address = "unknown"
     log = OperationLog(
         user_id=user_id,
         action_type=action_type,
@@ -128,7 +130,8 @@ async def pay(request: Request, user: dict = Depends(require_login)):
     db.add(payment)
     db.commit()
     
-    log_operation(db, user["user_id"], "payment", f"车辆 {vehicle.plate_number}", f"缴费 {amount}元，{period_type}{months}期", request.client.host)
+    client_host = request.client.host if request.client else "unknown"
+    log_operation(db, user["user_id"], "payment", f"车辆 {vehicle.plate_number}", f"缴费 {amount}元，{period_type}{months}期", client_host)
     
     return templates.TemplateResponse("payments/form.html", {
         "request": request,

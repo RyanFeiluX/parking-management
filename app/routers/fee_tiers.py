@@ -9,7 +9,9 @@ from ..deps import require_role
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
 
-def log_operation(db: Session, user_id: int, action_type: str, target: str, detail: str, ip_address: str):
+def log_operation(db: Session, user_id: int, action_type: str, target: str, detail: str, ip_address: str = None):
+    if ip_address is None:
+        ip_address = "unknown"
     log = OperationLog(
         user_id=user_id,
         action_type=action_type,
@@ -92,7 +94,8 @@ async def add_fee_tier(request: Request, user: dict = Depends(require_role("admi
     db.add(tier)
     db.commit()
     
-    log_operation(db, user["user_id"], "update_fee_tier", f"档位 {seq_from}-{seq_to}", f"新增档位: 月费{monthly_fee}元，生效{effective_date}", request.client.host)
+    client_host = request.client.host if request.client else "unknown"
+    log_operation(db, user["user_id"], "update_fee_tier", f"档位 {seq_from}-{seq_to}", f"新增档位: 月费{monthly_fee}元，生效{effective_date}", client_host)
     
     return templates.TemplateResponse("fee_tiers/list.html", {
         "request": request,
@@ -165,7 +168,8 @@ async def edit_fee_tier(request: Request, tier_id: int, user: dict = Depends(req
     db.add(new_tier)
     db.commit()
     
-    log_operation(db, user["user_id"], "update_fee_tier", f"档位 {seq_from}-{seq_to}", f"更新档位: {old_tier.monthly_fee}元 → {monthly_fee}元，生效{effective_date}", request.client.host)
+    client_host = request.client.host if request.client else "unknown"
+    log_operation(db, user["user_id"], "update_fee_tier", f"档位 {seq_from}-{seq_to}", f"更新档位: {old_tier.monthly_fee}元 → {monthly_fee}元，生效{effective_date}", client_host)
     
     return templates.TemplateResponse("fee_tiers/list.html", {
         "request": request,
