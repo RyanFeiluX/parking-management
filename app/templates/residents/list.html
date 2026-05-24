@@ -44,14 +44,21 @@
                     <tbody>
                         {% for item in residents %}
                         <tr>
-                            <td><a href="/residents/{{ item.resident.id }}">{{ item.resident.room_number }}</a></td>
+                            <td><a href="/residents/{{ item.resident.id }}" class="fw-bold">{{ item.resident.room_number }}</a></td>
                             <td>{{ item.resident.owner_name }}</td>
                             <td>{{ item.resident.phone or '-' }}</td>
-                            <td>{{ item.vehicle_count }}</td>
+                            <td>
+                                <span class="badge bg-primary">{{ item.vehicle_count }}/8</span>
+                            </td>
                             <td{% if item.expired_count > 0 %} class="text-danger"{% endif %}>{{ item.expired_count }}</td>
                             <td>
-                                <a href="/residents/{{ item.resident.id }}" class="btn btn-sm btn-info">详情</a>
+                                <a href="/residents/{{ item.resident.id }}" class="btn btn-sm btn-info">查看</a>
                                 {% if current_user.role in ['admin', 'super_admin'] %}
+                                {% if item.vehicle_count < 8 %}
+                                <a href="/residents/{{ item.resident.id }}" class="btn btn-sm btn-success">
+                                    + 车辆
+                                </a>
+                                {% endif %}
                                 <a href="/residents/{{ item.resident.id }}/edit" class="btn btn-sm btn-primary">编辑</a>
                                 <form action="/residents/{{ item.resident.id }}/delete" method="post" class="d-inline" onsubmit="return confirm('确定删除？将同时删除关联车辆和缴费记录')">
                                     <button type="submit" class="btn btn-sm btn-danger">删除</button>

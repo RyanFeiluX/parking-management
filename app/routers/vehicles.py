@@ -34,16 +34,18 @@ async def add_vehicle(request: Request, resident_id: int, user: dict = Depends(r
     if not resident:
         return templates.TemplateResponse("residents/list.html", {"request": request, "current_user": user, "residents": db.query(Resident).all(), "error": "住户不存在"})
     
+    # 检查车辆数量限制（最多8辆）
+    current_count = db.query(Vehicle).filter_by(resident_id=resident_id).count()
+    if current_count >= 8:
+        vehicles_with_status = get_vehicles_with_status(resident, db)
+        return templates.TemplateResponse("residents/detail.html", {"request": request, "current_user": user, "resident": resident, "vehicles": vehicles_with_status, "error": "最多只能添加8辆车"})
+    
     existing = db.query(Vehicle).filter_by(plate_number=plate_number).first()
     if existing:
-        vehicles_with_status = []
-        for v in resident.vehicles:
-            from ..utils import get_vehicle_payment_status
-            status = get_vehicle_payment_status(v, db)
-            vehicles_with_status.append({"vehicle": v, "status": status})
+        vehicles_with_status = get_vehicles_with_status(resident, db)
         return templates.TemplateResponse("residents/detail.html", {"request": request, "current_user": user, "resident": resident, "vehicles": vehicles_with_status, "error": "车牌号已存在"})
     
-    max_sort = db.query(Vehicle).filter_by(resident_id=resident_id).count()
+    max_sort = current_count
     vehicle = Vehicle(
         plate_number=plate_number,
         brand=brand,
@@ -58,7 +60,7 @@ async def add_vehicle(request: Request, resident_id: int, user: dict = Depends(r
     client_host = request.client.host if request.client else "unknown"
     log_operation(db, user["user_id"], "create_vehicle", f"车辆 {plate_number}", f"为住户 {resident.room_number} 添加车辆", client_host)
     
-    return templates.TemplateResponse("residents/detail.html", {"request": request, "current_user": user, "resident": resident, "vehicles": get_vehicles_with_status(resident, db)})
+    return templates.TemplateResponse("residents/detail.html", {"request": request, "current_user": user, "resident": resident, "vehicles": get_vehicles_with_status(resident, db), "success": "车辆添加成功"})
 
 def get_vehicles_with_status(resident, db):
     vehicles_with_status = []
