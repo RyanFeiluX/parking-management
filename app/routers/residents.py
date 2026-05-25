@@ -92,7 +92,7 @@ async def add_resident(request: Request, user: dict = Depends(require_role("admi
         return templates.TemplateResponse("residents/form.html", {
             "request": request,
             "current_user": user,
-            "error": "请至少填写楼号和房间号",
+            "error": "请至少填写楼号",
             "area_options": area_options
         })
     
