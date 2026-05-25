@@ -236,14 +236,20 @@
                     <div id="garageFields" style="display: none;">
                         <div class="mb-3">
                             <label class="form-label">车库编号</label>
-                            <input type="text" name="garage_number" class="form-control" placeholder="如：A001">
+                            <div class="input-group">
+                                <input type="text" name="garage_number" id="garageNumberInput" class="form-control" placeholder="如：A001">
+                                <button type="button" id="garageNumberToggle" class="btn btn-outline-secondary" onclick="toggleGarageNumber()">
+                                    使用房号
+                                </button>
+                            </div>
+                            <small id="garageNumberHint" class="text-muted"></small>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">有效期至</label>
                             <input type="date" name="garage_valid_until" class="form-control">
                         </div>
                     </div>
-                    <button type="submit" class="btn btn-primary">添加</button>
+                    <button type="submit" class="btn btn-primary" onclick="enableGarageInputBeforeSubmit()">添加</button>
                 </form>
             </div>
         </div>
@@ -285,6 +291,42 @@ function deleteCharAdd() {
     var input = document.getElementById('plateInputAdd');
     input.value = input.value.slice(0, -1);
     input.focus();
+}
+
+var garageUsingRoomNumber = false;
+
+function enableGarageInputBeforeSubmit() {
+    var input = document.getElementById('garageNumberInput');
+    if (input) {
+        input.disabled = false;
+    }
+}
+
+function toggleGarageNumber() {
+    var input = document.getElementById('garageNumberInput');
+    var button = document.getElementById('garageNumberToggle');
+    var hint = document.getElementById('garageNumberHint');
+    
+    if (garageUsingRoomNumber) {
+        // 切换到自定义输入模式
+        input.disabled = false;
+        input.placeholder = '如：A001';
+        button.textContent = '使用房号';
+        button.classList.remove('btn-secondary');
+        button.classList.add('btn-outline-secondary');
+        hint.textContent = '';
+        garageUsingRoomNumber = false;
+    } else {
+        // 切换到使用房号模式
+        var roomNumber = '{{ resident.room_number }}';
+        input.value = roomNumber;
+        input.disabled = true;
+        button.textContent = '自定义';
+        button.classList.remove('btn-outline-secondary');
+        button.classList.add('btn-secondary');
+        hint.textContent = '已使用房号: ' + roomNumber;
+        garageUsingRoomNumber = true;
+    }
 }
 </script>
 {% endblock %}

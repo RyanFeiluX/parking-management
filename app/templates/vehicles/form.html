@@ -49,14 +49,20 @@
                     <div id="garageFields" {% if not vehicle.is_garage %}style="display: none;"{% endif %}>
                         <div class="mb-3">
                             <label class="form-label">车库编号</label>
-                            <input type="text" name="garage_number" class="form-control" value="{{ vehicle.garage_number or '' }}" placeholder="如：A001">
+                            <div class="input-group">
+                                <input type="text" name="garage_number" id="garageNumberInput" class="form-control" value="{{ vehicle.garage_number or '' }}" placeholder="如：A001">
+                                <button type="button" id="garageNumberToggle" class="btn btn-outline-secondary" onclick="toggleGarageNumber()">
+                                    使用房号
+                                </button>
+                            </div>
+                            <small id="garageNumberHint" class="text-muted"></small>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">有效期至</label>
                             <input type="date" name="garage_valid_until" class="form-control" value="{{ vehicle.garage_valid_until.strftime('%Y-%m-%d') if vehicle.garage_valid_until else '' }}">
                         </div>
                     </div>
-                    <button type="submit" class="btn btn-primary">保存</button>
+                    <button type="submit" class="btn btn-primary" onclick="enableGarageInputBeforeSubmit()">保存</button>
                     <a href="/residents/{{ vehicle.resident_id }}" class="btn btn-secondary">取消</a>
                 </form>
             </div>
@@ -71,6 +77,62 @@ document.getElementById('isGarage').addEventListener('change', function() {
         garageFields.style.display = 'block';
     } else {
         garageFields.style.display = 'none';
+    }
+});
+
+var garageNumber = '{{ vehicle.garage_number or "" }}';
+var roomNumber = '{{ vehicle.resident.room_number if vehicle.resident else "" }}';
+var garageUsingRoomNumber = (garageNumber && roomNumber && garageNumber === roomNumber);
+
+function enableGarageInputBeforeSubmit() {
+    var input = document.getElementById('garageNumberInput');
+    if (input) {
+        input.disabled = false;
+    }
+}
+
+function toggleGarageNumber() {
+    var input = document.getElementById('garageNumberInput');
+    var button = document.getElementById('garageNumberToggle');
+    var hint = document.getElementById('garageNumberHint');
+    
+    if (!input || !button) {
+        return;
+    }
+    
+    var roomNumber = '{{ vehicle.resident.room_number if vehicle.resident else "" }}';
+    
+    if (garageUsingRoomNumber) {
+        input.disabled = false;
+        input.placeholder = '如：A001';
+        button.textContent = '使用房号';
+        button.classList.remove('btn-secondary');
+        button.classList.add('btn-outline-secondary');
+        if (hint) {
+            hint.textContent = '';
+        }
+        garageUsingRoomNumber = false;
+    } else {
+        if (!roomNumber) {
+            alert('该车辆没有关联住户，无法使用房号');
+            return;
+        }
+        input.value = roomNumber;
+        input.disabled = true;
+        button.textContent = '自定义';
+        button.classList.remove('btn-outline-secondary');
+        button.classList.add('btn-secondary');
+        if (hint) {
+            hint.textContent = '已使用房号: ' + roomNumber;
+        }
+        garageUsingRoomNumber = true;
+    }
+}
+
+// 初始化状态
+document.addEventListener('DOMContentLoaded', function() {
+    if (garageUsingRoomNumber) {
+        toggleGarageNumber();
     }
 });
 </script>
