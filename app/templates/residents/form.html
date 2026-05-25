@@ -1,7 +1,15 @@
 {% extends "base.html" %}
 
 {% block title %}{% if resident %}编辑住户{% else %}添加住户{% endif %}{% endblock %}
-{% block header %}{% if resident %}编辑住户{% else %}添加住户{% endif %}{% endblock %}
+
+{% block header %}
+<div class="d-flex align-items-center">
+    <a href="/residents" class="btn btn-sm btn-outline-secondary me-3" title="返回住户管理">
+        ← 返回
+    </a>
+    <h1 class="h2 mb-0">{% if resident %}编辑住户{% else %}添加住户{% endif %}</h1>
+</div>
+{% endblock %}
 
 {% block content %}
 <div class="row">

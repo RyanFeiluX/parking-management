@@ -1,7 +1,15 @@
 {% extends "base.html" %}
 
 {% block title %}编辑车辆{% endblock %}
-{% block header %}编辑车辆{% endblock %}
+
+{% block header %}
+<div class="d-flex align-items-center">
+    <a href="/residents/{{ vehicle.resident_id }}" class="btn btn-sm btn-outline-secondary me-3" title="返回住户详情">
+        ← 返回
+    </a>
+    <h1 class="h2 mb-0">编辑车辆</h1>
+</div>
+{% endblock %}
 
 {% block content %}
 <div class="row">
