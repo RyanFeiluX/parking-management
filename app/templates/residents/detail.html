@@ -4,14 +4,9 @@
 {% block header %}住户详情{% endblock %}
 
 {% block content %}
+<div id="page-data" {% if success %}data-success="{{ success }}"{% endif %} {% if error %}data-error="{{ error }}"{% endif %}></div>
 <div class="row">
     <div class="col">
-        {% if error %}
-        <div class="alert alert-danger">{{ error }}</div>
-        {% endif %}
-        {% if success %}
-        <div class="alert alert-success">{{ success }}</div>
-        {% endif %}
         <div class="card mb-4">
             <div class="card-header">
                 <div class="d-flex justify-content-between">
@@ -256,6 +251,19 @@
 </div>
 
 <script>
+// 页面加载时显示通知
+document.addEventListener('DOMContentLoaded', function() {
+    const pageData = document.getElementById('page-data');
+    const successMsg = pageData?.dataset.success;
+    const errorMsg = pageData?.dataset.error;
+    
+    if (successMsg) {
+        showNotification(successMsg, 'success');
+    } else if (errorMsg) {
+        showNotification(errorMsg, 'error');
+    }
+});
+
 document.getElementById('isGarage').addEventListener('change', function() {
     var garageFields = document.getElementById('garageFields');
     if (this.checked) {
