@@ -4,6 +4,14 @@
 {% block header %}车辆状态查询{% endblock %}
 
 {% block content %}
+<style>
+    .clickable-row {
+        cursor: pointer;
+    }
+    .clickable-row:hover {
+        background-color: #e3f2fd !important;
+    }
+</style>
 <div class="row mb-4">
     <div class="col">
         <div class="btn-group" role="group">
@@ -59,7 +67,7 @@
             </thead>
             <tbody>
                 {% for item in free_vehicles %}
-                <tr>
+                <tr class="clickable-row" ondblclick="goToResident({{ item.vehicle.resident.id if item.vehicle.resident else 'null' }})">
                     <td>{{ item.vehicle.resident.room_number if item.vehicle.resident else '-' }}</td>
                     <td>{{ item.vehicle.plate_number }}</td>
                     <td>{{ item.status.status_end }}</td>
@@ -87,7 +95,7 @@
             </thead>
             <tbody>
                 {% for item in temp_vehicles %}
-                <tr>
+                <tr class="clickable-row" ondblclick="goToResident({{ item.vehicle.resident.id if item.vehicle.resident else 'null' }})">
                     <td>{{ item.vehicle.resident.room_number if item.vehicle.resident else '-' }}</td>
                     <td>{{ item.vehicle.plate_number }}</td>
                     <td>{{ item.status.detail }}</td>
@@ -121,7 +129,7 @@
             </thead>
             <tbody>
                 {% for item in expired_vehicles %}
-                <tr>
+                <tr class="clickable-row" ondblclick="goToResident({{ item.vehicle.resident.id if item.vehicle.resident else 'null' }})">
                     <td>{{ item.vehicle.resident.room_number if item.vehicle.resident else '-' }}</td>
                     <td>{{ item.vehicle.plate_number }}</td>
                     <td>-</td>
@@ -147,4 +155,12 @@
     </div>
 </div>
 {% endif %}
+
+<script>
+function goToResident(residentId) {
+    if (residentId) {
+        window.location.href = '/residents/' + residentId;
+    }
+}
+</script>
 {% endblock %}
