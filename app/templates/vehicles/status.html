@@ -67,7 +67,7 @@
             </thead>
             <tbody>
                 {% for item in free_vehicles %}
-                <tr class="clickable-row" ondblclick="goToResident({{ item.vehicle.resident.id if item.vehicle.resident else 'null' }})">
+                <tr class="clickable-row" data-resident-id="{{ item.vehicle.resident.id if item.vehicle.resident else '' }}">
                     <td>{{ item.vehicle.resident.room_number if item.vehicle.resident else '-' }}</td>
                     <td>{{ item.vehicle.plate_number }}</td>
                     <td>{{ item.status.status_end }}</td>
@@ -95,7 +95,7 @@
             </thead>
             <tbody>
                 {% for item in temp_vehicles %}
-                <tr class="clickable-row" ondblclick="goToResident({{ item.vehicle.resident.id if item.vehicle.resident else 'null' }})">
+                <tr class="clickable-row" data-resident-id="{{ item.vehicle.resident.id if item.vehicle.resident else '' }}">
                     <td>{{ item.vehicle.resident.room_number if item.vehicle.resident else '-' }}</td>
                     <td>{{ item.vehicle.plate_number }}</td>
                     <td>{{ item.status.detail }}</td>
@@ -129,7 +129,7 @@
             </thead>
             <tbody>
                 {% for item in expired_vehicles %}
-                <tr class="clickable-row" ondblclick="goToResident({{ item.vehicle.resident.id if item.vehicle.resident else 'null' }})">
+                <tr class="clickable-row" data-resident-id="{{ item.vehicle.resident.id if item.vehicle.resident else '' }}">
                     <td>{{ item.vehicle.resident.room_number if item.vehicle.resident else '-' }}</td>
                     <td>{{ item.vehicle.plate_number }}</td>
                     <td>-</td>
@@ -157,10 +157,16 @@
 {% endif %}
 
 <script>
-function goToResident(residentId) {
-    if (residentId) {
-        window.location.href = '/residents/' + residentId;
-    }
-}
+document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('dblclick', function(e) {
+        var row = e.target.closest('.clickable-row');
+        if (row) {
+            var residentId = row.dataset.residentId;
+            if (residentId && residentId !== '') {
+                window.location.href = '/residents/' + residentId;
+            }
+        }
+    });
+});
 </script>
 {% endblock %}
