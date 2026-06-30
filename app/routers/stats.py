@@ -40,12 +40,12 @@ async def stats_dashboard(request: Request, user: dict = Depends(require_login))
     monthly_payment = db.query(PaymentRecord).filter(
         PaymentRecord.paid_at >= current_month
     ).with_entities(PaymentRecord.amount).all()
-    monthly_total = sum(p[0] for p in monthly_payment) if monthly_payment else 0
+    monthly_total = float(sum(p[0] for p in monthly_payment)) if monthly_payment else 0
     
     yearly_payment = db.query(PaymentRecord).filter(
         PaymentRecord.paid_at >= today.replace(month=1, day=1)
     ).with_entities(PaymentRecord.amount).all()
-    yearly_total = sum(p[0] for p in yearly_payment) if yearly_payment else 0
+    yearly_total = float(sum(p[0] for p in yearly_payment)) if yearly_payment else 0
     
     monthly_data = []
     for i in range(12):
@@ -57,7 +57,7 @@ async def stats_dashboard(request: Request, user: dict = Depends(require_login))
         ).with_entities(PaymentRecord.amount).all()
         monthly_data.append({
             "month": month_start.strftime("%Y-%m"),
-            "amount": sum(p[0] for p in payments) if payments else 0
+            "amount": float(sum(p[0] for p in payments)) if payments else 0
         })
     monthly_data.reverse()
     

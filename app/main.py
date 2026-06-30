@@ -5,7 +5,6 @@ from sqlalchemy.orm import Session
 from datetime import datetime, date
 from typing import Optional
 import json
-from anyio import EndOfStream
 
 from .database import engine, get_db, Base
 from .models import User, SystemSetting
@@ -58,9 +57,9 @@ async def db_session_middleware(request: Request, call_next):
     try:
         response = await call_next(request)
         return response
-    except EndOfStream:
-        raise
     except Exception as e:
+        if type(e).__name__ in ('EndOfStream', 'ExceptionGroup'):
+            raise
         print(f"\n!!! EXCEPTION OCCURRED !!!")
         import traceback
         traceback.print_exc()
@@ -72,24 +71,30 @@ async def db_session_middleware(request: Request, call_next):
 
 @app.middleware("http")
 async def refresh_session_middleware(request: Request, call_next):
-    response = await call_next(request)
-    session_cookie = request.cookies.get("parking_session")
-    if session_cookie:
-        user_data = decode_session_data(session_cookie)
-        if user_data:
-            new_session = create_session_data(
-                user_data["user_id"],
-                user_data["username"],
-                user_data["role"]
-            )
-            response.set_cookie(
-                key="parking_session",
-                value=new_session,
-                httponly=True,
-                samesite="lax",
-                secure=False
-            )
-    return response
+    try:
+        response = await call_next(request)
+    except Exception as e:
+        if type(e).__name__ in ('EndOfStream', 'ExceptionGroup'):
+            raise
+        raise
+    else:
+        session_cookie = request.cookies.get("parking_session")
+        if session_cookie:
+            user_data = decode_session_data(session_cookie)
+            if user_data:
+                new_session = create_session_data(
+                    user_data["user_id"],
+                    user_data["username"],
+                    user_data["role"]
+                )
+                response.set_cookie(
+                    key="parking_session",
+                    value=new_session,
+                    httponly=True,
+                    samesite="lax",
+                    secure=False
+                )
+        return response
 
 @app.get("/")
 async def index(request: Request):
