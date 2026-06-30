@@ -30,7 +30,7 @@
                         {% for p in payments %}
                         <tr>
                             <td>{{ p.vehicle.plate_number if p.vehicle else '-' }}</td>
-                            <td>{{ p.period_type }}{{ p.period_start }}-{{ p.period_end }}</td>
+                            <td>{{ p.period_type }}{{ p.period_start.strftime('%Y-%m-%d') }}~{{ p.period_end.strftime('%Y-%m-%d') }}</td>
                             <td>{{ p.amount }} 元</td>
                             <td>{{ p.payment_method or '-' }}</td>
                             <td>{{ p.paid_at.strftime('%Y-%m-%d %H:%M') }}</td>

@@ -3,12 +3,20 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from datetime import datetime, date
 from dateutil.relativedelta import relativedelta
+from calendar import monthrange
 
 from ..models import PaymentRecord, Vehicle, Resident, User, OperationLog
 from ..deps import require_role, require_login
 from ..jinja import templates
 
 router = APIRouter()
+
+def calc_period_end(period_start: date, period_type: str, months: int) -> date:
+    if period_type == "季":
+        months *= 3
+    elif period_type == "年":
+        months *= 12
+    return period_start + relativedelta(months=months) - relativedelta(days=1)
 
 def log_operation(db: Session, user_id: int, action_type: str, target: str, detail: str, ip_address: str = None):
     if ip_address is None:
@@ -37,12 +45,14 @@ async def payment_form(request: Request, user: dict = Depends(require_login)):
             from ..utils import calculate_payment_amount
             amount_info = calculate_payment_amount(vehicle, "月", 1, db)
     
+    today = date.today()
     return templates.TemplateResponse("payments/form.html", {
         "request": request,
         "current_user": user,
         "vehicle": vehicle,
         "amount_info": amount_info,
-        "plate_number": plate_number
+        "plate_number": plate_number,
+        "period_start": today
     })
 
 @router.post("/calculate")
@@ -51,6 +61,14 @@ async def calculate_amount(request: Request, user: dict = Depends(require_login)
     plate_number = form_data.get("plate_number")
     period_type = form_data.get("period_type", "月")
     months = int(form_data.get("months", 1))
+    period_start_str = form_data.get("period_start", "")
+    
+    try:
+        period_start = datetime.strptime(period_start_str, "%Y-%m-%d").date() if period_start_str else date.today()
+    except ValueError:
+        period_start = date.today()
+    
+    period_end = calc_period_end(period_start, period_type, months)
     
     db = request.state.db
     vehicle = db.query(Vehicle).filter_by(plate_number=plate_number).first()
@@ -64,7 +82,8 @@ async def calculate_amount(request: Request, user: dict = Depends(require_login)
             "error": "车辆不存在",
             "plate_number": plate_number,
             "period_type": period_type,
-            "months": months
+            "months": months,
+            "period_start": period_start
         })
     
     from ..utils import calculate_payment_amount
@@ -73,7 +92,9 @@ async def calculate_amount(request: Request, user: dict = Depends(require_login)
     if request.headers.get("x-requested-with") == "XMLHttpRequest":
         return JSONResponse({
             "summary": amount_info.get("summary", ""),
-            "amount": amount_info.get("amount", 0)
+            "amount": amount_info.get("amount", 0),
+            "period_start": period_start.isoformat(),
+            "period_end": period_end.isoformat()
         })
     
     return templates.TemplateResponse("payments/form.html", {
@@ -83,7 +104,8 @@ async def calculate_amount(request: Request, user: dict = Depends(require_login)
         "amount_info": amount_info,
         "plate_number": plate_number,
         "period_type": period_type,
-        "months": months
+        "months": months,
+        "period_start": period_start
     })
 
 @router.post("/pay")
@@ -92,8 +114,16 @@ async def pay(request: Request, user: dict = Depends(require_login)):
     vehicle_id = int(form_data.get("vehicle_id"))
     period_type = form_data.get("period_type")
     months = int(form_data.get("months"))
+    period_start_str = form_data.get("period_start", "")
     payment_method = form_data.get("payment_method")
     remark = form_data.get("remark")
+    
+    try:
+        period_start = datetime.strptime(period_start_str, "%Y-%m-%d").date() if period_start_str else date.today()
+    except ValueError:
+        period_start = date.today()
+    
+    period_end = calc_period_end(period_start, period_type, months)
     
     db = request.state.db
     vehicle = db.query(Vehicle).filter_by(id=vehicle_id).first()
@@ -117,20 +147,6 @@ async def pay(request: Request, user: dict = Depends(require_login)):
             "error": "缴费金额必须大于0"
         })
     
-    today = date.today()
-    period_start = today.strftime("%Y-%m")
-    
-    if period_type == "月":
-        end_date = today + relativedelta(months=months)
-    elif period_type == "季":
-        end_date = today + relativedelta(months=months * 3)
-    elif period_type == "年":
-        end_date = today + relativedelta(months=months * 12)
-    else:
-        end_date = today + relativedelta(months=months)
-    
-    period_end = end_date.strftime("%Y-%m")
-    
     payment = PaymentRecord(
         vehicle_id=vehicle_id,
         period_start=period_start,
@@ -147,13 +163,13 @@ async def pay(request: Request, user: dict = Depends(require_login)):
     db.commit()
     
     client_host = request.client.host if request.client else "unknown"
-    log_operation(db, user["user_id"], "payment", f"车辆 {vehicle.plate_number}", f"缴费 {amount}元，{period_type}{months}期", client_host)
+    log_operation(db, user["user_id"], "payment", f"车辆 {vehicle.plate_number}", f"缴费 {amount}元，{period_type}{months}期，{period_start}~{period_end}", client_host)
     
     return templates.TemplateResponse("payments/form.html", {
         "request": request,
         "current_user": user,
         "vehicle": vehicle,
-        "success": f"缴费成功！已缴纳 {amount} 元，{period_type}{months}期",
+        "success": f"缴费成功！已缴纳 {amount} 元，{period_type}{months}期（{period_start}~{period_end}）",
         "plate_number": vehicle.plate_number
     })
 

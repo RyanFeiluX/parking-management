@@ -66,7 +66,7 @@
                             <td>{{ item.payment.paid_at.strftime('%Y-%m-%d %H:%M') }}</td>
                             <td>{{ item.vehicle.plate_number }}</td>
                             <td>{{ item.resident.room_number if item.resident else '-' }}</td>
-                            <td>{{ item.payment.period_type }}{{ item.payment.period_start }}-{{ item.payment.period_end }}</td>
+                            <td>{{ item.payment.period_type }}{{ item.payment.period_start.strftime('%Y-%m-%d') }}~{{ item.payment.period_end.strftime('%Y-%m-%d') }}</td>
                             <td>{{ item.payment.amount }}</td>
                             <td>{{ item.payment.payment_method or '-' }}</td>
                             <td>{{ item.operator.display_name if item.operator else '-' }}</td>

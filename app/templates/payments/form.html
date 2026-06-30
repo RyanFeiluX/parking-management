@@ -154,6 +154,10 @@
             <div class="card-body">
                 <form method="post" action="/payments/calculate" id="calc-form">
                     <div class="mb-3">
+                        <label class="form-label">起始日期</label>
+                        <input type="date" name="period_start" class="form-control" value="{{ period_start.strftime('%Y-%m-%d') if period_start else '' }}" onchange="recalc()">
+                    </div>
+                    <div class="mb-3">
                         <label class="form-label">缴费周期</label>
                         <select name="period_type" class="form-control" onchange="recalc()">
                             <option value="月" {% if period_type == '月' %}selected{% endif %}>月缴</option>
@@ -174,6 +178,7 @@
             <div class="card mt-4">
                 <div class="card-header">费用计算</div>
                 <div class="card-body">
+                    <p><strong>缴费期间：</strong><span id="calc-period-start">{{ period_start.strftime('%Y-%m-%d') if period_start else '' }}</span> ~ <span id="calc-period-end"></span></p>
                     <p id="calc-summary">{{ amount_info.summary if amount_info else '' }}</p>
                     <div class="text-right">
                         <h3 class="text-primary">应付金额: <span id="calc-amount">{{ amount_info.amount if amount_info else '' }}</span> 元</h3>
@@ -188,6 +193,7 @@
                         <input type="hidden" name="vehicle_id" value="{{ vehicle.id }}">
                         <input type="hidden" name="period_type" id="pay-period-type" value="{{ period_type or '月' }}">
                         <input type="hidden" name="months" id="pay-months" value="{{ months or 1 }}">
+                        <input type="hidden" name="period_start" id="pay-period-start" value="{{ period_start.strftime('%Y-%m-%d') if period_start else '' }}">
                         <input type="hidden" name="amount" id="pay-amount" value="{{ amount_info.amount if amount_info else '' }}">
                         
                         <div class="mb-3">
@@ -239,10 +245,13 @@ function recalc() {
     .then(function(r) { return r.json(); })
     .then(function(result) {
         if (result.error) return;
+        document.getElementById('calc-period-start').textContent = result.period_start;
+        document.getElementById('calc-period-end').textContent = result.period_end;
         document.getElementById('calc-summary').textContent = result.summary;
         document.getElementById('calc-amount').textContent = result.amount;
         document.getElementById('pay-period-type').value = document.querySelector('[name="period_type"]').value;
         document.getElementById('pay-months').value = document.querySelector('[name="months"]').value;
+        document.getElementById('pay-period-start').value = result.period_start;
         document.getElementById('pay-amount').value = result.amount;
         document.getElementById('calc-result').style.display = '';
     });

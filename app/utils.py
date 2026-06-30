@@ -66,17 +66,14 @@ def get_vehicle_payment_status(vehicle, db):
     
     latest_payment = vehicle.payments[0]
     
-    period_end_str = latest_payment.period_end
-    year, month = map(int, period_end_str.split("-"))
-    _, last_day = monthrange(year, month)
-    paid_to = date(year, month, last_day)
+    paid_to = latest_payment.period_end
     
     days_past = (today - paid_to).days
     
     if paid_to >= today:
         return {
             "status": "免费",
-            "status_start": f"{latest_payment.period_start}-01",
+            "status_start": latest_payment.period_start.isoformat(),
             "status_end": paid_to.isoformat(),
             "detail": f"免费至{paid_to.strftime('%Y-%m-%d')}"
         }

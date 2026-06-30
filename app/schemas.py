@@ -115,8 +115,8 @@ class DiscountPolicyResponse(DiscountPolicyBase):
 
 class PaymentRecordBase(BaseModel):
     vehicle_id: int
-    period_start: str
-    period_end: str
+    period_start: date
+    period_end: date
     period_type: str
     amount: float
     rule_summary: Optional[str] = None

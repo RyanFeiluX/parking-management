@@ -28,8 +28,8 @@ def build_invoice_summary(payments):
     plate = payments[0].vehicle.plate_number if payments[0].vehicle else ""
     if len(payments) == 1:
         p = payments[0]
-        return f"{plate} {p.period_type}缴 {p.period_start}~{p.period_end}"
-    items = [f"{p.period_type}缴{p.period_start}~{p.period_end}({float(p.amount):.0f}元)" for p in payments]
+        return f"{plate} {p.period_type}缴 {p.period_start.strftime('%Y-%m-%d')}~{p.period_end.strftime('%Y-%m-%d')}"
+    items = [f"{p.period_type}缴{p.period_start.strftime('%Y-%m-%d')}~{p.period_end.strftime('%Y-%m-%d')}({float(p.amount):.0f}元)" for p in payments]
     total = sum(float(p.amount) for p in payments)
     return f"{plate} 合并{len(payments)}笔交费：" + "、".join(items) + f"，合计{total:.0f}元"
 

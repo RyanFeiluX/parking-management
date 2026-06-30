@@ -33,11 +33,7 @@ def get_vehicle_payment_status(vehicle, db):
     
     latest_payment = vehicle.payments[0]
     
-    period_end_str = latest_payment.period_end
-    year, month = map(int, period_end_str.split("-"))
-    from calendar import monthrange
-    _, last_day = monthrange(year, month)
-    paid_to = date(year, month, last_day)
+    paid_to = latest_payment.period_end
     
     today = date.today()
     days_past = (today - paid_to).days
@@ -45,7 +41,7 @@ def get_vehicle_payment_status(vehicle, db):
     if paid_to >= today:
         return {
             "status": "免费",
-            "status_start": f"{latest_payment.period_start}-01",
+            "status_start": latest_payment.period_start.isoformat(),
             "status_end": paid_to.isoformat(),
             "detail": f"免费至{paid_to.strftime('%Y-%m-%d')}"
         }
@@ -136,9 +132,7 @@ async def vehicle_status(request: Request, plate_number: str):
             first_payment = sorted(vehicle.payments, key=lambda p: p.period_start)[0]
         
         if first_payment:
-            paid_from_str = first_payment.period_start
-            year, month = map(int, paid_from_str.split("-"))
-            paid_from = date(year, month, 1)
+            paid_from = first_payment.period_start
             
             if vehicle.created_at.date() < paid_from:
                 temp_days = (paid_from - vehicle.created_at.date()).days

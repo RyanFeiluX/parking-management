@@ -73,13 +73,13 @@
                                 <span class="badge bg-primary rounded-pill" title="{{ item.payments|length }} 笔缴费合并">{{ item.payments|length }}笔合并</span>
                                 <br>
                                 {% for p in item.payments[:3] %}
-                                <small>{{ p.period_type }}{{ p.period_start }}-{{ p.period_end }}<br></small>
+                                <small>{{ p.period_type }}{{ p.period_start.strftime('%Y-%m-%d') }}~{{ p.period_end.strftime('%Y-%m-%d') }}<br></small>
                                 {% endfor %}
                                 {% if item.payments|length > 3 %}
                                 <small class="text-muted">…共{{ item.payments|length }}笔</small>
                                 {% endif %}
                                 {% elif item.payment %}
-                                {{ item.payment.period_type }}{{ item.payment.period_start }}-{{ item.payment.period_end }}
+                                {{ item.payment.period_type }}{{ item.payment.period_start.strftime('%Y-%m-%d') }}~{{ item.payment.period_end.strftime('%Y-%m-%d') }}
                                 {% else %}
                                 -
                                 {% endif %}
