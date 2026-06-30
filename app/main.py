@@ -80,20 +80,25 @@ async def refresh_session_middleware(request: Request, call_next):
     else:
         session_cookie = request.cookies.get("parking_session")
         if session_cookie:
-            user_data = decode_session_data(session_cookie)
-            if user_data:
-                new_session = create_session_data(
-                    user_data["user_id"],
-                    user_data["username"],
-                    user_data["role"]
-                )
-                response.set_cookie(
-                    key="parking_session",
-                    value=new_session,
-                    httponly=True,
-                    samesite="lax",
-                    secure=False
-                )
+            has_session_cookie = any(
+                k.lower() == b'set-cookie' and v.startswith(b'parking_session=')
+                for k, v in response.raw_headers
+            )
+            if not has_session_cookie:
+                user_data = decode_session_data(session_cookie)
+                if user_data:
+                    new_session = create_session_data(
+                        user_data["user_id"],
+                        user_data["username"],
+                        user_data["role"]
+                    )
+                    response.set_cookie(
+                        key="parking_session",
+                        value=new_session,
+                        httponly=True,
+                        samesite="lax",
+                        secure=False
+                    )
         return response
 
 @app.get("/")
