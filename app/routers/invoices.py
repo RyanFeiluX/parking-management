@@ -22,6 +22,37 @@ def log_operation(db: Session, user_id: int, action_type: str, target: str, deta
     db.add(log)
     db.commit()
 
+def build_invoice_summary(payments):
+    if not payments:
+        return ""
+    plate = payments[0].vehicle.plate_number if payments[0].vehicle else ""
+    if len(payments) == 1:
+        p = payments[0]
+        return f"{plate} {p.period_type}缴 {p.period_start}~{p.period_end}"
+    items = [f"{p.period_type}缴{p.period_start}~{p.period_end}({float(p.amount):.0f}元)" for p in payments]
+    total = sum(float(p.amount) for p in payments)
+    return f"{plate} 合并{len(payments)}笔交费：" + "、".join(items) + f"，合计{total:.0f}元"
+
+def build_invoice_data(db, invoices):
+    data = []
+    for inv in invoices:
+        payments = inv.payments
+        first_payment = payments[0] if payments else None
+        vehicle = first_payment.vehicle if first_payment else None
+        resident = vehicle.resident if vehicle else None
+        operator = db.query(User).filter_by(id=first_payment.operator_id).first() if first_payment and first_payment.operator_id else None
+        total_paid = sum(float(p.amount) for p in payments) if payments else 0
+        data.append({
+            "invoice": inv,
+            "payments": payments,
+            "payment": first_payment,
+            "vehicle": vehicle,
+            "resident": resident,
+            "operator": operator,
+            "total_paid": total_paid
+        })
+    return data
+
 @router.get("/")
 async def invoice_list(request: Request, user: dict = Depends(require_login)):
     db = request.state.db
@@ -45,20 +76,7 @@ async def invoice_list(request: Request, user: dict = Depends(require_login)):
         query = query.join(PaymentRecord).join(Vehicle).filter(Vehicle.plate_number.ilike(f"%{plate_number}%"))
 
     invoices = query.all()
-
-    invoice_data = []
-    for inv in invoices:
-        payment = inv.payment
-        vehicle = payment.vehicle if payment else None
-        resident = vehicle.resident if vehicle else None
-        operator = db.query(User).filter_by(id=payment.operator_id).first() if payment and payment.operator_id else None
-        invoice_data.append({
-            "invoice": inv,
-            "payment": payment,
-            "vehicle": vehicle,
-            "resident": resident,
-            "operator": operator
-        })
+    invoice_data = build_invoice_data(db, invoices)
 
     return templates.TemplateResponse("invoices/list.html", {
         "request": request,
@@ -74,16 +92,33 @@ async def invoice_list(request: Request, user: dict = Depends(require_login)):
 @router.get("/create")
 async def create_invoice_page(request: Request, user: dict = Depends(require_login)):
     db = request.state.db
-    payment_id = request.query_params.get("payment_id")
+    payment_ids_str = request.query_params.get("payment_ids", "")
     error = None
 
-    payment = None
-    if payment_id:
-        payment = db.query(PaymentRecord).filter_by(id=int(payment_id)).first()
-        if not payment:
-            error = "交费记录不存在"
-        elif payment.invoice:
-            error = "该交费记录已关联开票条目"
+    payments = []
+    total_amount = 0
+    if payment_ids_str:
+        for pid_str in payment_ids_str.split(","):
+            pid_str = pid_str.strip()
+            if not pid_str:
+                continue
+            payment = db.query(PaymentRecord).filter_by(id=int(pid_str)).first()
+            if not payment:
+                error = f"交费记录 {pid_str} 不存在"
+                break
+            if payment.invoice:
+                error = f"交费记录 {pid_str} 已关联开票条目"
+                break
+            if payment.amount <= 0:
+                error = f"交费记录 {pid_str} 金额为零，不支持开票"
+                break
+            payments.append(payment)
+            total_amount += float(payment.amount)
+
+    if not error and len(payments) > 0:
+        vehicles = set(p.vehicle_id for p in payments)
+        if len(vehicles) > 1:
+            error = "选择的交费记录必须属于同一辆车"
 
     presets = []
     setting = db.query(SystemSetting).filter_by(key="invoice_title_presets").first()
@@ -95,18 +130,30 @@ async def create_invoice_page(request: Request, user: dict = Depends(require_log
         except (json.JSONDecodeError, TypeError):
             presets = []
 
+    auto_summary = build_invoice_summary(payments) if payments else ""
+
+    resident_phone = ""
+    if not error and payments:
+        first = payments[0]
+        if first.vehicle and first.vehicle.resident:
+            resident_phone = first.vehicle.resident.phone or ""
+
     return templates.TemplateResponse("invoices/form.html", {
         "request": request,
         "current_user": user,
-        "payment": payment,
+        "payments": payments,
+        "total_amount": total_amount,
+        "auto_summary": auto_summary,
         "presets": presets,
-        "error": error
+        "error": error,
+        "resident_phone": resident_phone
     })
 
 @router.post("/create")
 async def create_invoice(request: Request, user: dict = Depends(require_login)):
     form_data = await request.form()
-    payment_id = int(form_data.get("payment_id"))
+    payment_ids_str = form_data.get("payment_ids", "")
+    payment_ids = [int(x) for x in payment_ids_str.split(",") if x.strip()]
     title = form_data.get("title", "").strip()
     tax_id = form_data.get("tax_id", "").strip() or None
     summary = form_data.get("summary", "").strip() or None
@@ -114,49 +161,71 @@ async def create_invoice(request: Request, user: dict = Depends(require_login)):
     amount = float(form_data.get("amount", 0))
 
     db = request.state.db
-    payment = db.query(PaymentRecord).filter_by(id=payment_id).first()
-    if not payment:
+    payments = db.query(PaymentRecord).filter(PaymentRecord.id.in_(payment_ids)).all()
+
+    if len(payments) != len(payment_ids):
         return templates.TemplateResponse("invoices/form.html", {
-            "request": request, "current_user": user, "error": "交费记录不存在"
+            "request": request, "current_user": user, "error": "部分交费记录不存在"
         })
-    if payment.invoice:
+
+    for p in payments:
+        if p.invoice:
+            return templates.TemplateResponse("invoices/form.html", {
+                "request": request, "current_user": user, "error": f"交费记录 #{p.id} 已关联开票条目"
+            })
+
+    vehicles = set(p.vehicle_id for p in payments)
+    if len(vehicles) > 1:
         return templates.TemplateResponse("invoices/form.html", {
-            "request": request, "current_user": user, "error": "该交费记录已关联开票条目"
+            "request": request, "current_user": user, "error": "选择的交费记录必须属于同一辆车"
         })
+
     if not title:
         return templates.TemplateResponse("invoices/form.html", {
-            "request": request, "current_user": user, "payment": payment, "error": "发票抬头不能为空"
+            "request": request, "current_user": user, "error": "发票抬头不能为空"
         })
     if amount <= 0:
         return templates.TemplateResponse("invoices/form.html", {
-            "request": request, "current_user": user, "payment": payment, "error": "发票金额必须大于0"
-        })
-    if amount > float(payment.amount):
-        return templates.TemplateResponse("invoices/form.html", {
-            "request": request, "current_user": user, "payment": payment, "error": f"开票金额不能大于缴费金额（{payment.amount}元）"
+            "request": request, "current_user": user, "error": "发票金额必须大于0"
         })
 
+    total_paid = sum(float(p.amount) for p in payments)
+    if amount > total_paid:
+        return templates.TemplateResponse("invoices/form.html", {
+            "request": request, "current_user": user, "error": f"开票金额不能大于缴费总金额（{total_paid}元）"
+        })
+
+    phone = form_data.get("phone", "").strip() or None
+    email = form_data.get("email", "").strip() or None
+
     invoice = Invoice(
-        payment_id=payment_id,
         title=title,
         tax_id=tax_id,
+        phone=phone,
+        email=email,
         summary=summary,
         invoice_type=invoice_type,
         amount=amount,
         status="开票等待中"
     )
     db.add(invoice)
+    db.flush()
+
+    for p in payments:
+        p.invoice_id = invoice.id
+
     db.commit()
 
-    vehicle = payment.vehicle
-    target = f"车辆 {vehicle.plate_number}" if vehicle else f"交费 #{payment_id}"
+    first_payment = payments[0]
+    vehicle = first_payment.vehicle
+    target = f"车辆 {vehicle.plate_number}" if vehicle else f"交费 #{payment_ids[0]}"
     client_host = request.client.host if request.client else "unknown"
     log_operation(db, user["user_id"], "create_invoice", target,
-                  f"创建开票申请: {title}, {amount}元, {invoice_type}", client_host)
+                  f"创建开票申请: {title}, {amount}元, {invoice_type}, 合并{len(payments)}笔交费", client_host)
 
     return templates.TemplateResponse("invoices/form.html", {
         "request": request, "current_user": user,
-        "success": "开票申请已提交", "payment": payment
+        "success": "开票申请已提交", "payments": payments
     })
 
 @router.get("/{invoice_id}/edit")
@@ -169,9 +238,13 @@ async def edit_invoice_page(request: Request, invoice_id: int, user: dict = Depe
         })
 
     if invoice.status != "开票等待中":
+        invoices = db.query(Invoice).order_by(Invoice.created_at.desc()).all()
         return templates.TemplateResponse("invoices/list.html", {
-            "request": request, "current_user": user, "invoices": db.query(Invoice).all(), "error": "仅开票等待中的记录可编辑"
+            "request": request, "current_user": user, "invoices": build_invoice_data(db, invoices), "error": "仅开票等待中的记录可编辑"
         })
+
+    payments = invoice.payments
+    total_amount = sum(float(p.amount) for p in payments) if payments else 0
 
     presets = []
     setting = db.query(SystemSetting).filter_by(key="invoice_title_presets").first()
@@ -183,7 +256,7 @@ async def edit_invoice_page(request: Request, invoice_id: int, user: dict = Depe
 
     return templates.TemplateResponse("invoices/form.html", {
         "request": request, "current_user": user,
-        "invoice": invoice, "payment": invoice.payment, "presets": presets
+        "invoice": invoice, "payments": payments, "total_amount": total_amount, "presets": presets
     })
 
 @router.post("/{invoice_id}/edit")
@@ -196,8 +269,9 @@ async def edit_invoice(request: Request, invoice_id: int, user: dict = Depends(r
             "request": request, "current_user": user, "invoices": [], "error": "开票记录不存在"
         })
     if invoice.status != "开票等待中":
+        invoices = db.query(Invoice).order_by(Invoice.created_at.desc()).all()
         return templates.TemplateResponse("invoices/list.html", {
-            "request": request, "current_user": user, "invoices": db.query(Invoice).all(), "error": "仅开票等待中的记录可编辑"
+            "request": request, "current_user": user, "invoices": build_invoice_data(db, invoices), "error": "仅开票等待中的记录可编辑"
         })
 
     title = form_data.get("title", "").strip()
@@ -208,6 +282,8 @@ async def edit_invoice(request: Request, invoice_id: int, user: dict = Depends(r
 
     invoice.title = title
     invoice.tax_id = form_data.get("tax_id", "").strip() or None
+    invoice.phone = form_data.get("phone", "").strip() or None
+    invoice.email = form_data.get("email", "").strip() or None
     invoice.summary = form_data.get("summary", "").strip() or None
     invoice.invoice_type = form_data.get("invoice_type", "普票")
     invoice.amount = float(form_data.get("amount", 0))
@@ -219,7 +295,7 @@ async def edit_invoice(request: Request, invoice_id: int, user: dict = Depends(r
 
     return templates.TemplateResponse("invoices/form.html", {
         "request": request, "current_user": user, "invoice": invoice,
-        "payment": invoice.payment, "success": "开票信息已更新"
+        "payments": invoice.payments, "success": "开票信息已更新"
     })
 
 @router.post("/{invoice_id}/complete")
@@ -231,8 +307,9 @@ async def complete_invoice(request: Request, invoice_id: int, user: dict = Depen
             "request": request, "current_user": user, "invoices": [], "error": "开票记录不存在"
         })
     if invoice.status != "开票等待中":
+        invoices = db.query(Invoice).order_by(Invoice.created_at.desc()).all()
         return templates.TemplateResponse("invoices/list.html", {
-            "request": request, "current_user": user, "invoices": db.query(Invoice).all(), "error": "仅开票等待中的记录可标记完成"
+            "request": request, "current_user": user, "invoices": build_invoice_data(db, invoices), "error": "仅开票等待中的记录可标记完成"
         })
 
     invoice.status = "开票已完成"
@@ -243,9 +320,10 @@ async def complete_invoice(request: Request, invoice_id: int, user: dict = Depen
     log_operation(db, user["user_id"], "complete_invoice", f"开票 #{invoice_id}",
                   f"开票完成: {invoice.title}, {invoice.amount}元", client_host)
 
+    invoices = db.query(Invoice).order_by(Invoice.created_at.desc()).all()
     return templates.TemplateResponse("invoices/list.html", {
         "request": request, "current_user": user,
-        "invoices": build_invoice_data(db, db.query(Invoice).order_by(Invoice.created_at.desc()).all()),
+        "invoices": build_invoice_data(db, invoices),
         "success": "开票已标记完成"
     })
 
@@ -258,8 +336,9 @@ async def cancel_invoice(request: Request, invoice_id: int, user: dict = Depends
             "request": request, "current_user": user, "invoices": [], "error": "开票记录不存在"
         })
     if invoice.status != "开票等待中":
+        invoices = db.query(Invoice).order_by(Invoice.created_at.desc()).all()
         return templates.TemplateResponse("invoices/list.html", {
-            "request": request, "current_user": user, "invoices": db.query(Invoice).all(), "error": "仅开票等待中的记录可取消"
+            "request": request, "current_user": user, "invoices": build_invoice_data(db, invoices), "error": "仅开票等待中的记录可取消"
         })
 
     invoice.status = "申请已取消"
@@ -269,24 +348,9 @@ async def cancel_invoice(request: Request, invoice_id: int, user: dict = Depends
     log_operation(db, user["user_id"], "cancel_invoice", f"开票 #{invoice_id}",
                   f"取消开票申请: {invoice.title}", client_host)
 
+    invoices = db.query(Invoice).order_by(Invoice.created_at.desc()).all()
     return templates.TemplateResponse("invoices/list.html", {
         "request": request, "current_user": user,
-        "invoices": build_invoice_data(db, db.query(Invoice).order_by(Invoice.created_at.desc()).all()),
+        "invoices": build_invoice_data(db, invoices),
         "success": "开票申请已取消"
     })
-
-def build_invoice_data(db, invoices):
-    data = []
-    for inv in invoices:
-        payment = inv.payment
-        vehicle = payment.vehicle if payment else None
-        resident = vehicle.resident if vehicle else None
-        operator = db.query(User).filter_by(id=payment.operator_id).first() if payment and payment.operator_id else None
-        data.append({
-            "invoice": inv,
-            "payment": payment,
-            "vehicle": vehicle,
-            "resident": resident,
-            "operator": operator
-        })
-    return data

@@ -153,13 +153,14 @@ async def resident_detail(request: Request, resident_id: int, user: dict = Depen
         })
     
     invoices = []
+    seen_invoice_ids = set()
     for v in resident.vehicles:
         for p in v.payments:
-            inv = db.query(Invoice).filter_by(payment_id=p.id).first()
-            if inv:
+            if p.invoice and p.invoice.id not in seen_invoice_ids:
+                seen_invoice_ids.add(p.invoice.id)
                 invoices.append({
-                    "invoice": inv,
-                    "payment": p,
+                    "invoice": p.invoice,
+                    "payments": p.invoice.payments,
                     "vehicle": v
                 })
     

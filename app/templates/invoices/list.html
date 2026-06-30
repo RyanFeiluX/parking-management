@@ -51,8 +51,11 @@
                             <th>申请时间</th>
                             <th>车牌号</th>
                             <th>车主</th>
-                            <th>缴费期间</th>
+                            <th>缴费期间（笔数）</th>
                             <th>发票抬头</th>
+                            <th>税号</th>
+                            <th>电话</th>
+                            <th>邮箱</th>
                             <th>类型</th>
                             <th>金额</th>
                             <th>状态</th>
@@ -66,13 +69,25 @@
                             <td>{{ item.vehicle.plate_number if item.vehicle else '-' }}</td>
                             <td>{{ item.resident.owner_name if item.resident else '-' }}</td>
                             <td>
-                                {% if item.payment %}
+                                {% if item.payments and item.payments|length > 1 %}
+                                <span class="badge bg-primary rounded-pill" title="{{ item.payments|length }} 笔缴费合并">{{ item.payments|length }}笔合并</span>
+                                <br>
+                                {% for p in item.payments[:3] %}
+                                <small>{{ p.period_type }}{{ p.period_start }}-{{ p.period_end }}<br></small>
+                                {% endfor %}
+                                {% if item.payments|length > 3 %}
+                                <small class="text-muted">…共{{ item.payments|length }}笔</small>
+                                {% endif %}
+                                {% elif item.payment %}
                                 {{ item.payment.period_type }}{{ item.payment.period_start }}-{{ item.payment.period_end }}
                                 {% else %}
                                 -
                                 {% endif %}
                             </td>
                             <td>{{ item.invoice.title }}</td>
+                            <td>{{ item.invoice.tax_id or '-' }}</td>
+                            <td>{{ item.invoice.phone or '-' }}</td>
+                            <td>{{ item.invoice.email or '-' }}</td>
                             <td>
                                 {% if item.invoice.invoice_type == '专票' %}
                                 <span class="badge bg-info">专票</span>

@@ -149,9 +149,11 @@ class SystemSettingResponse(SystemSettingBase):
         orm_mode = True
 
 class InvoiceCreate(BaseModel):
-    payment_id: int
+    payment_ids: List[int]
     title: str
     tax_id: Optional[str] = None
+    phone: Optional[str] = None
+    email: Optional[str] = None
     summary: Optional[str] = None
     invoice_type: str = "普票"
     amount: float
@@ -159,15 +161,18 @@ class InvoiceCreate(BaseModel):
 class InvoiceUpdate(BaseModel):
     title: Optional[str] = None
     tax_id: Optional[str] = None
+    phone: Optional[str] = None
+    email: Optional[str] = None
     summary: Optional[str] = None
     invoice_type: Optional[str] = None
     amount: Optional[float] = None
 
 class InvoiceResponse(BaseModel):
     id: int
-    payment_id: int
     title: str
     tax_id: Optional[str] = None
+    phone: Optional[str] = None
+    email: Optional[str] = None
     summary: Optional[str] = None
     invoice_type: str
     amount: float

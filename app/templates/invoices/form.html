@@ -16,20 +16,36 @@
         <div class="card">
             <div class="card-header">{% if invoice %}编辑开票信息{% else %}新建开票申请{% endif %}</div>
             <div class="card-body">
-                {% if payment %}
+                {% if payments %}
                 <div class="mb-4 p-3 bg-light rounded">
-                    <h6>关联交费信息</h6>
+                    <h6>关联交费信息（{{ payments|length }} 笔）</h6>
                     <table class="table table-sm mb-0">
-                        <tr><td style="width:100px">车牌号</td><td>{{ payment.vehicle.plate_number if payment.vehicle else '-' }}</td></tr>
-                        <tr><td>缴费期间</td><td>{{ payment.period_type }}{{ payment.period_start }}-{{ payment.period_end }}</td></tr>
-                        <tr><td>缴费金额</td><td>{{ payment.amount }} 元</td></tr>
-                        <tr><td>缴费方式</td><td>{{ payment.payment_method or '-' }}</td></tr>
-                        <tr><td>缴费时间</td><td>{{ payment.paid_at.strftime('%Y-%m-%d %H:%M') }}</td></tr>
+                        <tr>
+                            <th>车牌号</th>
+                            <th>缴费期间</th>
+                            <th>金额</th>
+                            <th>缴费方式</th>
+                            <th>缴费时间</th>
+                        </tr>
+                        {% for p in payments %}
+                        <tr>
+                            <td>{{ p.vehicle.plate_number if p.vehicle else '-' }}</td>
+                            <td>{{ p.period_type }}{{ p.period_start }}-{{ p.period_end }}</td>
+                            <td>{{ p.amount }} 元</td>
+                            <td>{{ p.payment_method or '-' }}</td>
+                            <td>{{ p.paid_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                        </tr>
+                        {% endfor %}
+                        <tr class="fw-bold">
+                            <td colspan="2">合计</td>
+                            <td>{{ total_amount }} 元</td>
+                            <td colspan="2"></td>
+                        </tr>
                     </table>
                 </div>
 
                 <form method="post" action="/invoices/create">
-                    <input type="hidden" name="payment_id" value="{{ payment.id }}">
+                    <input type="hidden" name="payment_ids" value="{% for p in payments %}{% if not loop.first %},{% endif %}{{ p.id }}{% endfor %}">
 
                     <div class="mb-3">
                         <label class="form-label">发票抬头 <span class="text-danger">*</span></label>
@@ -51,8 +67,18 @@
                     </div>
 
                     <div class="mb-3">
+                        <label class="form-label">联系电话</label>
+                        <input type="text" name="phone" class="form-control" placeholder="开票联系电话" value="{{ invoice.phone if invoice else resident_phone }}">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">电子邮箱</label>
+                        <input type="email" name="email" class="form-control" placeholder="接收电子发票的邮箱" value="{{ invoice.email if invoice else '' }}">
+                    </div>
+
+                    <div class="mb-3">
                         <label class="form-label">发票摘要</label>
-                        <textarea name="summary" class="form-control" rows="2" placeholder="开票内容摘要（可选）">{{ invoice.summary if invoice else '' }}</textarea>
+                        <textarea name="summary" class="form-control" rows="3" placeholder="开票内容摘要（可选）">{{ invoice.summary if invoice else auto_summary }}</textarea>
                     </div>
 
                     <div class="mb-3">
@@ -76,8 +102,8 @@
                     <div class="mb-3">
                         <label class="form-label">发票金额 <span class="text-danger">*</span></label>
                         <input type="number" name="amount" class="form-control" step="0.01" min="0.01"
-                               max="{{ payment.amount }}" value="{{ invoice.amount if invoice else payment.amount }}" required>
-                        <small class="text-muted">默认已填入交费金额，可根据实际需要修改（不超过{{ payment.amount }}元）</small>
+                               max="{{ total_amount }}" value="{{ invoice.amount if invoice else total_amount }}" required>
+                        <small class="text-muted">默认已填入交费总金额，可根据实际需要修改（不超过{{ total_amount }}元）</small>
                     </div>
 
                     <button type="submit" class="btn btn-primary">
@@ -90,7 +116,7 @@
                 <a href="/invoices" class="btn btn-primary">返回开票清单</a>
                 {% else %}
                 <div class="alert alert-warning">
-                    未指定交费记录。请从<a href="/payments/logs">缴费记录</a>中选择一条记录进行开票申请。
+                    未指定交费记录。请从<a href="/payments/logs">缴费记录</a>中选择一条或多条记录进行开票申请。
                 </div>
                 {% endif %}
             </div>

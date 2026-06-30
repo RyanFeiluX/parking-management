@@ -43,6 +43,7 @@
                 <table class="table table-striped">
                     <thead>
                         <tr>
+                            <th><input type="checkbox" id="selectAll" onchange="toggleAll(this)"></th>
                             <th>时间</th>
                             <th>车牌号</th>
                             <th>住户</th>
@@ -57,6 +58,11 @@
                     <tbody>
                         {% for item in payments %}
                         <tr>
+                            <td>
+                                {% if not item.payment.invoice and item.payment.amount > 0 %}
+                                <input type="checkbox" class="payment-checkbox" value="{{ item.payment.id }}" onchange="updateMergeBtn()">
+                                {% endif %}
+                            </td>
                             <td>{{ item.payment.paid_at.strftime('%Y-%m-%d %H:%M') }}</td>
                             <td>{{ item.vehicle.plate_number }}</td>
                             <td>{{ item.resident.room_number if item.resident else '-' }}</td>
@@ -73,15 +79,46 @@
                                 {% elif item.payment.amount <= 0 %}
                                 <span class="text-muted small">零元缴费不支持开票</span>
                                 {% else %}
-                                <a href="/invoices/create?payment_id={{ item.payment.id }}" class="btn btn-sm btn-outline-primary">申请开票</a>
+                                <a href="/invoices/create?payment_ids={{ item.payment.id }}" class="btn btn-sm btn-outline-primary">申请开票</a>
                                 {% endif %}
                             </td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
+                <p class="text-muted small"><span id="selected-count">0</span> 条记录已选择 <button class="btn btn-sm btn-primary ms-2" onclick="mergeInvoice()" id="mergeBtn" disabled>合并开票</button></p>
             </div>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function toggleAll(master) {
+    var cbs = document.querySelectorAll('.payment-checkbox');
+    for (var i = 0; i < cbs.length; i++) {
+        cbs[i].checked = master.checked;
+    }
+    updateMergeBtn();
+}
+
+function updateMergeBtn() {
+    var cbs = document.querySelectorAll('.payment-checkbox:checked');
+    var count = cbs.length;
+    document.getElementById('selected-count').textContent = count;
+    document.getElementById('mergeBtn').disabled = count < 1;
+}
+
+function mergeInvoice() {
+    var cbs = document.querySelectorAll('.payment-checkbox:checked');
+    var ids = [];
+    for (var i = 0; i < cbs.length; i++) {
+        ids.push(cbs[i].value);
+    }
+    if (ids.length > 0) {
+        window.location.href = '/invoices/create?payment_ids=' + ids.join(',');
+    }
+}
+</script>
 {% endblock %}
