@@ -23,26 +23,27 @@
         </ul>
 
         <div class="card">
-            <div class="card-header">发票抬头预设管理</div>
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span>发票抬头预设管理</span>
+                <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addTitleModal">+ 添加抬头</button>
+            </div>
             <div class="card-body">
                 <p class="text-muted">在此管理开票时可选择的发票抬头列表。支持预设常用公司/个人名称，开票时可直接选用。</p>
-                <form method="post" action="/settings/save-invoice-titles">
-                    <div class="mb-3">
-                        <label class="form-label">预设发票抬头</label>
-                        <div id="titleList">
-                            {% for title in titles %}
-                            <div class="input-group mb-2 title-row">
-                                <input type="text" class="form-control" name="title_item" value="{{ title }}" placeholder="输入发票抬头">
-                                <button type="button" class="btn btn-outline-danger" onclick="this.closest('.title-row').remove(); updateHiddenField();">×</button>
-                            </div>
-                            {% endfor %}
-                            <div class="input-group mb-2 title-row">
-                                <input type="text" class="form-control" name="title_item" placeholder="输入发票抬头">
-                                <button type="button" class="btn btn-outline-danger" onclick="this.closest('.title-row').remove(); updateHiddenField();">×</button>
-                            </div>
-                        </div>
-                        <button type="button" class="btn btn-sm btn-outline-primary mt-1" onclick="addTitleRow()">+ 添加一行</button>
+
+                {% if titles %}
+                <div class="list-group mb-3" id="titleList">
+                    {% for title in titles %}
+                    <div class="list-group-item d-flex justify-content-between align-items-center title-row">
+                        <span>{{ title }}</span>
+                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeTitle(this)">删除</button>
                     </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-muted" id="emptyHint">暂无预设抬头，点击上方按钮添加。</p>
+                {% endif %}
+
+                <form method="post" action="/settings/save-invoice-titles">
                     <input type="hidden" name="titles" id="titlesJson" value="{{ titles_json }}">
                     <button type="submit" class="btn btn-primary" id="saveBtn" disabled>保存设置</button>
                 </form>
@@ -50,23 +51,89 @@
         </div>
     </div>
 </div>
+
+<div class="modal fade" id="addTitleModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">添加发票抬头</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">发票抬头</label>
+                    <input type="text" id="newTitleInput" class="form-control" placeholder="输入发票抬头名称" maxlength="100">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="addTitle()">确定</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
-function addTitleRow() {
+function escapeHtml(str) {
+    var div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
+
+function addTitle() {
+    var input = document.getElementById('newTitleInput');
+    var val = input.value.trim();
+    if (!val) return;
+
     var list = document.getElementById('titleList');
-    var row = document.createElement('div');
-    row.className = 'input-group mb-2 title-row';
-    row.innerHTML = '<input type="text" class="form-control" name="title_item" placeholder="输入发票抬头">' +
-                    '<button type="button" class="btn btn-outline-danger" onclick="this.closest(\'.title-row\').remove(); updateHiddenField();">×</button>';
-    list.appendChild(row);
-    row.querySelector('input').addEventListener('input', updateHiddenField);
+    var emptyHint = document.getElementById('emptyHint');
+
+    if (emptyHint) emptyHint.remove();
+
+    if (!list) {
+        list = document.createElement('div');
+        list.id = 'titleList';
+        list.className = 'list-group mb-3';
+        var container = document.querySelector('.card-body');
+        container.insertBefore(list, container.querySelector('form'));
+    }
+
+    var item = document.createElement('div');
+    item.className = 'list-group-item d-flex justify-content-between align-items-center title-row';
+    item.innerHTML = '<span>' + escapeHtml(val) + '</span>' +
+                    '<button type="button" class="btn btn-sm btn-outline-danger" onclick="removeTitle(this)">删除</button>';
+    list.appendChild(item);
+
+    input.value = '';
+    var modal = bootstrap.Modal.getInstance(document.getElementById('addTitleModal'));
+    modal.hide();
+
+    updateHiddenField();
+}
+
+function removeTitle(btn) {
+    var item = btn.closest('.title-row');
+    item.remove();
+
+    var list = document.getElementById('titleList');
+    if (list && list.children.length === 0) {
+        list.remove();
+        var container = document.querySelector('.card-body');
+        var hint = document.createElement('p');
+        hint.id = 'emptyHint';
+        hint.className = 'text-muted';
+        hint.textContent = '暂无预设抬头，点击上方按钮添加。';
+        container.insertBefore(hint, container.querySelector('form'));
+    }
+
     updateHiddenField();
 }
 
 function updateHiddenField() {
-    var inputs = document.querySelectorAll('input[name="title_item"]');
+    var items = document.querySelectorAll('.title-row span');
     var titles = [];
-    inputs.forEach(function(input) {
-        var val = input.value.trim();
+    items.forEach(function(span) {
+        var val = span.textContent.trim();
         if (val) titles.push(val);
     });
     document.getElementById('titlesJson').value = JSON.stringify(titles);
@@ -85,12 +152,12 @@ function updateHiddenField() {
         initialData = JSON.stringify(currentValues);
     }
 
-    function checkChanges() {
+    window.checkChanges = function() {
         var currentData = new FormData(form);
         var currentValues = {};
         currentData.forEach(function(value, key) { currentValues[key] = value; });
         saveBtn.disabled = JSON.stringify(currentValues) === initialData;
-    }
+    };
 
     document.addEventListener('DOMContentLoaded', function() {
         captureInitialData();
@@ -99,14 +166,12 @@ function updateHiddenField() {
         var pageData = document.getElementById('page-data');
         var successMsg = pageData.dataset.success;
         if (successMsg) showNotification(successMsg);
-    });
 
-    form.querySelectorAll('input').forEach(function(el) {
-        el.addEventListener('input', checkChanges);
-        el.addEventListener('change', checkChanges);
+        var modal = document.getElementById('addTitleModal');
+        modal.addEventListener('hidden.bs.modal', function() {
+            document.getElementById('newTitleInput').value = '';
+        });
     });
-
-    window.checkChanges = checkChanges;
 })();
 </script>
 {% endblock %}
