@@ -32,7 +32,7 @@ def create_session_data(user_id: int, username: str, role: str) -> str:
 
 def decode_session_data(session_data: str) -> Optional[Dict]:
     try:
-        data = serializer.loads(session_data, max_age=1800)
+        data = serializer.loads(session_data, max_age=600)
         return data
     except:
         return None

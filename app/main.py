@@ -9,7 +9,7 @@ from anyio import EndOfStream
 
 from .database import engine, get_db, Base
 from .models import User, SystemSetting
-from .auth import set_session_cookie, clear_session_cookie, verify_password, get_password_hash
+from .auth import set_session_cookie, clear_session_cookie, verify_password, get_password_hash, decode_session_data, create_session_data
 from .deps import get_user, require_role
 from .jinja import templates
 
@@ -69,6 +69,27 @@ async def db_session_middleware(request: Request, call_next):
         db = getattr(request.state, "db", None)
         if db:
             db.close()
+
+@app.middleware("http")
+async def refresh_session_middleware(request: Request, call_next):
+    response = await call_next(request)
+    session_cookie = request.cookies.get("parking_session")
+    if session_cookie:
+        user_data = decode_session_data(session_cookie)
+        if user_data:
+            new_session = create_session_data(
+                user_data["user_id"],
+                user_data["username"],
+                user_data["role"]
+            )
+            response.set_cookie(
+                key="parking_session",
+                value=new_session,
+                httponly=True,
+                samesite="lax",
+                secure=False
+            )
+    return response
 
 @app.get("/")
 async def index(request: Request):
