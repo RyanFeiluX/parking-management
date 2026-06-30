@@ -258,9 +258,11 @@ async def create_invoice(request: Request, user: dict = Depends(require_login)):
     log_operation(db, user["user_id"], "create_invoice", target,
                   f"创建开票申请: {title}, {amount}元, {invoice_type}, 合并{len(payments)}笔交费", client_host)
 
-    return templates.TemplateResponse("invoices/form.html", {
+    invoices = db.query(Invoice).order_by(Invoice.created_at.desc()).all()
+    return templates.TemplateResponse("invoices/list.html", {
         "request": request, "current_user": user,
-        "success": "开票申请已提交", "payments": payments
+        "invoices": build_invoice_data(db, invoices),
+        "success": "开票申请已提交"
     })
 
 @router.get("/{invoice_id}/edit")
@@ -344,9 +346,11 @@ async def edit_invoice(request: Request, invoice_id: int, user: dict = Depends(r
     log_operation(db, user["user_id"], "update_invoice", f"开票 #{invoice_id}",
                   f"更新开票信息: {invoice.title}, {invoice.amount}元", client_host)
 
-    return templates.TemplateResponse("invoices/form.html", {
-        "request": request, "current_user": user, "invoice": invoice,
-        "payments": invoice.payments, "success": "开票信息已更新"
+    invoices = db.query(Invoice).order_by(Invoice.created_at.desc()).all()
+    return templates.TemplateResponse("invoices/list.html", {
+        "request": request, "current_user": user,
+        "invoices": build_invoice_data(db, invoices),
+        "success": "开票信息已更新"
     })
 
 @router.post("/{invoice_id}/complete")
