@@ -56,26 +56,28 @@
 <div class="card mb-4">
     <div class="card-header bg-success text-white">🟢 免费 ({{ free_vehicles|length }})</div>
     <div class="card-body">
-        <table class="table table-striped">
-            <thead>
-                <tr>
-                    <th>房号</th>
-                    <th>车牌号</th>
-                    <th>缴费至</th>
-                    <th>月费</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for item in free_vehicles %}
-                <tr class="clickable-row" data-resident-id="{{ item.vehicle.resident.id if item.vehicle.resident else '' }}">
-                    <td>{{ item.vehicle.resident.room_number if item.vehicle.resident else '-' }}</td>
-                    <td>{{ item.vehicle.plate_number }}</td>
-                    <td>{{ item.status.status_end }}</td>
-                    <td>{{ item.status.detail.split('至')[0] }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>房号</th>
+                            <th>车牌号</th>
+                            <th>缴费至</th>
+                            <th>月费</th>
+                            <th>开票</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in free_vehicles %}
+                        <tr class="clickable-row" data-resident-id="{{ item.vehicle.resident.id if item.vehicle.resident else '' }}">
+                            <td>{{ item.vehicle.resident.room_number if item.vehicle.resident else '-' }}</td>
+                            <td>{{ item.vehicle.plate_number }}</td>
+                            <td>{{ item.status.status_end }}</td>
+                            <td>{{ item.status.detail.split('至')[0] }}</td>
+                            <td>{% if item.has_invoice %}<span class="badge bg-success">已申请</span>{% else %}-{% endif %}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
     </div>
 </div>
 {% endif %}
@@ -84,30 +86,32 @@
 <div class="card mb-4">
     <div class="card-header bg-warning text-white">🟡 临时 ({{ temp_vehicles|length }})</div>
     <div class="card-body">
-        <table class="table table-striped">
-            <thead>
-                <tr>
-                    <th>房号</th>
-                    <th>车牌号</th>
-                    <th>状态说明</th>
-                    <th>操作</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for item in temp_vehicles %}
-                <tr class="clickable-row" data-resident-id="{{ item.vehicle.resident.id if item.vehicle.resident else '' }}">
-                    <td>{{ item.vehicle.resident.room_number if item.vehicle.resident else '-' }}</td>
-                    <td>{{ item.vehicle.plate_number }}</td>
-                    <td>{{ item.status.detail }}</td>
-                    <td>
-                        {% if item.vehicle.resident %}
-                        <a href="/payments?plate={{ item.vehicle.plate_number }}" class="btn btn-sm btn-primary">快速缴费</a>
-                        {% endif %}
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>房号</th>
+                            <th>车牌号</th>
+                            <th>状态说明</th>
+                            <th>开票</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in temp_vehicles %}
+                        <tr class="clickable-row" data-resident-id="{{ item.vehicle.resident.id if item.vehicle.resident else '' }}">
+                            <td>{{ item.vehicle.resident.room_number if item.vehicle.resident else '-' }}</td>
+                            <td>{{ item.vehicle.plate_number }}</td>
+                            <td>{{ item.status.detail }}</td>
+                            <td>{% if item.has_invoice %}<span class="badge bg-success">已申请</span>{% else %}-{% endif %}</td>
+                            <td>
+                                {% if item.vehicle.resident %}
+                                <a href="/payments?plate={{ item.vehicle.plate_number }}" class="btn btn-sm btn-primary">快速缴费</a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
     </div>
 </div>
 {% endif %}
@@ -116,34 +120,36 @@
 <div class="card">
     <div class="card-header bg-danger text-white">🔴 过期 ({{ expired_vehicles|length }})</div>
     <div class="card-body">
-        <table class="table table-striped">
-            <thead>
-                <tr>
-                    <th>房号</th>
-                    <th>车牌号</th>
-                    <th>月费</th>
-                    <th>上次缴至</th>
-                    <th>状态说明</th>
-                    <th>操作</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for item in expired_vehicles %}
-                <tr class="clickable-row" data-resident-id="{{ item.vehicle.resident.id if item.vehicle.resident else '' }}">
-                    <td>{{ item.vehicle.resident.room_number if item.vehicle.resident else '-' }}</td>
-                    <td>{{ item.vehicle.plate_number }}</td>
-                    <td>-</td>
-                    <td>{{ item.status.status_start }}</td>
-                    <td>{{ item.status.detail }}</td>
-                    <td>
-                        {% if item.vehicle.resident %}
-                        <a href="/payments?plate={{ item.vehicle.plate_number }}" class="btn btn-sm btn-primary">快速缴费</a>
-                        {% endif %}
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>房号</th>
+                            <th>车牌号</th>
+                            <th>月费</th>
+                            <th>上次缴至</th>
+                            <th>状态说明</th>
+                            <th>开票</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in expired_vehicles %}
+                        <tr class="clickable-row" data-resident-id="{{ item.vehicle.resident.id if item.vehicle.resident else '' }}">
+                            <td>{{ item.vehicle.resident.room_number if item.vehicle.resident else '-' }}</td>
+                            <td>{{ item.vehicle.plate_number }}</td>
+                            <td>-</td>
+                            <td>{{ item.status.status_start }}</td>
+                            <td>{{ item.status.detail }}</td>
+                            <td>{% if item.has_invoice %}<span class="badge bg-success">已申请</span>{% else %}-{% endif %}</td>
+                            <td>
+                                {% if item.vehicle.resident %}
+                                <a href="/payments?plate={{ item.vehicle.plate_number }}" class="btn btn-sm btn-primary">快速缴费</a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
     </div>
 </div>
 {% endif %}

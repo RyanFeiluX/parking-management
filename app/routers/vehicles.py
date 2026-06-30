@@ -3,7 +3,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from datetime import datetime, date
 
-from ..models import Vehicle, Resident, OperationLog
+from ..models import Vehicle, Resident, Invoice, PaymentRecord, OperationLog
 from ..deps import require_role, require_login
 
 router = APIRouter()
@@ -245,12 +245,15 @@ async def vehicle_status(request: Request, user: dict = Depends(require_login)):
         if filter_type == "unregistered" and v.resident_id is not None:
             continue
         
+        has_invoice = db.query(Invoice).join(PaymentRecord).filter(PaymentRecord.vehicle_id == v.id).first() is not None
+        
+        entry = {"vehicle": v, "status": status, "has_invoice": has_invoice}
         if status["status"] == "免费":
-            free_vehicles.append({"vehicle": v, "status": status})
+            free_vehicles.append(entry)
         elif status["status"] == "临时":
-            temp_vehicles.append({"vehicle": v, "status": status})
+            temp_vehicles.append(entry)
         elif status["status"] == "过期":
-            expired_vehicles.append({"vehicle": v, "status": status})
+            expired_vehicles.append(entry)
     
     return templates.TemplateResponse("vehicles/status.html", {
         "request": request,

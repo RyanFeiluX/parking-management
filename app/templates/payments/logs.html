@@ -51,6 +51,7 @@
                             <th>方式</th>
                             <th>操作人</th>
                             <th>备注</th>
+                            <th>开票</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -64,6 +65,15 @@
                             <td>{{ item.payment.payment_method or '-' }}</td>
                             <td>{{ item.operator.display_name if item.operator else '-' }}</td>
                             <td>{{ item.payment.remark or '-' }}</td>
+                            <td>
+                                {% if item.payment.invoice %}
+                                <span class="badge {% if item.payment.invoice.status == '开票已完成' %}bg-success{% elif item.payment.invoice.status == '申请已取消' %}bg-secondary{% else %}bg-warning{% endif %}">
+                                    {{ item.payment.invoice.status }}
+                                </span>
+                                {% else %}
+                                <a href="/invoices/create?payment_id={{ item.payment.id }}" class="btn btn-sm btn-outline-primary">申请开票</a>
+                                {% endif %}
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>

@@ -45,6 +45,7 @@ async def list_logs(request: Request, user: dict = Depends(require_role("super_a
                    "create_resident", "update_resident", "delete_resident",
                    "create_vehicle", "update_vehicle", "delete_vehicle",
                    "payment", "update_fee_tier", "create_discount", "update_discount",
+                   "create_invoice", "update_invoice", "complete_invoice", "cancel_invoice",
                    "export_data", "system_backup"]
     
     return templates.TemplateResponse("logs/list.html", {

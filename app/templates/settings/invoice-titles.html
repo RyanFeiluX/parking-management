@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+
+{% block title %}发票抬头预设{% endblock %}
+{% block header %}发票抬头预设{% endblock %}
+
+{% block content %}
+<div id="page-data" {% if success %}data-success="{{ success }}"{% endif %}></div>
+<div class="row">
+    <div class="col-md-8">
+        <ul class="nav nav-tabs mb-4">
+            <li class="nav-item">
+                <a class="nav-link" href="/settings">系统基本设置</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/settings/temp-rules">临时停车费率规则</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/settings/external-api">外部接口配置</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link active" href="/settings/invoice-titles">发票抬头预设</a>
+            </li>
+        </ul>
+
+        <div class="card">
+            <div class="card-header">发票抬头预设管理</div>
+            <div class="card-body">
+                <p class="text-muted">在此管理开票时可选择的发票抬头列表。支持预设常用公司/个人名称，开票时可直接选用。</p>
+                <form method="post" action="/settings/save-invoice-titles">
+                    <div class="mb-3">
+                        <label class="form-label">预设发票抬头</label>
+                        <div id="titleList">
+                            {% for title in titles %}
+                            <div class="input-group mb-2 title-row">
+                                <input type="text" class="form-control" name="title_item" value="{{ title }}" placeholder="输入发票抬头">
+                                <button type="button" class="btn btn-outline-danger" onclick="this.closest('.title-row').remove(); updateHiddenField();">×</button>
+                            </div>
+                            {% endfor %}
+                            <div class="input-group mb-2 title-row">
+                                <input type="text" class="form-control" name="title_item" placeholder="输入发票抬头">
+                                <button type="button" class="btn btn-outline-danger" onclick="this.closest('.title-row').remove(); updateHiddenField();">×</button>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-primary mt-1" onclick="addTitleRow()">+ 添加一行</button>
+                    </div>
+                    <input type="hidden" name="titles" id="titlesJson" value="{{ titles_json }}">
+                    <button type="submit" class="btn btn-primary" id="saveBtn" disabled>保存设置</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+function addTitleRow() {
+    var list = document.getElementById('titleList');
+    var row = document.createElement('div');
+    row.className = 'input-group mb-2 title-row';
+    row.innerHTML = '<input type="text" class="form-control" name="title_item" placeholder="输入发票抬头">' +
+                    '<button type="button" class="btn btn-outline-danger" onclick="this.closest(\'.title-row\').remove(); updateHiddenField();">×</button>';
+    list.appendChild(row);
+    row.querySelector('input').addEventListener('input', updateHiddenField);
+    updateHiddenField();
+}
+
+function updateHiddenField() {
+    var inputs = document.querySelectorAll('input[name="title_item"]');
+    var titles = [];
+    inputs.forEach(function(input) {
+        var val = input.value.trim();
+        if (val) titles.push(val);
+    });
+    document.getElementById('titlesJson').value = JSON.stringify(titles);
+    checkChanges();
+}
+
+(function() {
+    var form = document.querySelector('form[action="/settings/save-invoice-titles"]');
+    var saveBtn = document.getElementById('saveBtn');
+    var initialData = null;
+
+    function captureInitialData() {
+        var currentData = new FormData(form);
+        var currentValues = {};
+        currentData.forEach(function(value, key) { currentValues[key] = value; });
+        initialData = JSON.stringify(currentValues);
+    }
+
+    function checkChanges() {
+        var currentData = new FormData(form);
+        var currentValues = {};
+        currentData.forEach(function(value, key) { currentValues[key] = value; });
+        saveBtn.disabled = JSON.stringify(currentValues) === initialData;
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        captureInitialData();
+        saveBtn.disabled = true;
+
+        var pageData = document.getElementById('page-data');
+        var successMsg = pageData.dataset.success;
+        if (successMsg) showNotification(successMsg);
+    });
+
+    form.querySelectorAll('input').forEach(function(el) {
+        el.addEventListener('input', checkChanges);
+        el.addEventListener('change', checkChanges);
+    });
+
+    window.checkChanges = checkChanges;
+})();
+</script>
+{% endblock %}

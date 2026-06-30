@@ -2,7 +2,7 @@
 cd /d "%~dp0"
 
 echo ================================================
-echo Parking Management System Launcher
+echo Parking Management System - Quick Start
 echo ================================================
 echo.
 

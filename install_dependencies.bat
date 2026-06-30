@@ -22,6 +22,6 @@ echo ================================================
 echo 安装完成！
 echo ================================================
 echo.
-echo 现在可以运行 run_simple.bat 或 run.bat 启动应用
+echo 现在可以运行 start.bat 或 quick-start.bat 启动应用
 echo.
 pause

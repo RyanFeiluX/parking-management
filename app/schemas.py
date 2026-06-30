@@ -148,6 +148,37 @@ class SystemSettingResponse(SystemSettingBase):
     class Config:
         orm_mode = True
 
+class InvoiceCreate(BaseModel):
+    payment_id: int
+    title: str
+    tax_id: Optional[str] = None
+    summary: Optional[str] = None
+    invoice_type: str = "普票"
+    amount: float
+
+class InvoiceUpdate(BaseModel):
+    title: Optional[str] = None
+    tax_id: Optional[str] = None
+    summary: Optional[str] = None
+    invoice_type: Optional[str] = None
+    amount: Optional[float] = None
+
+class InvoiceResponse(BaseModel):
+    id: int
+    payment_id: int
+    title: str
+    tax_id: Optional[str] = None
+    summary: Optional[str] = None
+    invoice_type: str
+    amount: float
+    status: str
+    completed_at: Optional[datetime] = None
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        orm_mode = True
+
 class LoginForm(BaseModel):
     username: str
     password: str

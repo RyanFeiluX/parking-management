@@ -14,6 +14,11 @@ from .deps import get_user, require_role
 
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
+
+@app.get("/favicon.ico")
+async def favicon():
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse(url="/static/favicon.svg")
 templates = Jinja2Templates(directory="app/templates")
 
 # Add custom escapejs filter
@@ -23,8 +28,6 @@ def escapejs_filter(value):
     return json.dumps(str(value))[1:-1]  # Remove the surrounding quotes from json.dumps
 
 templates.env.filters["escapejs"] = escapejs_filter
-
-Base.metadata.create_all(bind=engine)
 
 def init_default_settings(db: Session):
     settings = [
@@ -38,6 +41,25 @@ def init_default_settings(db: Session):
         if not existing:
             db.add(SystemSetting(**s))
     db.commit()
+
+Base.metadata.create_all(bind=engine)
+
+from .database import SessionLocal
+_db = SessionLocal()
+if _db.query(User).count() == 0:
+    admin_user = User(
+        username="admin",
+        display_name="超级管理员",
+        password_hash=get_password_hash("password123"),
+        role="super_admin",
+        is_active=True,
+        created_at=datetime.now()
+    )
+    _db.add(admin_user)
+    init_default_settings(_db)
+    _db.commit()
+    print("[初始化] 默认超级管理员已创建: admin / password123")
+_db.close()
 
 @app.middleware("http")
 async def db_session_middleware(request: Request, call_next):
@@ -212,7 +234,7 @@ async def change_password(request: Request, user: dict = Depends(require_role("s
     
     return templates.TemplateResponse("auth/change_password.html", {"request": request, "current_user": user, "success": "密码修改成功"})
 
-from .routers import users, residents, vehicles, payments, fee_tiers, discounts, stats, logs, settings, api
+from .routers import users, residents, vehicles, payments, fee_tiers, discounts, stats, logs, settings, api, invoices
 
 app.include_router(users.router, prefix="/users", tags=["users"])
 app.include_router(residents.router, prefix="/residents", tags=["residents"])
@@ -224,3 +246,4 @@ app.include_router(stats.router, prefix="/stats", tags=["stats"])
 app.include_router(logs.router, prefix="/logs", tags=["logs"])
 app.include_router(settings.router, prefix="/settings", tags=["settings"])
 app.include_router(api.router, prefix="/api", tags=["api"])
+app.include_router(invoices.router, prefix="/invoices", tags=["invoices"])

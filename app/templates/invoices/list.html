@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+
+{% block title %}开票管理{% endblock %}
+{% block header %}开票管理{% endblock %}
+
+{% block content %}
+<div id="page-data" {% if success %}data-success="{{ success }}"{% endif %} {% if error %}data-error="{{ error }}"{% endif %}></div>
+<div class="row">
+    <div class="col">
+        <div class="card">
+            <div class="card-header">
+                <span>开票条目清单</span>
+            </div>
+            <div class="card-body">
+                <form method="get" class="mb-4">
+                    <div class="row">
+                        <div class="col-md-2">
+                            <select name="status" class="form-control">
+                                <option value="">全部状态</option>
+                                <option value="开票等待中" {% if status_filter == '开票等待中' %}selected{% endif %}>开票等待中</option>
+                                <option value="开票已完成" {% if status_filter == '开票已完成' %}selected{% endif %}>开票已完成</option>
+                                <option value="申请已取消" {% if status_filter == '申请已取消' %}selected{% endif %}>申请已取消</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <select name="invoice_type" class="form-control">
+                                <option value="">全部类型</option>
+                                <option value="普票" {% if invoice_type_filter == '普票' %}selected{% endif %}>普票</option>
+                                <option value="专票" {% if invoice_type_filter == '专票' %}selected{% endif %}>专票</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <input type="date" name="start_date" class="form-control" value="{{ start_date }}">
+                        </div>
+                        <div class="col-md-2">
+                            <input type="date" name="end_date" class="form-control" value="{{ end_date }}">
+                        </div>
+                        <div class="col-md-2">
+                            <input type="text" name="plate_number" class="form-control" placeholder="车牌号" value="{{ plate_number }}">
+                        </div>
+                        <div class="col-md-2">
+                            <button type="submit" class="btn btn-primary">筛选</button>
+                            <a href="/invoices" class="btn btn-outline-secondary">重置</a>
+                        </div>
+                    </div>
+                </form>
+
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>申请时间</th>
+                            <th>车牌号</th>
+                            <th>车主</th>
+                            <th>缴费期间</th>
+                            <th>发票抬头</th>
+                            <th>类型</th>
+                            <th>金额</th>
+                            <th>状态</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in invoices %}
+                        <tr class="{% if item.invoice.status == '申请已取消' %}text-muted{% endif %}">
+                            <td>{{ item.invoice.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                            <td>{{ item.vehicle.plate_number if item.vehicle else '-' }}</td>
+                            <td>{{ item.resident.owner_name if item.resident else '-' }}</td>
+                            <td>
+                                {% if item.payment %}
+                                {{ item.payment.period_type }}{{ item.payment.period_start }}-{{ item.payment.period_end }}
+                                {% else %}
+                                -
+                                {% endif %}
+                            </td>
+                            <td>{{ item.invoice.title }}</td>
+                            <td>
+                                {% if item.invoice.invoice_type == '专票' %}
+                                <span class="badge bg-info">专票</span>
+                                {% else %}
+                                <span class="badge bg-secondary">普票</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ item.invoice.amount }}</td>
+                            <td>
+                                {% if item.invoice.status == '开票等待中' %}
+                                <span class="badge bg-warning">开票等待中</span>
+                                {% elif item.invoice.status == '开票已完成' %}
+                                <span class="badge bg-success">开票已完成</span>
+                                {% else %}
+                                <span class="badge bg-secondary">申请已取消</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if item.invoice.status == '开票等待中' %}
+                                <a href="/invoices/{{ item.invoice.id }}/edit" class="btn btn-sm btn-info">编辑</a>
+                                <form action="/invoices/{{ item.invoice.id }}/complete" method="post" class="d-inline">
+                                    <button type="submit" class="btn btn-sm btn-success" onclick="return confirm('确认标记为开票已完成？')">标记完成</button>
+                                </form>
+                                <form action="/invoices/{{ item.invoice.id }}/cancel" method="post" class="d-inline">
+                                    <button type="submit" class="btn btn-sm btn-warning" onclick="return confirm('确认取消开票申请？')">取消</button>
+                                </form>
+                                {% elif item.invoice.status == '开票已完成' %}
+                                <span class="text-muted small">
+                                    {% if item.invoice.completed_at %}
+                                    {{ item.invoice.completed_at.strftime('%Y-%m-%d %H:%M') }} 完成
+                                    {% endif %}
+                                </span>
+                                {% else %}
+                                <span class="text-muted small">已取消</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% if not invoices %}
+                <p class="text-center text-muted">暂无开票记录</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const pageData = document.getElementById('page-data');
+    const successMsg = pageData?.dataset.success;
+    const errorMsg = pageData?.dataset.error;
+    if (successMsg) showNotification(successMsg, 'success');
+    else if (errorMsg) showNotification(errorMsg, 'error');
+});
+</script>
+{% endblock %}

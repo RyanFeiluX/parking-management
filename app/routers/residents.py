@@ -4,7 +4,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from datetime import datetime
 
-from ..models import Resident, Vehicle, PaymentRecord, OperationLog
+from ..models import Resident, Vehicle, PaymentRecord, Invoice, OperationLog
 from ..deps import require_role, require_login
 from ..utils import generate_room_number, get_area_options
 
@@ -153,7 +153,18 @@ async def resident_detail(request: Request, resident_id: int, user: dict = Depen
             "latest_payment": latest_payment
         })
     
-    return templates.TemplateResponse("residents/detail.html", {"request": request, "current_user": user, "resident": resident, "vehicles": vehicles_with_status})
+    invoices = []
+    for v in resident.vehicles:
+        for p in v.payments:
+            inv = db.query(Invoice).filter_by(payment_id=p.id).first()
+            if inv:
+                invoices.append({
+                    "invoice": inv,
+                    "payment": p,
+                    "vehicle": v
+                })
+    
+    return templates.TemplateResponse("residents/detail.html", {"request": request, "current_user": user, "resident": resident, "vehicles": vehicles_with_status, "resident_invoices": invoices})
 
 @router.get("/{resident_id}/edit")
 async def edit_resident_page(request: Request, resident_id: int, user: dict = Depends(require_role("admin", "super_admin"))):

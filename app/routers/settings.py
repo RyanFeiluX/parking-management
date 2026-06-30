@@ -184,6 +184,54 @@ async def save_settings(request: Request, user: dict = Depends(require_role("sup
         "success": "系统设置已更新"
     })
 
+@router.get("/invoice-titles")
+async def invoice_titles_page(request: Request, user: dict = Depends(require_role("super_admin"))):
+    db = request.state.db
+    setting = get_or_create_setting(db, "invoice_title_presets", "[]", "发票抬头预设列表（JSON数组）")
+
+    try:
+        titles = json.loads(setting.value)
+        if not isinstance(titles, list):
+            titles = []
+    except (json.JSONDecodeError, TypeError):
+        titles = []
+
+    return templates.TemplateResponse("settings/invoice-titles.html", {
+        "request": request,
+        "current_user": user,
+        "titles": titles,
+        "titles_json": json.dumps(titles),
+        "success": None
+    })
+
+@router.post("/save-invoice-titles")
+async def save_invoice_titles(request: Request, user: dict = Depends(require_role("super_admin"))):
+    form_data = await request.form()
+    titles_raw = form_data.get("titles", "[]")
+
+    try:
+        titles = json.loads(titles_raw)
+        if not isinstance(titles, list):
+            titles = []
+    except (json.JSONDecodeError, TypeError):
+        titles = []
+
+    db = request.state.db
+    setting = get_or_create_setting(db, "invoice_title_presets", "[]")
+    setting.value = json.dumps(titles)
+    db.commit()
+
+    client_host = request.client.host if request.client else "unknown"
+    log_operation(db, user["user_id"], "system_backup", "发票抬头预设", "更新发票抬头预设列表", client_host)
+
+    return templates.TemplateResponse("settings/invoice-titles.html", {
+        "request": request,
+        "current_user": user,
+        "titles": titles,
+        "titles_json": json.dumps(titles),
+        "success": "发票抬头预设已更新"
+    })
+
 @router.post("/save-temp-rules")
 async def save_temp_rules(request: Request, user: dict = Depends(require_role("super_admin"))):
     form_data = await request.form()

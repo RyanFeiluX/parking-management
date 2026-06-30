@@ -87,6 +87,22 @@ class PaymentRecord(Base):
     paid_at = Column(DateTime, default=datetime.now)
     vehicle = relationship("Vehicle", back_populates="payments")
     operator = relationship("User")
+    invoice = relationship("Invoice", back_populates="payment", uselist=False)
+
+class Invoice(Base):
+    __tablename__ = "invoices"
+    id = Column(Integer, primary_key=True)
+    payment_id = Column(Integer, ForeignKey("payment_records.id"), nullable=False, unique=True)
+    title = Column(String(200), nullable=False)
+    tax_id = Column(String(100))
+    summary = Column(Text)
+    invoice_type = Column(String(10), nullable=False, default="普票")
+    amount = Column(Numeric(10, 2), nullable=False)
+    status = Column(String(20), nullable=False, default="开票等待中")
+    completed_at = Column(DateTime)
+    created_at = Column(DateTime, default=datetime.now)
+    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
+    payment = relationship("PaymentRecord", back_populates="invoice")
 
 class OperationLog(Base):
     __tablename__ = "operation_logs"

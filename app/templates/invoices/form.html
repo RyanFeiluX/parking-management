@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+
+{% block title %}{% if invoice %}编辑开票{% else %}申请开票{% endif %}{% endblock %}
+
+{% block header %}
+<div class="d-flex align-items-center">
+    <a href="/invoices" class="btn btn-sm btn-outline-secondary me-3">← 返回</a>
+    <h1 class="h2 mb-0">{% if invoice %}编辑开票{% else %}申请开票{% endif %}</h1>
+</div>
+{% endblock %}
+
+{% block content %}
+<div id="page-data" {% if success %}data-success="{{ success }}"{% endif %} {% if error %}data-error="{{ error }}"{% endif %}></div>
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">{% if invoice %}编辑开票信息{% else %}新建开票申请{% endif %}</div>
+            <div class="card-body">
+                {% if payment %}
+                <div class="mb-4 p-3 bg-light rounded">
+                    <h6>关联交费信息</h6>
+                    <table class="table table-sm mb-0">
+                        <tr><td style="width:100px">车牌号</td><td>{{ payment.vehicle.plate_number if payment.vehicle else '-' }}</td></tr>
+                        <tr><td>缴费期间</td><td>{{ payment.period_type }}{{ payment.period_start }}-{{ payment.period_end }}</td></tr>
+                        <tr><td>缴费金额</td><td>{{ payment.amount }} 元</td></tr>
+                        <tr><td>缴费方式</td><td>{{ payment.payment_method or '-' }}</td></tr>
+                        <tr><td>缴费时间</td><td>{{ payment.paid_at.strftime('%Y-%m-%d %H:%M') }}</td></tr>
+                    </table>
+                </div>
+
+                <form method="post" action="/invoices/create">
+                    <input type="hidden" name="payment_id" value="{{ payment.id }}">
+
+                    <div class="mb-3">
+                        <label class="form-label">发票抬头 <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <select class="form-control" id="presetSelect" onchange="fillTitle(this.value)">
+                                <option value="">-- 选择预设抬头 --</option>
+                                {% for p in presets %}
+                                <option value="{{ p }}">{{ p }}</option>
+                                {% endfor %}
+                                <option value="__custom__">其他（手动输入）</option>
+                            </select>
+                        </div>
+                        <input type="text" name="title" id="titleInput" class="form-control mt-2" placeholder="输入发票抬头" value="{{ invoice.title if invoice else '' }}" required>
+                    </div>
+
+                    <div class="mb-3" id="taxIdGroup" style="display: none;">
+                        <label class="form-label">纳税人识别号（税号）</label>
+                        <input type="text" name="tax_id" class="form-control" placeholder="仅供专票使用" value="{{ invoice.tax_id if invoice else '' }}">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">发票摘要</label>
+                        <textarea name="summary" class="form-control" rows="2" placeholder="开票内容摘要（可选）">{{ invoice.summary if invoice else '' }}</textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">发票类型</label>
+                        <div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="invoice_type" id="typeNormal" value="普票"
+                                {% if not invoice or invoice.invoice_type == '普票' %}checked{% endif %}
+                                onchange="toggleTaxId()">
+                                <label class="form-check-label" for="typeNormal">普票</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="invoice_type" id="typeSpecial" value="专票"
+                                {% if invoice and invoice.invoice_type == '专票' %}checked{% endif %}
+                                onchange="toggleTaxId()">
+                                <label class="form-check-label" for="typeSpecial">专票</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">发票金额 <span class="text-danger">*</span></label>
+                        <input type="number" name="amount" class="form-control" step="0.01" min="0.01"
+                               value="{{ invoice.amount if invoice else payment.amount }}" required>
+                        <small class="text-muted">默认已填入交费金额，可根据实际需要修改</small>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">
+                        {% if invoice %}保存修改{% else %}提交开票申请{% endif %}
+                    </button>
+                    <a href="/invoices" class="btn btn-outline-secondary">取消</a>
+                </form>
+                {% elif success %}
+                <div class="alert alert-success">{{ success }}</div>
+                <a href="/invoices" class="btn btn-primary">返回开票清单</a>
+                {% else %}
+                <div class="alert alert-warning">
+                    未指定交费记录。请从<a href="/payments/logs">缴费记录</a>中选择一条记录进行开票申请。
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function fillTitle(value) {
+    var input = document.getElementById('titleInput');
+    if (value && value !== '__custom__') {
+        input.value = value;
+    }
+}
+
+function toggleTaxId() {
+    var taxGroup = document.getElementById('taxIdGroup');
+    var specialChecked = document.getElementById('typeSpecial').checked;
+    taxGroup.style.display = specialChecked ? 'block' : 'none';
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    toggleTaxId();
+
+    const pageData = document.getElementById('page-data');
+    const successMsg = pageData?.dataset.success;
+    const errorMsg = pageData?.dataset.error;
+    if (successMsg) showNotification(successMsg, 'success');
+    else if (errorMsg) showNotification(errorMsg, 'error');
+});
+</script>
+{% endblock %}
