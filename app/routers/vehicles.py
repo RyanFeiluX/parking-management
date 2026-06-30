@@ -240,6 +240,7 @@ async def vehicle_status(request: Request, user: dict = Depends(require_login)):
     vehicles = db.query(Vehicle).all()
     
     free_vehicles = []
+    contract_vehicles = []
     temp_vehicles = []
     expired_vehicles = []
     
@@ -260,6 +261,8 @@ async def vehicle_status(request: Request, user: dict = Depends(require_login)):
         entry = {"vehicle": v, "status": status, "has_invoice": has_invoice}
         if status["status"] == "免费":
             free_vehicles.append(entry)
+        elif status["status"] == "合约":
+            contract_vehicles.append(entry)
         elif status["status"] == "临时":
             temp_vehicles.append(entry)
         elif status["status"] == "过期":
@@ -269,6 +272,7 @@ async def vehicle_status(request: Request, user: dict = Depends(require_login)):
         "request": request,
         "current_user": user,
         "free_vehicles": free_vehicles,
+        "contract_vehicles": contract_vehicles,
         "temp_vehicles": temp_vehicles,
         "expired_vehicles": expired_vehicles,
         "filter_type": filter_type

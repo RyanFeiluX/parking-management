@@ -18,6 +18,7 @@ async def stats_dashboard(request: Request, user: dict = Depends(require_login))
     current_month = today.replace(day=1)
     
     free_count = 0
+    contract_count = 0
     temp_count = 0
     expired_count = 0
     
@@ -28,6 +29,8 @@ async def stats_dashboard(request: Request, user: dict = Depends(require_login))
         status = get_vehicle_payment_status(v, db)
         if status["status"] == "免费":
             free_count += 1
+        elif status["status"] == "合约":
+            contract_count += 1
         elif status["status"] == "临时":
             temp_count += 1
         elif status["status"] == "过期":
@@ -86,6 +89,7 @@ async def stats_dashboard(request: Request, user: dict = Depends(require_login))
         "vehicle_count": vehicle_count or 0,
         "user_count": user_count or 0,
         "free_count": free_count or 0,
+        "contract_count": contract_count or 0,
         "temp_count": temp_count or 0,
         "expired_count": expired_count or 0,
         "monthly_total": monthly_total or 0,

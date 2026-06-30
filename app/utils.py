@@ -61,7 +61,7 @@ def get_vehicle_payment_status(vehicle, db):
             "status": "临时",
             "status_start": None,
             "status_end": None,
-            "detail": "已登记未缴费"
+            "detail": "已登记免缴费" if vehicle.is_garage else "已登记未缴费"
         }
     
     latest_payment = vehicle.payments[0]
@@ -72,10 +72,10 @@ def get_vehicle_payment_status(vehicle, db):
     
     if paid_to >= today:
         return {
-            "status": "免费",
+            "status": "合约",
             "status_start": latest_payment.period_start.isoformat(),
             "status_end": paid_to.isoformat(),
-            "detail": f"免费至{paid_to.strftime('%Y-%m-%d')}"
+            "detail": f"合约至{paid_to.strftime('%Y-%m-%d')}"
         }
     elif days_past <= grace_days:
         grace_end = paid_to + timedelta(days=grace_days)

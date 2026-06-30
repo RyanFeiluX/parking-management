@@ -71,12 +71,14 @@
                                 {% if item.vehicle.is_garage %}
                                 {{ item.vehicle.garage_number or '-' }}
                                 {% else %}
-                                {{ item.status.detail.split('至')[0] if item.status.status == '免费' else '-' }}
+                                {{ item.status.detail.split('至')[0] if item.status.status in ('免费', '合约') else '-' }}
                                 {% endif %}
                             </td>
                             <td>
                                 {% if item.status.status == '免费' %}
                                 <span class="badge bg-success">🟢 免费</span>
+                                {% elif item.status.status == '合约' %}
+                                <span class="badge bg-primary">🔵 合约</span>
                                 {% elif item.status.status == '临时' %}
                                 <span class="badge bg-warning">🟡 临时</span>
                                 {% else %}
