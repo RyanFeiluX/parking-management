@@ -1,5 +1,4 @@
 from fastapi import APIRouter, Request, Depends
-from fastapi.templating import Jinja2Templates
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from datetime import datetime
@@ -7,9 +6,9 @@ from datetime import datetime
 from ..models import Resident, Vehicle, PaymentRecord, Invoice, OperationLog
 from ..deps import require_role, require_login
 from ..utils import generate_room_number, get_area_options
+from ..jinja import templates
 
 router = APIRouter()
-templates = Jinja2Templates(directory="app/templates")
 
 def log_operation(db: Session, user_id: int, action_type: str, target: str, detail: str, ip_address: str = None):
     if ip_address is None:

@@ -1,6 +1,5 @@
 from fastapi import FastAPI, Depends, Request, HTTPException
 from fastapi.responses import RedirectResponse
-from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 from datetime import datetime, date
@@ -11,23 +10,14 @@ from .database import engine, get_db, Base
 from .models import User, SystemSetting
 from .auth import set_session_cookie, clear_session_cookie, verify_password, get_password_hash
 from .deps import get_user, require_role
+from .jinja import templates
 
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 @app.get("/favicon.ico")
 async def favicon():
-    from fastapi.responses import RedirectResponse
     return RedirectResponse(url="/static/favicon.svg")
-templates = Jinja2Templates(directory="app/templates")
-
-# Add custom escapejs filter
-def escapejs_filter(value):
-    if value is None:
-        return ""
-    return json.dumps(str(value))[1:-1]  # Remove the surrounding quotes from json.dumps
-
-templates.env.filters["escapejs"] = escapejs_filter
 
 def init_default_settings(db: Session):
     settings = [

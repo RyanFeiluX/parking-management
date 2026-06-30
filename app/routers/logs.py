@@ -1,13 +1,12 @@
 from fastapi import APIRouter, Request, Depends
-from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from datetime import datetime
 
-from ..models import OperationLog, User
+from ..models import OperationLog
 from ..deps import require_role
+from ..jinja import templates
 
 router = APIRouter()
-templates = Jinja2Templates(directory="app/templates")
 
 @router.get("/")
 async def list_logs(request: Request, user: dict = Depends(require_role("super_admin"))):

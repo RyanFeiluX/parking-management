@@ -1,5 +1,4 @@
 from fastapi import APIRouter, Request, Depends
-from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from datetime import datetime, date
@@ -7,9 +6,9 @@ from dateutil.relativedelta import relativedelta
 
 from ..models import Vehicle, Resident, PaymentRecord, User
 from ..deps import require_login
+from ..jinja import templates
 
 router = APIRouter()
-templates = Jinja2Templates(directory="app/templates")
 
 @router.get("/")
 async def stats_dashboard(request: Request, user: dict = Depends(require_login)):

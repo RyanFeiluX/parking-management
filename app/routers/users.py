@@ -1,14 +1,13 @@
 from fastapi import APIRouter, Request, Depends
-from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from datetime import datetime
 
 from ..models import User, OperationLog
 from ..auth import get_password_hash, verify_password
 from ..deps import require_role
+from ..jinja import templates
 
 router = APIRouter()
-templates = Jinja2Templates(directory="app/templates")
 
 def log_operation(db: Session, user_id: int, action_type: str, target: str, detail: str, ip_address: str = None):
     if ip_address is None:
