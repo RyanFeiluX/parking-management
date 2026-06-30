@@ -406,3 +406,20 @@ def calculate_temp_parking_fee(minutes: int, db: Session) -> dict:
         "rate_type": rate_type,
         "detail": "; ".join(tier_details)
     }
+
+def validate_plate_number(plate: str) -> tuple[bool, str]:
+    if not plate or not plate.strip():
+        return False, "车牌号不能为空"
+    cleaned = plate.strip().upper().replace("·", "").replace("-", "").replace(" ", "")
+    if len(cleaned) < 6:
+        return False, "车牌号格式无效（长度过短）"
+    if len(cleaned) > 10:
+        return False, "车牌号格式无效（长度过长）"
+    first = cleaned[0]
+    if not ('\u4e00' <= first <= '\u9fff'):
+        if not cleaned.startswith("WJ"):
+            return False, "车牌号应以汉字开头"
+    for ch in cleaned:
+        if not ('\u4e00' <= ch <= '\u9fff') and not ('A' <= ch <= 'Z') and not ('0' <= ch <= '9'):
+            return False, "车牌号包含非法字符"
+    return True, ""

@@ -64,6 +64,7 @@
                             <th>缴费至</th>
                             <th>月费</th>
                             <th>开票</th>
+                            <th>操作</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -74,6 +75,15 @@
                             <td>{{ item.status.status_end }}</td>
                             <td>{{ item.status.detail.split('至')[0] }}</td>
                             <td>{% if item.has_invoice %}<span class="badge bg-success">已申请</span>{% else %}-{% endif %}</td>
+                            <td>
+                                {% if item.vehicle.is_garage %}
+                                <span class="btn btn-sm btn-secondary disabled">快速缴费</span>
+                                {% elif item.vehicle.resident %}
+                                <a href="/payments?plate={{ item.vehicle.plate_number }}" class="btn btn-sm btn-primary">快速缴费</a>
+                                {% else %}
+                                -
+                                {% endif %}
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -104,7 +114,9 @@
                             <td>{{ item.status.detail }}</td>
                             <td>{% if item.has_invoice %}<span class="badge bg-success">已申请</span>{% else %}-{% endif %}</td>
                             <td>
-                                {% if item.vehicle.resident %}
+                                {% if item.vehicle.is_garage %}
+                                <span class="btn btn-sm btn-secondary disabled">快速缴费</span>
+                                {% elif item.vehicle.resident %}
                                 <a href="/payments?plate={{ item.vehicle.plate_number }}" class="btn btn-sm btn-primary">快速缴费</a>
                                 {% endif %}
                             </td>
@@ -142,7 +154,9 @@
                             <td>{{ item.status.detail }}</td>
                             <td>{% if item.has_invoice %}<span class="badge bg-success">已申请</span>{% else %}-{% endif %}</td>
                             <td>
-                                {% if item.vehicle.resident %}
+                                {% if item.vehicle.is_garage %}
+                                <span class="btn btn-sm btn-secondary disabled">快速缴费</span>
+                                {% elif item.vehicle.resident %}
                                 <a href="/payments?plate={{ item.vehicle.plate_number }}" class="btn btn-sm btn-primary">快速缴费</a>
                                 {% endif %}
                             </td>

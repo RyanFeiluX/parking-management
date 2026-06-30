@@ -4,6 +4,7 @@ from datetime import datetime, date
 import json
 
 from ..models import Vehicle, Resident, SystemSetting
+from ..utils import validate_plate_number
 
 router = APIRouter()
 
@@ -89,6 +90,10 @@ def format_temp_pricing_for_api(rules: dict) -> dict:
 
 @router.get("/vehicle/{plate_number}/status")
 async def vehicle_status(request: Request, plate_number: str):
+    valid, msg = validate_plate_number(plate_number)
+    if not valid:
+        return {"error": msg}
+    
     db = request.state.db
     
     api_token_setting = get_system_setting(db, "api_token", "")

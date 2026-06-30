@@ -83,7 +83,6 @@ async def pay(request: Request, user: dict = Depends(require_login)):
     vehicle_id = int(form_data.get("vehicle_id"))
     period_type = form_data.get("period_type")
     months = int(form_data.get("months"))
-    amount = float(form_data.get("amount"))
     payment_method = form_data.get("payment_method")
     remark = form_data.get("remark")
     
@@ -95,6 +94,18 @@ async def pay(request: Request, user: dict = Depends(require_login)):
             "request": request,
             "current_user": user,
             "error": "车辆不存在"
+        })
+    
+    from ..utils import calculate_payment_amount
+    amount_info = calculate_payment_amount(vehicle, period_type, months, db)
+    amount = amount_info["amount"]
+    
+    if amount <= 0:
+        return templates.TemplateResponse("payments/form.html", {
+            "request": request,
+            "current_user": user,
+            "vehicle": vehicle,
+            "error": "缴费金额必须大于0"
         })
     
     today = date.today()
@@ -110,9 +121,6 @@ async def pay(request: Request, user: dict = Depends(require_login)):
         end_date = today + relativedelta(months=months)
     
     period_end = end_date.strftime("%Y-%m")
-    
-    from ..utils import calculate_payment_amount
-    amount_info = calculate_payment_amount(vehicle, period_type, months, db)
     
     payment = PaymentRecord(
         vehicle_id=vehicle_id,

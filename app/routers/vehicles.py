@@ -4,6 +4,7 @@ from datetime import datetime, date
 
 from ..models import Vehicle, Resident, Invoice, PaymentRecord, OperationLog
 from ..deps import require_role, require_login
+from ..utils import validate_plate_number
 from ..jinja import templates
 
 router = APIRouter()
@@ -25,6 +26,16 @@ def log_operation(db: Session, user_id: int, action_type: str, target: str, deta
 async def add_vehicle(request: Request, resident_id: int, user: dict = Depends(require_role("admin", "super_admin"))):
     form_data = await request.form()
     plate_number = form_data.get("plate_number")
+    
+    valid, msg = validate_plate_number(plate_number)
+    if not valid:
+        db = request.state.db
+        resident = db.query(Resident).filter_by(id=resident_id).first()
+        if not resident:
+            return templates.TemplateResponse("residents/list.html", {"request": request, "current_user": user, "residents": db.query(Resident).all(), "error": "住户不存在"})
+        vehicles_with_status = get_vehicles_with_status(resident, db)
+        return templates.TemplateResponse("residents/detail.html", {"request": request, "current_user": user, "resident": resident, "vehicles": vehicles_with_status, "error": msg})
+    
     brand = form_data.get("brand")
     color = form_data.get("color")
     vehicle_type = form_data.get("vehicle_type", "小车")

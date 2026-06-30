@@ -70,6 +70,8 @@
                                 <span class="badge {% if item.payment.invoice.status == '开票已完成' %}bg-success{% elif item.payment.invoice.status == '申请已取消' %}bg-secondary{% else %}bg-warning{% endif %}">
                                     {{ item.payment.invoice.status }}
                                 </span>
+                                {% elif item.payment.amount <= 0 %}
+                                <span class="text-muted small">零元缴费不支持开票</span>
                                 {% else %}
                                 <a href="/invoices/create?payment_id={{ item.payment.id }}" class="btn btn-sm btn-outline-primary">申请开票</a>
                                 {% endif %}

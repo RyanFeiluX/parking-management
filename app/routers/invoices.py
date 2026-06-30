@@ -131,6 +131,10 @@ async def create_invoice(request: Request, user: dict = Depends(require_login)):
         return templates.TemplateResponse("invoices/form.html", {
             "request": request, "current_user": user, "payment": payment, "error": "发票金额必须大于0"
         })
+    if amount > float(payment.amount):
+        return templates.TemplateResponse("invoices/form.html", {
+            "request": request, "current_user": user, "payment": payment, "error": f"开票金额不能大于缴费金额（{payment.amount}元）"
+        })
 
     invoice = Invoice(
         payment_id=payment_id,

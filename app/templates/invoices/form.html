@@ -76,8 +76,8 @@
                     <div class="mb-3">
                         <label class="form-label">发票金额 <span class="text-danger">*</span></label>
                         <input type="number" name="amount" class="form-control" step="0.01" min="0.01"
-                               value="{{ invoice.amount if invoice else payment.amount }}" required>
-                        <small class="text-muted">默认已填入交费金额，可根据实际需要修改</small>
+                               max="{{ payment.amount }}" value="{{ invoice.amount if invoice else payment.amount }}" required>
+                        <small class="text-muted">默认已填入交费金额，可根据实际需要修改（不超过{{ payment.amount }}元）</small>
                     </div>
 
                     <button type="submit" class="btn btn-primary">
