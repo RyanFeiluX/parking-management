@@ -1,10 +1,11 @@
-from fastapi import FastAPI, Depends, Request, HTTPException
+from fastapi import FastAPI, Depends, Request, HTTPException, Response
 from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 from datetime import datetime, date
 from typing import Optional
 import json
+from anyio import EndOfStream
 
 from .database import engine, get_db, Base
 from .models import User, SystemSetting
@@ -57,13 +58,17 @@ async def db_session_middleware(request: Request, call_next):
     try:
         response = await call_next(request)
         return response
+    except EndOfStream:
+        raise
     except Exception as e:
         print(f"\n!!! EXCEPTION OCCURRED !!!")
         import traceback
         traceback.print_exc()
         raise
     finally:
-        pass
+        db = getattr(request.state, "db", None)
+        if db:
+            db.close()
 
 @app.get("/")
 async def index(request: Request):

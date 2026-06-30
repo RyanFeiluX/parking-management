@@ -2,7 +2,7 @@ from fastapi import APIRouter, Request, Depends
 from sqlalchemy.orm import Session
 from datetime import datetime
 
-from ..models import OperationLog
+from ..models import OperationLog, User
 from ..deps import require_role
 from ..jinja import templates
 
