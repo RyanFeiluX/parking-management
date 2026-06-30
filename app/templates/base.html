@@ -87,7 +87,14 @@
                 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
                     <h1 class="h2">{% block header %}{% endblock %}</h1>
                     <div class="text-muted">
-                        当前用户: {{ current_user.display_name }} ({{ current_user.role }})
+                        当前用户: {{ current_user.username }}
+                        {% if current_user.role == 'super_admin' %}
+                            <span class="badge bg-danger">超级管理员</span>
+                        {% elif current_user.role == 'admin' %}
+                            <span class="badge bg-warning text-dark">管理员</span>
+                        {% else %}
+                            <span class="badge bg-secondary">操作员</span>
+                        {% endif %}
                     </div>
                 </div>
                 {% block content %}{% endblock %}
