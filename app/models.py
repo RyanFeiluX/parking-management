@@ -101,6 +101,7 @@ class Invoice(Base):
     invoice_type = Column(String(10), nullable=False, default="普票")
     amount = Column(Numeric(10, 2), nullable=False)
     status = Column(String(20), nullable=False, default="开票等待中")
+    invoice_number = Column(String(100))
     completed_at = Column(DateTime)
     created_at = Column(DateTime, default=datetime.now)
     updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)

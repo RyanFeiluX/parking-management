@@ -4,6 +4,12 @@
 {% block header %}开票管理{% endblock %}
 
 {% block content %}
+<style>
+    .table-invoice { font-size: 0.8rem; }
+    .table-invoice .btn-sm { font-size: 0.75rem; padding: 0.15rem 0.3rem; }
+    .table-invoice .badge { font-size: 0.7rem; }
+    .table-invoice td, .table-invoice th { padding: 0.3rem 0.4rem; }
+</style>
 <div id="page-data" {% if success %}data-success="{{ success }}"{% endif %} {% if error %}data-error="{{ error }}"{% endif %}></div>
 <div class="row">
     <div class="col">
@@ -17,8 +23,8 @@
                         <div class="col-md-2">
                             <select name="status" class="form-control">
                                 <option value="">全部状态</option>
-                                <option value="开票等待中" {% if status_filter == '开票等待中' %}selected{% endif %}>开票等待中</option>
-                                <option value="开票已完成" {% if status_filter == '开票已完成' %}selected{% endif %}>开票已完成</option>
+                                <option value="开票等待中" {% if status_filter == '开票等待中' %}selected{% endif %}>等待中</option>
+                                <option value="开票已完成" {% if status_filter == '开票已完成' %}selected{% endif %}>已完成</option>
                                 <option value="申请已取消" {% if status_filter == '申请已取消' %}selected{% endif %}>申请已取消</option>
                             </select>
                         </div>
@@ -45,7 +51,7 @@
                     </div>
                 </form>
 
-                <table class="table table-striped">
+                <table class="table table-striped table-invoice">
                     <thead>
                         <tr>
                             <th>申请时间</th>
@@ -54,6 +60,7 @@
                             <th>缴费期间（笔数）</th>
                             <th>发票抬头</th>
                             <th>税号</th>
+                            <th>发票编号</th>
                             <th>电话</th>
                             <th>邮箱</th>
                             <th>类型</th>
@@ -86,6 +93,7 @@
                             </td>
                             <td>{{ item.invoice.title }}</td>
                             <td>{{ item.invoice.tax_id or '-' }}</td>
+                            <td>{{ item.invoice.invoice_number or '-' }}</td>
                             <td>{{ item.invoice.phone or '-' }}</td>
                             <td>{{ item.invoice.email or '-' }}</td>
                             <td>
@@ -98,9 +106,9 @@
                             <td>{{ item.invoice.amount }}</td>
                             <td>
                                 {% if item.invoice.status == '开票等待中' %}
-                                <span class="badge bg-warning">开票等待中</span>
+                                <span class="badge bg-warning">等待中</span>
                                 {% elif item.invoice.status == '开票已完成' %}
-                                <span class="badge bg-success">开票已完成</span>
+                                <span class="badge bg-success">已完成</span>
                                 {% else %}
                                 <span class="badge bg-secondary">申请已取消</span>
                                 {% endif %}
@@ -108,8 +116,9 @@
                             <td>
                                 {% if item.invoice.status == '开票等待中' %}
                                 <a href="/invoices/{{ item.invoice.id }}/edit" class="btn btn-sm btn-info">编辑</a>
-                                <form action="/invoices/{{ item.invoice.id }}/complete" method="post" class="d-inline">
-                                    <button type="submit" class="btn btn-sm btn-success" onclick="return confirm('确认标记为开票已完成？')">标记完成</button>
+                                <form action="/invoices/{{ item.invoice.id }}/complete" method="post" class="d-inline complete-form">
+                                    <input type="hidden" name="invoice_number" value="">
+                                    <button type="button" class="btn btn-sm btn-success" onclick="promptInvoiceNumber(this)">完成</button>
                                 </form>
                                 <form action="/invoices/{{ item.invoice.id }}/cancel" method="post" class="d-inline">
                                     <button type="submit" class="btn btn-sm btn-warning" onclick="return confirm('确认取消开票申请？')">取消</button>
@@ -139,6 +148,14 @@
 
 {% block scripts %}
 <script>
+function promptInvoiceNumber(btn) {
+    const num = prompt('请输入开具的发票编号（选填）：');
+    if (num === null) return;
+    const form = btn.closest('form');
+    form.querySelector('[name="invoice_number"]').value = num || '';
+    form.submit();
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     const pageData = document.getElementById('page-data');
     const successMsg = pageData?.dataset.success;

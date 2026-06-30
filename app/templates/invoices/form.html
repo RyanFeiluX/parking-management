@@ -44,7 +44,7 @@
                     </table>
                 </div>
 
-                <form method="post" action="/invoices/create">
+                <form method="post" action="{% if invoice %}/invoices/{{ invoice.id }}/edit{% else %}/invoices/create{% endif %}">
                     <input type="hidden" name="payment_ids" value="{% for p in payments %}{% if not loop.first %},{% endif %}{{ p.id }}{% endfor %}">
 
                     <div class="mb-3">
@@ -61,24 +61,24 @@
                         <input type="text" name="title" id="titleInput" class="form-control mt-2" placeholder="输入发票抬头" value="{{ invoice.title if invoice else '' }}" required>
                     </div>
 
-                    <div class="mb-3" id="taxIdGroup" style="display: none;">
+                    <div class="mb-3" id="taxIdGroup">
                         <label class="form-label">纳税人识别号（税号）</label>
-                        <input type="text" name="tax_id" class="form-control" placeholder="仅供专票使用" value="{{ invoice.tax_id if invoice else '' }}">
+                        <input type="text" name="tax_id" class="form-control" placeholder="纳税人识别号（选填）" value="{{ invoice.tax_id or '' if invoice else '' }}">
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label">联系电话</label>
-                        <input type="text" name="phone" class="form-control" placeholder="开票联系电话" value="{{ invoice.phone if invoice else resident_phone }}">
+                        <input type="text" name="phone" class="form-control" placeholder="开票联系电话" value="{{ invoice.phone or '' if invoice else resident_phone }}">
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label">电子邮箱</label>
-                        <input type="email" name="email" class="form-control" placeholder="接收电子发票的邮箱" value="{{ invoice.email if invoice else '' }}">
+                        <input type="email" name="email" class="form-control" placeholder="接收电子发票的邮箱" value="{{ invoice.email or '' if invoice else '' }}">
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label">发票摘要</label>
-                        <textarea name="summary" class="form-control" rows="3" placeholder="开票内容摘要（可选）">{{ invoice.summary if invoice else auto_summary }}</textarea>
+                        <textarea name="summary" class="form-control" rows="3" placeholder="开票内容摘要（可选）">{{ invoice.summary or '' if invoice else auto_summary }}</textarea>
                     </div>
 
                     <div class="mb-3">
@@ -86,14 +86,12 @@
                         <div>
                             <div class="form-check form-check-inline">
                                 <input class="form-check-input" type="radio" name="invoice_type" id="typeNormal" value="普票"
-                                {% if not invoice or invoice.invoice_type == '普票' %}checked{% endif %}
-                                onchange="toggleTaxId()">
+                                {% if not invoice or invoice.invoice_type == '普票' %}checked{% endif %}>
                                 <label class="form-check-label" for="typeNormal">普票</label>
                             </div>
                             <div class="form-check form-check-inline">
                                 <input class="form-check-input" type="radio" name="invoice_type" id="typeSpecial" value="专票"
-                                {% if invoice and invoice.invoice_type == '专票' %}checked{% endif %}
-                                onchange="toggleTaxId()">
+                                {% if invoice and invoice.invoice_type == '专票' %}checked{% endif %}>
                                 <label class="form-check-label" for="typeSpecial">专票</label>
                             </div>
                         </div>
@@ -114,6 +112,9 @@
                 {% elif success %}
                 <div class="alert alert-success">{{ success }}</div>
                 <a href="/invoices" class="btn btn-primary">返回开票清单</a>
+                {% elif error %}
+                <div class="alert alert-danger">{{ error }}</div>
+                <a href="/invoices" class="btn btn-outline-secondary">返回开票清单</a>
                 {% else %}
                 <div class="alert alert-warning">
                     未指定交费记录。请从<a href="/payments/logs">缴费记录</a>中选择一条或多条记录进行开票申请。
@@ -134,15 +135,7 @@ function fillTitle(value) {
     }
 }
 
-function toggleTaxId() {
-    var taxGroup = document.getElementById('taxIdGroup');
-    var specialChecked = document.getElementById('typeSpecial').checked;
-    taxGroup.style.display = specialChecked ? 'block' : 'none';
-}
-
 document.addEventListener('DOMContentLoaded', function() {
-    toggleTaxId();
-
     const pageData = document.getElementById('page-data');
     const successMsg = pageData?.dataset.success;
     const errorMsg = pageData?.dataset.error;

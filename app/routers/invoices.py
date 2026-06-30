@@ -163,36 +163,65 @@ async def create_invoice(request: Request, user: dict = Depends(require_login)):
     db = request.state.db
     payments = db.query(PaymentRecord).filter(PaymentRecord.id.in_(payment_ids)).all()
 
+    total_amount = sum(float(p.amount) for p in payments)
+    auto_summary = build_invoice_summary(payments)
+
+    presets = []
+    setting = db.query(SystemSetting).filter_by(key="invoice_title_presets").first()
+    if setting and setting.value:
+        try:
+            presets = json.loads(setting.value)
+        except (json.JSONDecodeError, TypeError):
+            presets = []
+
+    resident_phone = ""
+    if payments:
+        first = payments[0]
+        if first.vehicle and first.vehicle.resident:
+            resident_phone = first.vehicle.resident.phone or ""
+
+    common_ctx = {
+        "payments": payments, "total_amount": total_amount,
+        "auto_summary": auto_summary, "presets": presets,
+        "resident_phone": resident_phone,
+    }
+
     if len(payments) != len(payment_ids):
         return templates.TemplateResponse("invoices/form.html", {
-            "request": request, "current_user": user, "error": "部分交费记录不存在"
+            "request": request, "current_user": user, **common_ctx,
+            "error": "部分交费记录不存在"
         })
 
     for p in payments:
         if p.invoice:
             return templates.TemplateResponse("invoices/form.html", {
-                "request": request, "current_user": user, "error": f"交费记录 #{p.id} 已关联开票条目"
+                "request": request, "current_user": user, **common_ctx,
+                "error": f"交费记录 #{p.id} 已关联开票条目"
             })
 
     vehicles = set(p.vehicle_id for p in payments)
     if len(vehicles) > 1:
         return templates.TemplateResponse("invoices/form.html", {
-            "request": request, "current_user": user, "error": "选择的交费记录必须属于同一辆车"
+            "request": request, "current_user": user, **common_ctx,
+            "error": "选择的交费记录必须属于同一辆车"
         })
 
     if not title:
         return templates.TemplateResponse("invoices/form.html", {
-            "request": request, "current_user": user, "error": "发票抬头不能为空"
+            "request": request, "current_user": user, **common_ctx,
+            "error": "发票抬头不能为空"
         })
     if amount <= 0:
         return templates.TemplateResponse("invoices/form.html", {
-            "request": request, "current_user": user, "error": "发票金额必须大于0"
+            "request": request, "current_user": user, **common_ctx,
+            "error": "发票金额必须大于0"
         })
 
     total_paid = sum(float(p.amount) for p in payments)
     if amount > total_paid:
         return templates.TemplateResponse("invoices/form.html", {
-            "request": request, "current_user": user, "error": f"开票金额不能大于缴费总金额（{total_paid}元）"
+            "request": request, "current_user": user, **common_ctx,
+            "error": f"开票金额不能大于缴费总金额（{total_paid}元）"
         })
 
     phone = form_data.get("phone", "").strip() or None
@@ -274,10 +303,23 @@ async def edit_invoice(request: Request, invoice_id: int, user: dict = Depends(r
             "request": request, "current_user": user, "invoices": build_invoice_data(db, invoices), "error": "仅开票等待中的记录可编辑"
         })
 
+    payments = invoice.payments
+    total_amount = sum(float(p.amount) for p in payments) if payments else 0
+
+    presets = []
+    setting = db.query(SystemSetting).filter_by(key="invoice_title_presets").first()
+    if setting and setting.value:
+        try:
+            presets = json.loads(setting.value)
+        except (json.JSONDecodeError, TypeError):
+            presets = []
+
     title = form_data.get("title", "").strip()
     if not title:
         return templates.TemplateResponse("invoices/form.html", {
-            "request": request, "current_user": user, "invoice": invoice, "error": "发票抬头不能为空"
+            "request": request, "current_user": user, "invoice": invoice,
+            "payments": payments, "total_amount": total_amount, "presets": presets,
+            "error": "发票抬头不能为空"
         })
 
     invoice.title = title
@@ -300,6 +342,7 @@ async def edit_invoice(request: Request, invoice_id: int, user: dict = Depends(r
 
 @router.post("/{invoice_id}/complete")
 async def complete_invoice(request: Request, invoice_id: int, user: dict = Depends(require_login)):
+    form_data = await request.form()
     db = request.state.db
     invoice = db.query(Invoice).filter_by(id=invoice_id).first()
     if not invoice:
@@ -312,6 +355,7 @@ async def complete_invoice(request: Request, invoice_id: int, user: dict = Depen
             "request": request, "current_user": user, "invoices": build_invoice_data(db, invoices), "error": "仅开票等待中的记录可标记完成"
         })
 
+    invoice.invoice_number = form_data.get("invoice_number", "").strip() or None
     invoice.status = "开票已完成"
     invoice.completed_at = datetime.now()
     db.commit()
