@@ -152,10 +152,10 @@
         <div class="card mt-4">
             <div class="card-header">缴费信息</div>
             <div class="card-body">
-                <form method="post" action="/payments/calculate">
+                <form method="post" action="/payments/calculate" id="calc-form">
                     <div class="mb-3">
                         <label class="form-label">缴费周期</label>
-                        <select name="period_type" class="form-control" onchange="this.form.submit()">
+                        <select name="period_type" class="form-control" onchange="recalc()">
                             <option value="月" {% if period_type == '月' %}selected{% endif %}>月缴</option>
                             <option value="季" {% if period_type == '季' %}selected{% endif %}>季缴</option>
                             <option value="年" {% if period_type == '年' %}selected{% endif %}>年缴</option>
@@ -163,51 +163,51 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label">数量</label>
-                        <input type="number" name="months" class="form-control" value="{{ months or 1 }}" min="1" onchange="this.form.submit()">
+                        <input type="number" name="months" class="form-control" value="{{ months or 1 }}" min="1" onchange="recalc()">
                     </div>
                     <input type="hidden" name="plate_number" value="{{ vehicle.plate_number }}">
                 </form>
             </div>
         </div>
 
-        {% if amount_info %}
-        <div class="card mt-4">
-            <div class="card-header">费用计算</div>
-            <div class="card-body">
-                <p>{{ amount_info.summary }}</p>
-                <div class="text-right">
-                    <h3 class="text-primary">应付金额: {{ amount_info.amount }} 元</h3>
+        <div id="calc-result"{% if not amount_info %} style="display:none"{% endif %}>
+            <div class="card mt-4">
+                <div class="card-header">费用计算</div>
+                <div class="card-body">
+                    <p id="calc-summary">{{ amount_info.summary if amount_info else '' }}</p>
+                    <div class="text-right">
+                        <h3 class="text-primary">应付金额: <span id="calc-amount">{{ amount_info.amount if amount_info else '' }}</span> 元</h3>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mt-4">
+                <div class="card-header">确认缴费</div>
+                <div class="card-body">
+                    <form method="post" action="/payments/pay">
+                        <input type="hidden" name="vehicle_id" value="{{ vehicle.id }}">
+                        <input type="hidden" name="period_type" id="pay-period-type" value="{{ period_type or '月' }}">
+                        <input type="hidden" name="months" id="pay-months" value="{{ months or 1 }}">
+                        <input type="hidden" name="amount" id="pay-amount" value="{{ amount_info.amount if amount_info else '' }}">
+                        
+                        <div class="mb-3">
+                            <label class="form-label">缴费方式</label>
+                            <select name="payment_method" class="form-control" required>
+                                <option value="现金">现金</option>
+                                <option value="微信">微信</option>
+                                <option value="支付宝">支付宝</option>
+                                <option value="转账">转账</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">备注</label>
+                            <textarea name="remark" class="form-control" rows="2"></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">确认缴费</button>
+                    </form>
                 </div>
             </div>
         </div>
-
-        <div class="card mt-4">
-            <div class="card-header">确认缴费</div>
-            <div class="card-body">
-                <form method="post" action="/payments/pay">
-                    <input type="hidden" name="vehicle_id" value="{{ vehicle.id }}">
-                    <input type="hidden" name="period_type" value="{{ period_type or '月' }}">
-                    <input type="hidden" name="months" value="{{ months or 1 }}">
-                    <input type="hidden" name="amount" value="{{ amount_info.amount }}">
-                    
-                    <div class="mb-3">
-                        <label class="form-label">缴费方式</label>
-                        <select name="payment_method" class="form-control" required>
-                            <option value="现金">现金</option>
-                            <option value="微信">微信</option>
-                            <option value="支付宝">支付宝</option>
-                            <option value="转账">转账</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">备注</label>
-                        <textarea name="remark" class="form-control" rows="2"></textarea>
-                    </div>
-                    <button type="submit" class="btn btn-primary w-100">确认缴费</button>
-                </form>
-            </div>
-        </div>
-        {% endif %}
         {% endif %}
         {% endif %}
     </div>
@@ -226,6 +226,26 @@ function deleteChar() {
     var input = document.getElementById('plateInput');
     input.value = input.value.slice(0, -1);
     input.focus();
+}
+
+function recalc() {
+    var form = document.getElementById('calc-form');
+    var data = new FormData(form);
+    fetch('/payments/calculate', {
+        method: 'POST',
+        headers: {'X-Requested-With': 'XMLHttpRequest'},
+        body: data
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(result) {
+        if (result.error) return;
+        document.getElementById('calc-summary').textContent = result.summary;
+        document.getElementById('calc-amount').textContent = result.amount;
+        document.getElementById('pay-period-type').value = document.querySelector('[name="period_type"]').value;
+        document.getElementById('pay-months').value = document.querySelector('[name="months"]').value;
+        document.getElementById('pay-amount').value = result.amount;
+        document.getElementById('calc-result').style.display = '';
+    });
 }
 </script>
 {% endblock %}

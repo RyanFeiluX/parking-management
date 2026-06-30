@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Request, Depends
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from datetime import datetime, date
 from dateutil.relativedelta import relativedelta
@@ -55,6 +56,8 @@ async def calculate_amount(request: Request, user: dict = Depends(require_login)
     vehicle = db.query(Vehicle).filter_by(plate_number=plate_number).first()
     
     if not vehicle:
+        if request.headers.get("x-requested-with") == "XMLHttpRequest":
+            return JSONResponse({"error": "车辆不存在"})
         return templates.TemplateResponse("payments/form.html", {
             "request": request,
             "current_user": user,
@@ -66,6 +69,12 @@ async def calculate_amount(request: Request, user: dict = Depends(require_login)
     
     from ..utils import calculate_payment_amount
     amount_info = calculate_payment_amount(vehicle, period_type, months, db)
+    
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
+        return JSONResponse({
+            "summary": amount_info.get("summary", ""),
+            "amount": amount_info.get("amount", 0)
+        })
     
     return templates.TemplateResponse("payments/form.html", {
         "request": request,
