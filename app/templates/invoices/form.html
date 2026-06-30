@@ -66,6 +66,24 @@
                         <input type="text" name="tax_id" class="form-control" placeholder="纳税人识别号（选填）" value="{{ invoice.tax_id or '' if invoice else '' }}">
                     </div>
 
+                    <div class="mb-3" id="specialInvoiceGroup" style="display: none;">
+                        <div class="card card-body bg-light p-3">
+                            <h6 class="mb-3">专票信息</h6>
+                            <div class="mb-2">
+                                <label class="form-label">开户行</label>
+                                <input type="text" name="bank_name" class="form-control" placeholder="开户行（选填）" value="{{ invoice.bank_name or '' if invoice else '' }}">
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label">银行账号</label>
+                                <input type="text" name="bank_account" class="form-control" placeholder="银行账号（选填）" value="{{ invoice.bank_account or '' if invoice else '' }}">
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label">地址</label>
+                                <input type="text" name="address" class="form-control" placeholder="注册地址（选填）" value="{{ invoice.address or '' if invoice else '' }}">
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="mb-3">
                         <label class="form-label">联系电话</label>
                         <input type="text" name="phone" class="form-control" placeholder="开票联系电话" value="{{ invoice.phone or '' if invoice else resident_phone }}">
@@ -86,12 +104,14 @@
                         <div>
                             <div class="form-check form-check-inline">
                                 <input class="form-check-input" type="radio" name="invoice_type" id="typeNormal" value="普票"
-                                {% if not invoice or invoice.invoice_type == '普票' %}checked{% endif %}>
+                                {% if not invoice or invoice.invoice_type == '普票' %}checked{% endif %}
+                                onchange="toggleSpecialFields()">
                                 <label class="form-check-label" for="typeNormal">普票</label>
                             </div>
                             <div class="form-check form-check-inline">
                                 <input class="form-check-input" type="radio" name="invoice_type" id="typeSpecial" value="专票"
-                                {% if invoice and invoice.invoice_type == '专票' %}checked{% endif %}>
+                                {% if invoice and invoice.invoice_type == '专票' %}checked{% endif %}
+                                onchange="toggleSpecialFields()">
                                 <label class="form-check-label" for="typeSpecial">专票</label>
                             </div>
                         </div>
@@ -135,7 +155,14 @@ function fillTitle(value) {
     }
 }
 
+function toggleSpecialFields() {
+    var group = document.getElementById('specialInvoiceGroup');
+    var specialChecked = document.getElementById('typeSpecial').checked;
+    group.style.display = specialChecked ? 'block' : 'none';
+}
+
 document.addEventListener('DOMContentLoaded', function() {
+    toggleSpecialFields();
     const pageData = document.getElementById('page-data');
     const successMsg = pageData?.dataset.success;
     const errorMsg = pageData?.dataset.error;

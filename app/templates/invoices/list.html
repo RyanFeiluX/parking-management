@@ -134,6 +134,15 @@
                                 {% endif %}
                             </td>
                         </tr>
+                        {% if item.invoice.invoice_type == '专票' and (item.invoice.bank_name or item.invoice.bank_account or item.invoice.address) %}
+                        <tr class="table-light">
+                            <td colspan="13" class="p-1 ps-4 small text-muted">
+                                开户行：{{ item.invoice.bank_name or '-' }}
+                                &nbsp;|&nbsp; 银行账号：{{ item.invoice.bank_account or '-' }}
+                                &nbsp;|&nbsp; 地址：{{ item.invoice.address or '-' }}
+                            </td>
+                        </tr>
+                        {% endif %}
                         {% endfor %}
                     </tbody>
                 </table>

@@ -154,6 +154,9 @@ class InvoiceCreate(BaseModel):
     tax_id: Optional[str] = None
     phone: Optional[str] = None
     email: Optional[str] = None
+    bank_name: Optional[str] = None
+    bank_account: Optional[str] = None
+    address: Optional[str] = None
     summary: Optional[str] = None
     invoice_type: str = "普票"
     amount: float
@@ -163,6 +166,9 @@ class InvoiceUpdate(BaseModel):
     tax_id: Optional[str] = None
     phone: Optional[str] = None
     email: Optional[str] = None
+    bank_name: Optional[str] = None
+    bank_account: Optional[str] = None
+    address: Optional[str] = None
     summary: Optional[str] = None
     invoice_type: Optional[str] = None
     amount: Optional[float] = None
@@ -173,6 +179,9 @@ class InvoiceResponse(BaseModel):
     tax_id: Optional[str] = None
     phone: Optional[str] = None
     email: Optional[str] = None
+    bank_name: Optional[str] = None
+    bank_account: Optional[str] = None
+    address: Optional[str] = None
     summary: Optional[str] = None
     invoice_type: str
     amount: float

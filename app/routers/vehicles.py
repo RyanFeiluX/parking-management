@@ -174,6 +174,7 @@ async def delete_vehicle(request: Request, vehicle_id: int, user: dict = Depends
     resident = vehicle.resident
     target_name = f"车辆 {vehicle.plate_number}"
     
+    db.query(PaymentRecord).filter_by(vehicle_id=vehicle_id).delete()
     db.delete(vehicle)
     
     remaining_vehicles = db.query(Vehicle).filter_by(resident_id=resident.id).order_by(Vehicle.sort_order).all()
