@@ -41,12 +41,13 @@
                         <div class="col-md-2">
                             <input type="date" name="end_date" class="form-control" value="{{ end_date }}">
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-md-1">
                             <input type="text" name="plate_number" class="form-control" placeholder="车牌号" value="{{ plate_number }}">
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-md-3">
                             <button type="submit" class="btn btn-primary">筛选</button>
                             <a href="/invoices" class="btn btn-outline-secondary">重置</a>
+                            <a href="/invoices/export?status={{ status_filter }}&invoice_type={{ invoice_type_filter }}&plate_number={{ plate_number }}&start_date={{ start_date }}&end_date={{ end_date }}" class="btn btn-success">导出</a>
                         </div>
                     </div>
                 </form>

@@ -1,7 +1,11 @@
 from fastapi import APIRouter, Request, Depends
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from datetime import datetime
+import csv
+import io
 import json
+from urllib.parse import quote
 
 from ..models import Invoice, PaymentRecord, Vehicle, Resident, User, OperationLog, SystemSetting
 from ..deps import require_role, require_login
@@ -88,6 +92,76 @@ async def invoice_list(request: Request, user: dict = Depends(require_login)):
         "start_date": start_date,
         "end_date": end_date
     })
+
+@router.get("/export")
+async def export_invoices(request: Request, user: dict = Depends(require_login)):
+    db = request.state.db
+    status_filter = request.query_params.get("status", "")
+    invoice_type_filter = request.query_params.get("invoice_type", "")
+    plate_number = request.query_params.get("plate_number", "")
+    start_date = request.query_params.get("start_date", "")
+    end_date = request.query_params.get("end_date", "")
+
+    query = db.query(Invoice).order_by(Invoice.created_at.desc())
+
+    if status_filter:
+        query = query.filter(Invoice.status == status_filter)
+    if invoice_type_filter:
+        query = query.filter(Invoice.invoice_type == invoice_type_filter)
+    if start_date:
+        query = query.filter(Invoice.created_at >= datetime.strptime(start_date, "%Y-%m-%d"))
+    if end_date:
+        query = query.filter(Invoice.created_at <= datetime.strptime(end_date, "%Y-%m-%d") + datetime.timedelta(days=1))
+    if plate_number:
+        query = query.join(PaymentRecord).join(Vehicle).filter(Vehicle.plate_number.ilike(f"%{plate_number}%"))
+
+    invoices = query.all()
+    invoice_data = build_invoice_data(db, invoices)
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["申请时间", "车牌号", "车主", "笔数", "缴费期间", "发票抬头", "税号", "发票编号", "电话", "邮箱", "类型", "金额", "状态"])
+
+    for item in invoice_data:
+        inv = item["invoice"]
+        vehicle = item["vehicle"]
+        resident = item["resident"]
+        payments = item["payments"]
+
+        if payments:
+            if len(payments) == 1:
+                p = payments[0]
+                period = f"{p.period_type}缴 {p.period_start.strftime('%Y-%m-%d')}~{p.period_end.strftime('%Y-%m-%d')}"
+            else:
+                parts = [f"{p.period_type}缴{p.period_start.strftime('%Y-%m-%d')}~{p.period_end.strftime('%Y-%m-%d')}" for p in payments]
+                period = "; ".join(parts)
+        else:
+            period = ""
+
+        writer.writerow([
+            inv.created_at.strftime("%Y-%m-%d %H:%M") if inv.created_at else "",
+            vehicle.plate_number if vehicle else "-",
+            resident.owner_name if resident else "-",
+            len(payments) if payments else 0,
+            period,
+            inv.title or "",
+            inv.tax_id or "",
+            inv.invoice_number or "",
+            inv.phone or "",
+            inv.email or "",
+            inv.invoice_type or "",
+            float(inv.amount) if inv.amount else 0,
+            inv.status or ""
+        ])
+
+    output.seek(0)
+    content = "\ufeff" + output.getvalue()
+    filename = f"开票清单_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+    return StreamingResponse(
+        iter([content.encode("utf-8-sig")]),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={quote(filename)}"}
+    )
 
 @router.get("/create")
 async def create_invoice_page(request: Request, user: dict = Depends(require_login)):
