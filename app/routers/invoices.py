@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Request, Depends
-from fastapi.responses import StreamingResponse
+from fastapi.responses import RedirectResponse, StreamingResponse
 from sqlalchemy.orm import Session
 from datetime import datetime
 import csv
@@ -70,6 +70,7 @@ async def invoice_list(request: Request, user: dict = Depends(require_login)):
     plate_number = request.query_params.get("plate_number", "")
     start_date = request.query_params.get("start_date", "")
     end_date = request.query_params.get("end_date", "")
+    success = request.query_params.get("success", "")
 
     query = db.query(Invoice).order_by(Invoice.created_at.desc())
 
@@ -95,7 +96,8 @@ async def invoice_list(request: Request, user: dict = Depends(require_login)):
         "invoice_type_filter": invoice_type_filter,
         "plate_number": plate_number,
         "start_date": start_date,
-        "end_date": end_date
+        "end_date": end_date,
+        "success": success or None
     })
 
 @router.get("/export")
@@ -349,12 +351,7 @@ async def create_invoice(request: Request, user: dict = Depends(require_login)):
     log_operation(db, user["user_id"], "create_invoice", target,
                   f"创建开票申请: {title}, {amount}元, {invoice_type}, 合并{len(payments)}笔交费", client_host)
 
-    invoices = db.query(Invoice).order_by(Invoice.created_at.desc()).all()
-    return templates.TemplateResponse("invoices/list.html", {
-        "request": request, "current_user": user,
-        "invoices": build_invoice_data(db, invoices),
-        "success": "开票申请已提交"
-    })
+    return RedirectResponse(url="/invoices/?success=开票申请已提交", status_code=302)
 
 @router.get("/{invoice_id}/edit")
 async def edit_invoice_page(request: Request, invoice_id: int, user: dict = Depends(require_login)):
