@@ -26,6 +26,24 @@ def log_operation(db: Session, user_id: int, action_type: str, target: str, deta
     db.add(log)
     db.commit()
 
+def normalize_presets(presets):
+    """兼容旧格式 ['Title'] → 新格式 [{'title':'Title','tax_id':'','phone':'','email':'','address':'','bank_name':'','bank_account':''}]"""
+    normalized = []
+    for p in presets:
+        if isinstance(p, str):
+            normalized.append({"title": p, "tax_id": "", "phone": "", "email": "", "address": "", "bank_name": "", "bank_account": ""})
+        elif isinstance(p, dict):
+            normalized.append({
+                "title": p.get("title", ""),
+                "tax_id": p.get("tax_id", ""),
+                "phone": p.get("phone", ""),
+                "email": p.get("email", ""),
+                "address": p.get("address", ""),
+                "bank_name": p.get("bank_name", ""),
+                "bank_account": p.get("bank_account", "")
+            })
+    return normalized
+
 def build_invoice_summary(payments):
     if not payments:
         return ""
@@ -127,7 +145,7 @@ async def export_invoices(request: Request, user: dict = Depends(require_login))
 
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(["申请时间", "车牌号", "车主", "笔数", "缴费期间", "发票抬头", "税号", "发票编号", "电话", "邮箱", "类型", "金额", "状态"])
+    writer.writerow(["申请时间", "车牌号", "房号", "笔数", "缴费期间", "发票抬头", "税号", "发票编号", "电话", "邮箱", "类型", "金额", "状态"])
 
     for item in invoice_data:
         inv = item["invoice"]
@@ -148,7 +166,7 @@ async def export_invoices(request: Request, user: dict = Depends(require_login))
         writer.writerow([
             inv.created_at.strftime("%Y-%m-%d %H:%M") if inv.created_at else "",
             "、".join(item["plates"]) if item["plates"] else "-",
-            resident.owner_name if resident else "-",
+            resident.room_number if resident else "-",
             len(payments) if payments else 0,
             period,
             inv.title or "",
@@ -213,6 +231,7 @@ async def create_invoice_page(request: Request, user: dict = Depends(require_log
             presets = json.loads(setting.value)
             if not isinstance(presets, list):
                 presets = []
+            presets = normalize_presets(presets)
         except (json.JSONDecodeError, TypeError):
             presets = []
 
@@ -231,6 +250,7 @@ async def create_invoice_page(request: Request, user: dict = Depends(require_log
         "total_amount": total_amount,
         "auto_summary": auto_summary,
         "presets": presets,
+        "presets_json": json.dumps(presets, ensure_ascii=False),
         "error": error,
         "resident_phone": resident_phone
     })
@@ -257,6 +277,8 @@ async def create_invoice(request: Request, user: dict = Depends(require_login)):
     if setting and setting.value:
         try:
             presets = json.loads(setting.value)
+            if isinstance(presets, list):
+                presets = normalize_presets(presets)
         except (json.JSONDecodeError, TypeError):
             presets = []
 
@@ -269,6 +291,7 @@ async def create_invoice(request: Request, user: dict = Depends(require_login)):
     common_ctx = {
         "payments": payments, "total_amount": total_amount,
         "auto_summary": auto_summary, "presets": presets,
+        "presets_json": json.dumps(presets, ensure_ascii=False),
         "resident_phone": resident_phone,
     }
 
@@ -303,6 +326,11 @@ async def create_invoice(request: Request, user: dict = Depends(require_login)):
         return templates.TemplateResponse("invoices/form.html", {
             "request": request, "current_user": user, **common_ctx,
             "error": "发票抬头不能为空"
+        })
+    if not tax_id:
+        return templates.TemplateResponse("invoices/form.html", {
+            "request": request, "current_user": user, **common_ctx,
+            "error": "纳税人识别号（税号）不能为空"
         })
     if amount <= 0:
         return templates.TemplateResponse("invoices/form.html", {
@@ -376,12 +404,15 @@ async def edit_invoice_page(request: Request, invoice_id: int, user: dict = Depe
     if setting and setting.value:
         try:
             presets = json.loads(setting.value)
+            if isinstance(presets, list):
+                presets = normalize_presets(presets)
         except (json.JSONDecodeError, TypeError):
             presets = []
 
     return templates.TemplateResponse("invoices/form.html", {
         "request": request, "current_user": user,
-        "invoice": invoice, "payments": payments, "total_amount": total_amount, "presets": presets
+        "invoice": invoice, "payments": payments, "total_amount": total_amount,
+        "presets": presets, "presets_json": json.dumps(presets, ensure_ascii=False)
     })
 
 @router.post("/{invoice_id}/edit")
@@ -402,11 +433,15 @@ async def edit_invoice(request: Request, invoice_id: int, user: dict = Depends(r
     payments = invoice.payments
     total_amount = sum(float(p.amount) for p in payments) if payments else 0
 
+    tax_id = form_data.get("tax_id", "").strip()
+
     presets = []
     setting = db.query(SystemSetting).filter_by(key="invoice_title_presets").first()
     if setting and setting.value:
         try:
             presets = json.loads(setting.value)
+            if isinstance(presets, list):
+                presets = normalize_presets(presets)
         except (json.JSONDecodeError, TypeError):
             presets = []
 
@@ -414,12 +449,20 @@ async def edit_invoice(request: Request, invoice_id: int, user: dict = Depends(r
     if not title:
         return templates.TemplateResponse("invoices/form.html", {
             "request": request, "current_user": user, "invoice": invoice,
-            "payments": payments, "total_amount": total_amount, "presets": presets,
+            "payments": payments, "total_amount": total_amount,
+            "presets": presets, "presets_json": json.dumps(presets, ensure_ascii=False),
             "error": "发票抬头不能为空"
+        })
+    if not tax_id:
+        return templates.TemplateResponse("invoices/form.html", {
+            "request": request, "current_user": user, "invoice": invoice,
+            "payments": payments, "total_amount": total_amount,
+            "presets": presets, "presets_json": json.dumps(presets, ensure_ascii=False),
+            "error": "纳税人识别号（税号）不能为空"
         })
 
     invoice.title = title
-    invoice.tax_id = form_data.get("tax_id", "").strip() or None
+    invoice.tax_id = tax_id or None
     invoice.phone = form_data.get("phone", "").strip() or None
     invoice.email = form_data.get("email", "").strip() or None
     invoice.bank_name = form_data.get("bank_name", "").strip() or None

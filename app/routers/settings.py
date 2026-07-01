@@ -186,6 +186,24 @@ async def save_settings(request: Request, user: dict = Depends(require_role("sup
         "success": "系统设置已更新"
     })
 
+def normalize_presets(presets):
+    """兼容旧格式 ['Title'] → 新格式 [{'title':'Title','tax_id':'','phone':'','email':'','address':'','bank_name':'','bank_account':''}]"""
+    normalized = []
+    for p in presets:
+        if isinstance(p, str):
+            normalized.append({"title": p, "tax_id": "", "phone": "", "email": "", "address": "", "bank_name": "", "bank_account": ""})
+        elif isinstance(p, dict):
+            normalized.append({
+                "title": p.get("title", ""),
+                "tax_id": p.get("tax_id", ""),
+                "phone": p.get("phone", ""),
+                "email": p.get("email", ""),
+                "address": p.get("address", ""),
+                "bank_name": p.get("bank_name", ""),
+                "bank_account": p.get("bank_account", "")
+            })
+    return normalized
+
 @router.get("/invoice-titles")
 async def invoice_titles_page(request: Request, user: dict = Depends(require_role("super_admin"))):
     db = request.state.db
@@ -195,6 +213,7 @@ async def invoice_titles_page(request: Request, user: dict = Depends(require_rol
         titles = json.loads(setting.value)
         if not isinstance(titles, list):
             titles = []
+        titles = normalize_presets(titles)
     except (json.JSONDecodeError, TypeError):
         titles = []
 
@@ -202,7 +221,7 @@ async def invoice_titles_page(request: Request, user: dict = Depends(require_rol
         "request": request,
         "current_user": user,
         "titles": titles,
-        "titles_json": json.dumps(titles),
+        "titles_json": json.dumps(titles, ensure_ascii=False),
         "success": None
     })
 

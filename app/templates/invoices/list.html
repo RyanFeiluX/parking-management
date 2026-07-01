@@ -63,7 +63,7 @@
                         <tr>
                             <th>申请时间</th>
                             <th>车牌号</th>
-                            <th>车主</th>
+                            <th>房号</th>
                             <th>缴费期间（笔数）</th>
                             <th>发票抬头</th>
                             <th>税号</th>
@@ -81,7 +81,7 @@
                         <tr class="{% if item.invoice.status == '申请已取消' %}text-muted{% endif %}">
                             <td>{{ item.invoice.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
                             <td>{{ item.plates | join('、') if item.plates else '-' }}</td>
-                            <td>{{ item.resident.owner_name if item.resident else '-' }}</td>
+                            <td>{{ item.resident.room_number if item.resident else '-' }}</td>
                             <td>
                                 {% if item.payments and item.payments|length > 1 %}
                                 <span class="badge bg-primary rounded-pill" title="{{ item.payments|length }} 笔缴费合并">{{ item.payments|length }}笔合并</span>

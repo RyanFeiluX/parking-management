@@ -4,9 +4,16 @@
 {% block header %}发票抬头预设{% endblock %}
 
 {% block content %}
+<style>
+.preset-card { border: 1px solid #dee2e6; border-radius: 0.375rem; margin-bottom: 0.75rem; padding: 0.75rem 1rem; }
+.preset-card:hover { background-color: #f8f9fa; }
+.preset-card .row { margin-bottom: 0.25rem; }
+.preset-card .label { color: #6c757d; font-size: 0.8rem; }
+.preset-card .value { font-size: 0.85rem; word-break: break-all; }
+</style>
 <div id="page-data" {% if success %}data-success="{{ success }}"{% endif %}></div>
 <div class="row">
-    <div class="col-md-8">
+    <div class="col-md-10">
         <ul class="nav nav-tabs mb-4">
             <li class="nav-item">
                 <a class="nav-link" href="/settings">系统基本设置</a>
@@ -28,23 +35,38 @@
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <span>发票抬头预设管理</span>
-                <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addTitleModal">+ 添加抬头</button>
+                <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addModal">+ 添加预设</button>
             </div>
             <div class="card-body">
-                <p class="text-muted">在此管理开票时可选择的发票抬头列表。支持预设常用公司/个人名称，开票时可直接选用。</p>
+                <p class="text-muted">预设公司开票信息，开票时一键填入完整内容。</p>
 
-                {% if titles %}
-                <div class="list-group mb-3" id="titleList">
-                    {% for title in titles %}
-                    <div class="list-group-item d-flex justify-content-between align-items-center title-row">
-                        <span>{{ title }}</span>
-                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeTitle(this)">删除</button>
+                <div id="presetList">
+                    {% if titles %}
+                    {% for p in titles %}
+                    <div class="preset-card preset-row">
+                        <div class="row">
+                            <div class="col"><span class="label">发票抬头</span><div class="value preset-title">{{ p.title }}</div></div>
+                            <div class="col"><span class="label">税号</span><div class="value preset-tax-id">{{ p.tax_id }}</div></div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4"><span class="label">电话</span><div class="value preset-phone">{{ p.phone or '-' }}</div></div>
+                            <div class="col-md-4"><span class="label">邮箱</span><div class="value preset-email">{{ p.email or '-' }}</div></div>
+                            <div class="col-md-4"><span class="label">地址</span><div class="value preset-address">{{ p.address or '-' }}</div></div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4"><span class="label">开户银行</span><div class="value preset-bank-name">{{ p.bank_name or '-' }}</div></div>
+                            <div class="col-md-4"><span class="label">银行账号</span><div class="value preset-bank-account">{{ p.bank_account or '-' }}</div></div>
+                            <div class="col-md-4 d-flex align-items-end justify-content-end">
+                                <button type="button" class="btn btn-sm btn-outline-primary me-1" onclick="editPreset(this)">编辑</button>
+                                <button type="button" class="btn btn-sm btn-outline-danger" onclick="removePreset(this)">删除</button>
+                            </div>
+                        </div>
                     </div>
                     {% endfor %}
+                    {% else %}
+                    <p class="text-muted" id="emptyHint">暂无预设，点击上方按钮添加。</p>
+                    {% endif %}
                 </div>
-                {% else %}
-                <p class="text-muted" id="emptyHint">暂无预设抬头，点击上方按钮添加。</p>
-                {% endif %}
 
                 <form method="post" action="/settings/save-invoice-titles">
                     <input type="hidden" name="titles" id="titlesJson" value="{{ titles_json }}">
@@ -55,92 +77,231 @@
     </div>
 </div>
 
-<div class="modal fade" id="addTitleModal" tabindex="-1">
+<div class="modal fade" id="addModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">添加发票抬头</h5>
+                <h5 class="modal-title">添加发票抬头预设</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
                 <div class="mb-3">
-                    <label class="form-label">发票抬头</label>
-                    <input type="text" id="newTitleInput" class="form-control" placeholder="输入发票抬头名称" maxlength="100">
+                    <label class="form-label">发票抬头 <span class="text-danger">*</span></label>
+                    <input type="text" id="addTitleInput" class="form-control" placeholder="公司名称或个人姓名" maxlength="100">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">纳税人识别号（税号） <span class="text-danger">*</span></label>
+                    <input type="text" id="addTaxIdInput" class="form-control" placeholder="税号（必填）" maxlength="100">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">电话</label>
+                    <input type="text" id="addPhoneInput" class="form-control" placeholder="联系电话（选填）" maxlength="50">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">邮箱</label>
+                    <input type="email" id="addEmailInput" class="form-control" placeholder="电子邮箱（选填）" maxlength="100">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">公司地址</label>
+                    <input type="text" id="addAddressInput" class="form-control" placeholder="注册地址（选填）" maxlength="200">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">开户银行</label>
+                    <input type="text" id="addBankNameInput" class="form-control" placeholder="开户银行（选填）" maxlength="200">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">银行账号</label>
+                    <input type="text" id="addBankAccountInput" class="form-control" placeholder="银行账号（选填）" maxlength="100">
                 </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                <button type="button" class="btn btn-primary" onclick="addTitle()">确定</button>
+                <button type="button" class="btn btn-primary" onclick="addPreset()">确定</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="editModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">编辑发票抬头预设</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">发票抬头 <span class="text-danger">*</span></label>
+                    <input type="text" id="editTitleInput" class="form-control" maxlength="100">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">纳税人识别号（税号） <span class="text-danger">*</span></label>
+                    <input type="text" id="editTaxIdInput" class="form-control" maxlength="100">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">电话</label>
+                    <input type="text" id="editPhoneInput" class="form-control" maxlength="50">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">邮箱</label>
+                    <input type="email" id="editEmailInput" class="form-control" maxlength="100">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">公司地址</label>
+                    <input type="text" id="editAddressInput" class="form-control" maxlength="200">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">开户银行</label>
+                    <input type="text" id="editBankNameInput" class="form-control" maxlength="200">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">银行账号</label>
+                    <input type="text" id="editBankAccountInput" class="form-control" maxlength="100">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="saveEditPreset()">保存</button>
             </div>
         </div>
     </div>
 </div>
 
 <script>
+var editRow = null;
+
 function escapeHtml(str) {
     var div = document.createElement('div');
     div.textContent = str;
     return div.innerHTML;
 }
 
-function addTitle() {
-    var input = document.getElementById('newTitleInput');
-    var val = input.value.trim();
-    if (!val) return;
+function getPresets() {
+    var val = document.getElementById('titlesJson').value;
+    try { return JSON.parse(val) || []; } catch(e) { return []; }
+}
 
-    var list = document.getElementById('titleList');
+function setPresets(presets) {
+    document.getElementById('titlesJson').value = JSON.stringify(presets);
+    checkChanges();
+}
+
+function addPreset() {
+    var title = document.getElementById('addTitleInput').value.trim();
+    var taxId = document.getElementById('addTaxIdInput').value.trim();
+    var phone = document.getElementById('addPhoneInput').value.trim();
+    var email = document.getElementById('addEmailInput').value.trim();
+    var address = document.getElementById('addAddressInput').value.trim();
+    var bankName = document.getElementById('addBankNameInput').value.trim();
+    var bankAccount = document.getElementById('addBankAccountInput').value.trim();
+
+    if (!title) { alert('请输入发票抬头'); return; }
+    if (!taxId) { alert('请输入纳税人识别号'); return; }
+
+    var presets = getPresets();
+    presets.push({ title: title, tax_id: taxId, phone: phone, email: email, address: address, bank_name: bankName, bank_account: bankAccount });
+    setPresets(presets);
+    renderList();
+
+    document.getElementById('addTitleInput').value = '';
+    document.getElementById('addTaxIdInput').value = '';
+    document.getElementById('addPhoneInput').value = '';
+    document.getElementById('addEmailInput').value = '';
+    document.getElementById('addAddressInput').value = '';
+    document.getElementById('addBankNameInput').value = '';
+    document.getElementById('addBankAccountInput').value = '';
+    bootstrap.Modal.getInstance(document.getElementById('addModal')).hide();
+}
+
+function removePreset(btn) {
+    if (!confirm('确认删除该预设？')) return;
+    var card = btn.closest('.preset-card');
+    var index = Array.from(card.parentElement.children).indexOf(card);
+    var presets = getPresets();
+    presets.splice(index, 1);
+    setPresets(presets);
+    renderList();
+}
+
+function editPreset(btn) {
+    editRow = btn.closest('.preset-card');
+    document.getElementById('editTitleInput').value = editRow.querySelector('.preset-title').textContent;
+    document.getElementById('editTaxIdInput').value = editRow.querySelector('.preset-tax-id').textContent;
+    document.getElementById('editPhoneInput').value = editRow.querySelector('.preset-phone').textContent === '-' ? '' : editRow.querySelector('.preset-phone').textContent;
+    document.getElementById('editEmailInput').value = editRow.querySelector('.preset-email').textContent === '-' ? '' : editRow.querySelector('.preset-email').textContent;
+    document.getElementById('editAddressInput').value = editRow.querySelector('.preset-address').textContent === '-' ? '' : editRow.querySelector('.preset-address').textContent;
+    document.getElementById('editBankNameInput').value = editRow.querySelector('.preset-bank-name').textContent === '-' ? '' : editRow.querySelector('.preset-bank-name').textContent;
+    document.getElementById('editBankAccountInput').value = editRow.querySelector('.preset-bank-account').textContent === '-' ? '' : editRow.querySelector('.preset-bank-account').textContent;
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('editModal')).show();
+}
+
+function saveEditPreset() {
+    if (!editRow) return;
+    var title = document.getElementById('editTitleInput').value.trim();
+    var taxId = document.getElementById('editTaxIdInput').value.trim();
+    var phone = document.getElementById('editPhoneInput').value.trim();
+    var email = document.getElementById('editEmailInput').value.trim();
+    var address = document.getElementById('editAddressInput').value.trim();
+    var bankName = document.getElementById('editBankNameInput').value.trim();
+    var bankAccount = document.getElementById('editBankAccountInput').value.trim();
+
+    if (!title) { alert('请输入发票抬头'); return; }
+    if (!taxId) { alert('请输入纳税人识别号'); return; }
+
+    var index = Array.from(editRow.parentElement.children).indexOf(editRow);
+    var presets = getPresets();
+    presets[index] = { title: title, tax_id: taxId, phone: phone, email: email, address: address, bank_name: bankName, bank_account: bankAccount };
+    setPresets(presets);
+    renderList();
+
+    bootstrap.Modal.getInstance(document.getElementById('editModal')).hide();
+    editRow = null;
+}
+
+function renderList() {
+    var presets = getPresets();
+    var list = document.getElementById('presetList');
     var emptyHint = document.getElementById('emptyHint');
+    var form = document.querySelector('.card-body form');
+
+    if (presets.length === 0) {
+        list.innerHTML = '';
+        if (!emptyHint) {
+            var hint = document.createElement('p');
+            hint.id = 'emptyHint';
+            hint.className = 'text-muted';
+            hint.textContent = '暂无预设，点击上方按钮添加。';
+            list.parentNode.insertBefore(hint, form);
+        }
+        return;
+    }
 
     if (emptyHint) emptyHint.remove();
 
-    if (!list) {
-        list = document.createElement('div');
-        list.id = 'titleList';
-        list.className = 'list-group mb-3';
-        var container = document.querySelector('.card-body');
-        container.insertBefore(list, container.querySelector('form'));
-    }
-
-    var item = document.createElement('div');
-    item.className = 'list-group-item d-flex justify-content-between align-items-center title-row';
-    item.innerHTML = '<span>' + escapeHtml(val) + '</span>' +
-                    '<button type="button" class="btn btn-sm btn-outline-danger" onclick="removeTitle(this)">删除</button>';
-    list.appendChild(item);
-
-    input.value = '';
-    var modal = bootstrap.Modal.getInstance(document.getElementById('addTitleModal'));
-    modal.hide();
-
-    updateHiddenField();
-}
-
-function removeTitle(btn) {
-    var item = btn.closest('.title-row');
-    item.remove();
-
-    var list = document.getElementById('titleList');
-    if (list && list.children.length === 0) {
-        list.remove();
-        var container = document.querySelector('.card-body');
-        var hint = document.createElement('p');
-        hint.id = 'emptyHint';
-        hint.className = 'text-muted';
-        hint.textContent = '暂无预设抬头，点击上方按钮添加。';
-        container.insertBefore(hint, container.querySelector('form'));
-    }
-
-    updateHiddenField();
-}
-
-function updateHiddenField() {
-    var items = document.querySelectorAll('.title-row span');
-    var titles = [];
-    items.forEach(function(span) {
-        var val = span.textContent.trim();
-        if (val) titles.push(val);
+    list.innerHTML = '';
+    presets.forEach(function(p) {
+        var div = document.createElement('div');
+        div.className = 'preset-card preset-row';
+        div.innerHTML =
+            '<div class="row">' +
+                '<div class="col"><span class="label">发票抬头</span><div class="value preset-title">' + escapeHtml(p.title || '') + '</div></div>' +
+                '<div class="col"><span class="label">税号</span><div class="value preset-tax-id">' + escapeHtml(p.tax_id || '') + '</div></div>' +
+            '</div>' +
+            '<div class="row">' +
+                '<div class="col-md-4"><span class="label">电话</span><div class="value preset-phone">' + escapeHtml(p.phone || '-') + '</div></div>' +
+                '<div class="col-md-4"><span class="label">邮箱</span><div class="value preset-email">' + escapeHtml(p.email || '-') + '</div></div>' +
+                '<div class="col-md-4"><span class="label">地址</span><div class="value preset-address">' + escapeHtml(p.address || '-') + '</div></div>' +
+            '</div>' +
+            '<div class="row">' +
+                '<div class="col-md-4"><span class="label">开户银行</span><div class="value preset-bank-name">' + escapeHtml(p.bank_name || '-') + '</div></div>' +
+                '<div class="col-md-4"><span class="label">银行账号</span><div class="value preset-bank-account">' + escapeHtml(p.bank_account || '-') + '</div></div>' +
+                '<div class="col-md-4 d-flex align-items-end justify-content-end">' +
+                    '<button type="button" class="btn btn-sm btn-outline-primary me-1" onclick="editPreset(this)">编辑</button>' +
+                    '<button type="button" class="btn btn-sm btn-outline-danger" onclick="removePreset(this)">删除</button>' +
+                '</div>' +
+            '</div>';
+        list.appendChild(div);
     });
-    document.getElementById('titlesJson').value = JSON.stringify(titles);
-    checkChanges();
 }
 
 (function() {
@@ -170,9 +331,15 @@ function updateHiddenField() {
         var successMsg = pageData.dataset.success;
         if (successMsg) showNotification(successMsg);
 
-        var modal = document.getElementById('addTitleModal');
-        modal.addEventListener('hidden.bs.modal', function() {
-            document.getElementById('newTitleInput').value = '';
+        var addModal = document.getElementById('addModal');
+        addModal.addEventListener('hidden.bs.modal', function() {
+            document.getElementById('addTitleInput').value = '';
+            document.getElementById('addTaxIdInput').value = '';
+            document.getElementById('addPhoneInput').value = '';
+            document.getElementById('addEmailInput').value = '';
+            document.getElementById('addAddressInput').value = '';
+            document.getElementById('addBankNameInput').value = '';
+            document.getElementById('addBankAccountInput').value = '';
         });
     });
 })();

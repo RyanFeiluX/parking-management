@@ -44,16 +44,17 @@
                     </table>
                 </div>
 
+                <script id="presetsData" type="application/json">{{ presets_json }}</script>
                 <form method="post" action="{% if invoice %}/invoices/{{ invoice.id }}/edit{% else %}/invoices/create{% endif %}">
                     <input type="hidden" name="payment_ids" value="{% for p in payments %}{% if not loop.first %},{% endif %}{{ p.id }}{% endfor %}">
 
                     <div class="mb-3">
                         <label class="form-label">发票抬头 <span class="text-danger">*</span></label>
                         <div class="input-group">
-                            <select class="form-control" id="presetSelect" onchange="fillTitle(this.value)">
+                            <select class="form-control" id="presetSelect" onchange="fillPreset(this.value)">
                                 <option value="">-- 选择预设抬头 --</option>
                                 {% for p in presets %}
-                                <option value="{{ p }}">{{ p }}</option>
+                                <option value="{{ loop.index0 }}">{{ p.title }}</option>
                                 {% endfor %}
                                 <option value="__custom__">其他（手动输入）</option>
                             </select>
@@ -62,8 +63,8 @@
                     </div>
 
                     <div class="mb-3" id="taxIdGroup">
-                        <label class="form-label">纳税人识别号（税号）</label>
-                        <input type="text" name="tax_id" class="form-control" placeholder="纳税人识别号（选填）" value="{{ invoice.tax_id or '' if invoice else '' }}">
+                        <label class="form-label">纳税人识别号（税号） <span class="text-danger">*</span></label>
+                        <input type="text" name="tax_id" id="taxIdInput" class="form-control" placeholder="纳税人识别号" value="{{ invoice.tax_id or '' if invoice else '' }}" required>
                     </div>
 
                     <div class="mb-3">
@@ -89,15 +90,15 @@
                             <h6 class="mb-3">专票信息</h6>
                             <div class="mb-2">
                                 <label class="form-label">开户行</label>
-                                <input type="text" name="bank_name" class="form-control" placeholder="开户行（选填）" value="{{ invoice.bank_name or '' if invoice else '' }}">
+                                <input type="text" name="bank_name" id="bankNameInput" class="form-control" placeholder="开户行（选填）" value="{{ invoice.bank_name or '' if invoice else '' }}">
                             </div>
                             <div class="mb-2">
                                 <label class="form-label">银行账号</label>
-                                <input type="text" name="bank_account" class="form-control" placeholder="银行账号（选填）" value="{{ invoice.bank_account or '' if invoice else '' }}">
+                                <input type="text" name="bank_account" id="bankAccountInput" class="form-control" placeholder="银行账号（选填）" value="{{ invoice.bank_account or '' if invoice else '' }}">
                             </div>
                             <div class="mb-2">
                                 <label class="form-label">地址</label>
-                                <input type="text" name="address" class="form-control" placeholder="注册地址（选填）" value="{{ invoice.address or '' if invoice else '' }}">
+                                <input type="text" name="address" id="addressInput" class="form-control" placeholder="注册地址（选填）" value="{{ invoice.address or '' if invoice else '' }}">
                             </div>
                         </div>
                     </div>
@@ -148,10 +149,24 @@
 
 {% block scripts %}
 <script>
-function fillTitle(value) {
-    var input = document.getElementById('titleInput');
-    if (value && value !== '__custom__') {
-        input.value = value;
+function getPresets() {
+    var script = document.getElementById('presetsData');
+    if (script) {
+        try { return JSON.parse(script.textContent) || []; } catch(e) {}
+    }
+    return [];
+}
+
+function fillPreset(value) {
+    var preset = getPresets()[parseInt(value)];
+    if (preset) {
+        document.getElementById('titleInput').value = preset.title || '';
+        document.getElementById('taxIdInput').value = preset.tax_id || '';
+        document.querySelector('[name="phone"]').value = preset.phone || '';
+        document.querySelector('[name="email"]').value = preset.email || '';
+        document.getElementById('addressInput').value = preset.address || '';
+        document.getElementById('bankNameInput').value = preset.bank_name || '';
+        document.getElementById('bankAccountInput').value = preset.bank_account || '';
     }
 }
 
