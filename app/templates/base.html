@@ -22,13 +22,15 @@
         .card-body .table { font-size: 0.85rem; }
         .card-body .table .btn { font-size: 0.75rem; }
         .card-body .table .badge { font-size: 0.7rem; }
+        .app-sidebar { flex: 0 0 15%; width: 15%; }
+        .app-main { flex: 0 0 85%; width: 85%; }
     </style>
 </head>
 <body>
     {% if current_user %}
     <div class="container-fluid">
         <div class="row">
-            <nav class="col-md-2 d-none d-md-block bg-light sidebar">
+            <nav class="app-sidebar d-none d-md-block bg-light sidebar">
                 <div class="sidebar-sticky pt-3">
                     <h5 class="px-3 pb-2 border-bottom">停车费管理系统</h5>
                     <ul class="nav flex-column">
@@ -89,7 +91,7 @@
                     <div class="px-3 mt-auto small text-muted">v{{ APP_VERSION }}</div>
                 </div>
             </nav>
-            <main role="main" class="col-md-10 ml-sm-auto px-4">
+            <main role="main" class="app-main ml-sm-auto px-4">
                 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
                     <h1 class="h2">{% block header %}{% endblock %}</h1>
                     <div class="text-muted">
