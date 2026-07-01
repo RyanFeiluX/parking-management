@@ -121,6 +121,18 @@ class OperationLog(Base):
     created_at = Column(DateTime, default=datetime.now)
     user = relationship("User")
 
+class VehiclePause(Base):
+    __tablename__ = "vehicle_pauses"
+    id = Column(Integer, primary_key=True)
+    vehicle_id = Column(Integer, ForeignKey("vehicles.id"), nullable=False, index=True)
+    payment_id = Column(Integer, ForeignKey("payment_records.id"), nullable=True)
+    pause_start = Column(Date, nullable=False)
+    pause_end = Column(Date, nullable=False)
+    pause_months = Column(Integer, nullable=False)
+    created_at = Column(DateTime, default=datetime.now)
+    vehicle = relationship("Vehicle")
+    payment = relationship("PaymentRecord")
+
 class SystemSetting(Base):
     __tablename__ = "system_settings"
     id = Column(Integer, primary_key=True)

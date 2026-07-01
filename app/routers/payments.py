@@ -5,7 +5,8 @@ from datetime import datetime, date
 from dateutil.relativedelta import relativedelta
 from calendar import monthrange
 
-from ..models import PaymentRecord, Vehicle, Resident, User, OperationLog
+from ..models import PaymentRecord, Vehicle, Resident, User, OperationLog, VehiclePause
+from dateutil.relativedelta import relativedelta
 from ..deps import require_role, require_login
 from ..jinja import templates
 
@@ -46,13 +47,17 @@ async def payment_form(request: Request, user: dict = Depends(require_login)):
             amount_info = calculate_payment_amount(vehicle, "月", 1, db)
     
     today = date.today()
+    pause_records = []
+    if vehicle:
+        pause_records = db.query(VehiclePause).filter_by(vehicle_id=vehicle.id).order_by(VehiclePause.pause_start).all()
     return templates.TemplateResponse("payments/form.html", {
         "request": request,
         "current_user": user,
         "vehicle": vehicle,
         "amount_info": amount_info,
         "plate_number": plate_number,
-        "period_start": today
+        "period_start": today,
+        "pause_records": pause_records
     })
 
 @router.post("/calculate")
@@ -62,6 +67,8 @@ async def calculate_amount(request: Request, user: dict = Depends(require_login)
     period_type = form_data.get("period_type", "月")
     months = int(form_data.get("months", 1))
     period_start_str = form_data.get("period_start", "")
+    pause_start_str = form_data.get("pause_start", "")
+    pause_months = int(form_data.get("pause_months", 0))
     
     try:
         period_start = datetime.strptime(period_start_str, "%Y-%m-%d").date() if period_start_str else date.today()
@@ -69,6 +76,22 @@ async def calculate_amount(request: Request, user: dict = Depends(require_login)
         period_start = date.today()
     
     period_end = calc_period_end(period_start, period_type, months)
+    
+    # 验证暂停字段
+    pause_start = None
+    pause_end = None
+    if pause_months > 0:
+        try:
+            pause_start = datetime.strptime(pause_start_str, "%Y-%m-%d").date()
+        except (ValueError, TypeError):
+            return JSONResponse({"error": "设置了暂停月数但未填写暂停起始日期"})
+        if pause_start < date.today():
+            return JSONResponse({"error": "暂停起始日期不能早于今天"})
+        if pause_start < period_start or pause_start > period_end:
+            return JSONResponse({"error": "暂停起始日期必须在缴费周期范围内"})
+        pause_end = pause_start + relativedelta(months=pause_months) - relativedelta(days=1)
+        if pause_end > period_end:
+            return JSONResponse({"error": "暂停区间超出缴费周期范围"})
     
     db = request.state.db
     vehicle = db.query(Vehicle).filter_by(plate_number=plate_number).first()
@@ -86,16 +109,23 @@ async def calculate_amount(request: Request, user: dict = Depends(require_login)
             "period_start": period_start
         })
     
-    from ..utils import calculate_payment_amount
-    amount_info = calculate_payment_amount(vehicle, period_type, months, db)
+    from ..utils import calculate_payment_amount, check_period_overlap
+    amount_info = calculate_payment_amount(vehicle, period_type, months, db, pause_months)
+    warnings = check_period_overlap(vehicle.id, period_start, period_end, db)
     
     if request.headers.get("x-requested-with") == "XMLHttpRequest":
-        return JSONResponse({
+        resp = {
             "summary": amount_info.get("summary", ""),
             "amount": amount_info.get("amount", 0),
             "period_start": period_start.isoformat(),
-            "period_end": period_end.isoformat()
-        })
+            "period_end": period_end.isoformat(),
+            "warnings": warnings
+        }
+        if pause_start:
+            resp["pause_start"] = pause_start.isoformat()
+            resp["pause_end"] = pause_end.isoformat()
+            resp["pause_months"] = pause_months
+        return JSONResponse(resp)
     
     return templates.TemplateResponse("payments/form.html", {
         "request": request,
@@ -117,6 +147,8 @@ async def pay(request: Request, user: dict = Depends(require_login)):
     period_start_str = form_data.get("period_start", "")
     payment_method = form_data.get("payment_method")
     remark = form_data.get("remark")
+    pause_start_str = form_data.get("pause_start", "")
+    pause_months = int(form_data.get("pause_months", 0))
     
     try:
         period_start = datetime.strptime(period_start_str, "%Y-%m-%d").date() if period_start_str else date.today()
@@ -135,8 +167,42 @@ async def pay(request: Request, user: dict = Depends(require_login)):
             "error": "车辆不存在"
         })
     
+    pause_records = db.query(VehiclePause).filter_by(vehicle_id=vehicle.id).order_by(VehiclePause.pause_start).all()
+    
+    # 验证暂停字段
+    pause_start = None
+    pause_end = None
+    if pause_months > 0:
+        try:
+            pause_start = datetime.strptime(pause_start_str, "%Y-%m-%d").date()
+        except (ValueError, TypeError):
+            return templates.TemplateResponse("payments/form.html", {
+                "request": request, "current_user": user, "vehicle": vehicle,
+                "error": "设置了暂停月数但未填写暂停起始日期",
+                "pause_records": pause_records
+            })
+        if pause_start < date.today():
+            return templates.TemplateResponse("payments/form.html", {
+                "request": request, "current_user": user, "vehicle": vehicle,
+                "error": "暂停起始日期不能早于今天",
+                "pause_records": pause_records
+            })
+        if pause_start < period_start or pause_start > period_end:
+            return templates.TemplateResponse("payments/form.html", {
+                "request": request, "current_user": user, "vehicle": vehicle,
+                "error": "暂停起始日期必须在缴费周期范围内",
+                "pause_records": pause_records
+            })
+        pause_end = pause_start + relativedelta(months=pause_months) - relativedelta(days=1)
+        if pause_end > period_end:
+            return templates.TemplateResponse("payments/form.html", {
+                "request": request, "current_user": user, "vehicle": vehicle,
+                "error": "暂停区间超出缴费周期范围",
+                "pause_records": pause_records
+            })
+    
     from ..utils import calculate_payment_amount
-    amount_info = calculate_payment_amount(vehicle, period_type, months, db)
+    amount_info = calculate_payment_amount(vehicle, period_type, months, db, pause_months)
     amount = amount_info["amount"]
     
     if amount <= 0:
@@ -144,7 +210,8 @@ async def pay(request: Request, user: dict = Depends(require_login)):
             "request": request,
             "current_user": user,
             "vehicle": vehicle,
-            "error": "缴费金额必须大于0"
+            "error": "缴费金额必须大于0",
+            "pause_records": pause_records
         })
     
     payment = PaymentRecord(
@@ -160,17 +227,53 @@ async def pay(request: Request, user: dict = Depends(require_login)):
     )
     
     db.add(payment)
+    db.flush()
+    
+    # 创建暂停记录
+    new_pause_id = None
+    if pause_start and pause_months > 0:
+        vp = VehiclePause(
+            vehicle_id=vehicle_id,
+            payment_id=payment.id,
+            pause_start=pause_start,
+            pause_end=pause_end,
+            pause_months=pause_months
+        )
+        db.add(vp)
+        db.flush()
+        new_pause_id = vp.id
+    
+    # 删除被新缴费覆盖的暂停记录（排除新建的）
+    covered_pauses = db.query(VehiclePause).filter(
+        VehiclePause.vehicle_id == vehicle_id,
+        VehiclePause.pause_start >= period_start,
+        VehiclePause.pause_end <= period_end,
+    ).all()
+    for cvp in covered_pauses:
+        if cvp.id == new_pause_id:
+            continue
+        db.delete(cvp)
+    
     db.commit()
     
-    client_host = request.client.host if request.client else "unknown"
-    log_operation(db, user["user_id"], "payment", f"车辆 {vehicle.plate_number}", f"缴费 {amount}元，{period_type}{months}期，{period_start}~{period_end}", client_host)
+    detail_parts = [f"缴费 {amount}元，{period_type}{months}期，{period_start}~{period_end}"]
+    if pause_start:
+        detail_parts.append(f"暂停{pause_months}个月({pause_start}~{pause_end})")
+    if covered_pauses:
+        detail_parts.append(f"覆盖了{len(covered_pauses)}条暂停记录")
+    detail = "，".join(detail_parts)
     
+    client_host = request.client.host if request.client else "unknown"
+    log_operation(db, user["user_id"], "payment", f"车辆 {vehicle.plate_number}", detail, client_host)
+    
+    pause_records = db.query(VehiclePause).filter_by(vehicle_id=vehicle.id).order_by(VehiclePause.pause_start).all()
     return templates.TemplateResponse("payments/form.html", {
         "request": request,
         "current_user": user,
         "vehicle": vehicle,
         "success": f"缴费成功！已缴纳 {amount} 元，{period_type}{months}期（{period_start}~{period_end}）",
-        "plate_number": vehicle.plate_number
+        "plate_number": vehicle.plate_number,
+        "pause_records": pause_records
     })
 
 @router.get("/logs")

@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from datetime import datetime, date
 import json
 
-from ..models import Vehicle, Resident, SystemSetting
+from ..models import Vehicle, Resident, SystemSetting, VehiclePause
 from ..utils import validate_plate_number
 
 router = APIRouter()
@@ -14,7 +14,21 @@ def get_system_setting(db: Session, key: str, default: str = "") -> str:
 
 def get_vehicle_payment_status(vehicle, db):
     grace_days = int(get_system_setting(db, "grace_period_days", "15"))
-    
+    today = date.today()
+
+    pause = db.query(VehiclePause).filter(
+        VehiclePause.vehicle_id == vehicle.id,
+        VehiclePause.pause_start <= today,
+        VehiclePause.pause_end >= today
+    ).first()
+    if pause:
+        return {
+            "status": "暂停",
+            "status_start": pause.pause_start.isoformat(),
+            "status_end": pause.pause_end.isoformat(),
+            "detail": f"暂停中（{pause.pause_start}~{pause.pause_end}）"
+        }
+
     if vehicle.resident_id is None:
         return {
             "status": "临时",

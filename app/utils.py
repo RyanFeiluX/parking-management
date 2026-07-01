@@ -3,7 +3,7 @@ from calendar import monthrange
 from sqlalchemy.orm import Session
 import json
 
-from .models import FeeTier, DiscountPolicy, SystemSetting, PaymentRecord
+from .models import FeeTier, DiscountPolicy, SystemSetting, PaymentRecord, VehiclePause
 
 def get_system_setting(db: Session, key: str, default: str = "") -> str:
     setting = db.query(SystemSetting).filter_by(key=key).first()
@@ -12,6 +12,20 @@ def get_system_setting(db: Session, key: str, default: str = "") -> str:
 def get_vehicle_payment_status(vehicle, db):
     grace_days = int(get_system_setting(db, "grace_period_days", "15"))
     today = date.today()
+
+    # 检查今天是否在暂停区间内
+    pause = db.query(VehiclePause).filter(
+        VehiclePause.vehicle_id == vehicle.id,
+        VehiclePause.pause_start <= today,
+        VehiclePause.pause_end >= today
+    ).first()
+    if pause:
+        return {
+            "status": "暂停",
+            "status_start": pause.pause_start.isoformat(),
+            "status_end": pause.pause_end.isoformat(),
+            "detail": f"暂停中（{pause.pause_start}~{pause.pause_end}）"
+        }
     
     # 检查是否是车库车
     if vehicle.is_garage and vehicle.garage_number and vehicle.garage_valid_until:
@@ -138,7 +152,7 @@ def get_applicable_discount(vehicle, db):
     
     return None
 
-def calculate_payment_amount(vehicle, period_type, months, db):
+def calculate_payment_amount(vehicle, period_type, months, db, pause_months=0):
     if vehicle.is_garage:
         return {"amount": 0, "base_amount": 0, "discount_amount": 0, "summary": "车库车 - 无需缴费", "tier": None, "discount": None}
     
@@ -148,28 +162,32 @@ def calculate_payment_amount(vehicle, period_type, months, db):
     if not tier:
         return {"amount": 0, "base_amount": 0, "discount_amount": 0, "summary": "未找到适用档位", "tier": None, "discount": None}
     
-    period_months = months
+    paid_months = max(0, months - pause_months)
+    if paid_months == 0:
+        return {"amount": 0, "base_amount": 0, "discount_amount": 0, "summary": "暂停月数等于缴费月数，无需缴费", "tier": None, "discount": None}
+    
+    period_months = paid_months
     if period_type == "季":
-        period_months = months * 3
+        period_months = paid_months * 3
     elif period_type == "年":
-        period_months = months * 12
+        period_months = paid_months * 12
     
     monthly_fee = float(tier.monthly_fee)
     
     if period_type == "月":
-        base_amount = monthly_fee * months
+        base_amount = monthly_fee * paid_months
     elif period_type == "季":
         if tier.quarterly_fee:
-            base_amount = float(tier.quarterly_fee) * months
+            base_amount = float(tier.quarterly_fee) * paid_months
         else:
-            base_amount = monthly_fee * 3 * months
+            base_amount = monthly_fee * 3 * paid_months
     elif period_type == "年":
         if tier.yearly_fee:
-            base_amount = float(tier.yearly_fee) * months
+            base_amount = float(tier.yearly_fee) * paid_months
         else:
-            base_amount = monthly_fee * 12 * months
+            base_amount = monthly_fee * 12 * paid_months
     else:
-        base_amount = monthly_fee * months
+        base_amount = monthly_fee * paid_months
     
     discount_amount = 0
     final_amount = base_amount
@@ -189,7 +207,12 @@ def calculate_payment_amount(vehicle, period_type, months, db):
             final_amount = float(discount.discount_value)
             discount_info = f"{discount.name}(固定{float(discount.discount_value)}元)"
     
-    summary_parts = [f"第{vehicle.sort_order}辆车 {monthly_fee}元/月 × {period_months}个月 = {base_amount:.2f}元"]
+    total_months = months
+    if period_type == "季":
+        total_months = months * 3
+    elif period_type == "年":
+        total_months = months * 12
+    summary_parts = [f"第{vehicle.sort_order}辆车 {monthly_fee}元/月 × {period_months}个月（总{total_months}个月，暂停{pause_months}个月） = {base_amount:.2f}元"]
     if discount_info:
         summary_parts.append(f"{discount_info} → 实付{final_amount:.2f}元")
     
@@ -420,3 +443,11 @@ def validate_plate_number(plate: str) -> tuple[bool, str]:
         if not ('\u4e00' <= ch <= '\u9fff') and not ('A' <= ch <= 'Z') and not ('0' <= ch <= '9'):
             return False, "车牌号包含非法字符"
     return True, ""
+
+def check_period_overlap(vehicle_id, new_start, new_end, db):
+    existing = db.query(PaymentRecord).filter(
+        PaymentRecord.vehicle_id == vehicle_id,
+        PaymentRecord.period_start <= new_end,
+        PaymentRecord.period_end >= new_start
+    ).order_by(PaymentRecord.period_start).all()
+    return [f"与已有缴费记录 {p.period_start}~{p.period_end} 重叠" for p in existing]

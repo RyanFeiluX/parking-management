@@ -1,7 +1,7 @@
 from .models import SystemSetting
 from .database import SessionLocal
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 MIGRATIONS = {
 }

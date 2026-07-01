@@ -145,6 +145,16 @@
                     {% endif %}
                 </div>
                 {% endif %}
+                {% if pause_records %}
+                <div class="mt-3">
+                    <strong>暂停记录：</strong>
+                    <ul class="mb-0">
+                        {% for pr in pause_records %}
+                        <li class="text-muted">{{ pr.pause_start }} ~ {{ pr.pause_end }}（{{ pr.pause_months }}个月）</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
             </div>
         </div>
 
@@ -169,6 +179,20 @@
                         <label class="form-label">数量</label>
                         <input type="number" name="months" class="form-control" value="{{ months or 1 }}" min="1" onchange="recalc()">
                     </div>
+                    <div class="card mt-3">
+                        <div class="card-header bg-light">暂停设置（选填）</div>
+                        <div class="card-body">
+                            <div class="mb-2">
+                                <label class="form-label">暂停起始日期</label>
+                                <input type="date" name="pause_start" class="form-control" onchange="recalc()">
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label">暂停月数</label>
+                                <input type="number" name="pause_months" class="form-control" value="0" min="0" onchange="recalc()">
+                            </div>
+                            <div class="text-muted small">设置暂停后，应缴金额按「总月数 - 暂停月数」计算</div>
+                        </div>
+                    </div>
                     <input type="hidden" name="plate_number" value="{{ vehicle.plate_number }}">
                 </form>
             </div>
@@ -179,6 +203,13 @@
                 <div class="card-header">费用计算</div>
                 <div class="card-body">
                     <p><strong>缴费期间：</strong><span id="calc-period-start">{{ period_start.strftime('%Y-%m-%d') if period_start else '' }}</span> ~ <span id="calc-period-end"></span></p>
+                    <div id="calc-pause-info" style="display:none" class="mb-2">
+                        <p><strong>暂停期间：</strong><span id="calc-pause-start"></span> ~ <span id="calc-pause-end"></span>（<span id="calc-pause-months"></span>个月）</p>
+                    </div>
+                    <div id="calc-warnings" style="display:none" class="alert alert-warning mb-2">
+                        <strong>提醒：</strong>
+                        <ul id="calc-warnings-list" class="mb-0"></ul>
+                    </div>
                     <p id="calc-summary">{{ amount_info.summary if amount_info else '' }}</p>
                     <div class="text-right">
                         <h3 class="text-primary">应付金额: <span id="calc-amount">{{ amount_info.amount if amount_info else '' }}</span> 元</h3>
@@ -195,6 +226,8 @@
                         <input type="hidden" name="months" id="pay-months" value="{{ months or 1 }}">
                         <input type="hidden" name="period_start" id="pay-period-start" value="{{ period_start.strftime('%Y-%m-%d') if period_start else '' }}">
                         <input type="hidden" name="amount" id="pay-amount" value="{{ amount_info.amount if amount_info else '' }}">
+                        <input type="hidden" name="pause_start" id="pay-pause-start" value="">
+                        <input type="hidden" name="pause_months" id="pay-pause-months" value="0">
                         
                         <div class="mb-3">
                             <label class="form-label">缴费方式</label>
@@ -244,7 +277,10 @@ function recalc() {
     })
     .then(function(r) { return r.json(); })
     .then(function(result) {
-        if (result.error) return;
+        if (result.error) {
+            alert(result.error);
+            return;
+        }
         document.getElementById('calc-period-start').textContent = result.period_start;
         document.getElementById('calc-period-end').textContent = result.period_end;
         document.getElementById('calc-summary').textContent = result.summary;
@@ -253,6 +289,37 @@ function recalc() {
         document.getElementById('pay-months').value = document.querySelector('[name="months"]').value;
         document.getElementById('pay-period-start').value = result.period_start;
         document.getElementById('pay-amount').value = result.amount;
+
+        // 暂停信息
+        var pauseInfo = document.getElementById('calc-pause-info');
+        if (result.pause_start && result.pause_months > 0) {
+            document.getElementById('calc-pause-start').textContent = result.pause_start;
+            document.getElementById('calc-pause-end').textContent = result.pause_end;
+            document.getElementById('calc-pause-months').textContent = result.pause_months;
+            pauseInfo.style.display = '';
+            document.getElementById('pay-pause-start').value = result.pause_start;
+            document.getElementById('pay-pause-months').value = result.pause_months;
+        } else {
+            pauseInfo.style.display = 'none';
+            document.getElementById('pay-pause-start').value = '';
+            document.getElementById('pay-pause-months').value = '0';
+        }
+
+        // 警告信息
+        var warningsDiv = document.getElementById('calc-warnings');
+        var warningsList = document.getElementById('calc-warnings-list');
+        if (result.warnings && result.warnings.length > 0) {
+            warningsList.innerHTML = '';
+            result.warnings.forEach(function(w) {
+                var li = document.createElement('li');
+                li.textContent = w;
+                warningsList.appendChild(li);
+            });
+            warningsDiv.style.display = '';
+        } else {
+            warningsDiv.style.display = 'none';
+        }
+
         document.getElementById('calc-result').style.display = '';
     });
 }

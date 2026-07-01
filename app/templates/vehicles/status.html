@@ -33,6 +33,15 @@
         </div>
     </div>
     <div class="col-md-3">
+        <div class="card bg-secondary text-white">
+            <div class="card-body text-center">
+                <div class="text-4xl mb-2">⚪</div>
+                <div class="text-2xl font-bold">{{ paused_vehicles|length }}</div>
+                <div class="text-sm">暂停</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
         <div class="card bg-primary text-white">
             <div class="card-body text-center">
                 <div class="text-4xl mb-2">🔵</div>
@@ -88,6 +97,42 @@
                                 {% if item.vehicle.is_garage %}
                                 <span class="btn btn-sm btn-secondary disabled">快速缴费</span>
                                 {% elif item.vehicle.resident %}
+                                <a href="/payments?plate={{ item.vehicle.plate_number }}" class="btn btn-sm btn-primary">快速缴费</a>
+                                {% else %}
+                                -
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+    </div>
+</div>
+{% endif %}
+
+{% if paused_vehicles %}
+<div class="card mb-4">
+    <div class="card-header bg-secondary text-white">⚪ 暂停 ({{ paused_vehicles|length }})</div>
+    <div class="card-body">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>房号</th>
+                            <th>车牌号</th>
+                            <th>暂停期间</th>
+                            <th>开票</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in paused_vehicles %}
+                        <tr class="clickable-row" data-resident-id="{{ item.vehicle.resident.id if item.vehicle.resident else '' }}">
+                            <td>{{ item.vehicle.resident.room_number if item.vehicle.resident else '-' }}</td>
+                            <td>{{ item.vehicle.plate_number }}</td>
+                            <td>{{ item.status.detail }}</td>
+                            <td>{% if item.has_invoice %}<span class="badge bg-success">已申请</span>{% else %}-{% endif %}</td>
+                            <td>
+                                {% if item.vehicle.resident %}
                                 <a href="/payments?plate={{ item.vehicle.plate_number }}" class="btn btn-sm btn-primary">快速缴费</a>
                                 {% else %}
                                 -
@@ -215,7 +260,7 @@
 </div>
 {% endif %}
 
-{% if not free_vehicles and not contract_vehicles and not temp_vehicles and not expired_vehicles %}
+{% if not free_vehicles and not paused_vehicles and not contract_vehicles and not temp_vehicles and not expired_vehicles %}
 <div class="card">
     <div class="card-body text-center text-muted">
         暂无车辆数据

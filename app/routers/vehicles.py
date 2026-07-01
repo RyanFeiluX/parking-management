@@ -2,7 +2,7 @@ from fastapi import APIRouter, Request, Depends
 from sqlalchemy.orm import Session
 from datetime import datetime, date
 
-from ..models import Vehicle, Resident, Invoice, PaymentRecord, OperationLog
+from ..models import Vehicle, Resident, VehiclePause, Invoice, PaymentRecord, OperationLog
 from ..deps import require_role, require_login
 from ..utils import validate_plate_number
 from ..jinja import templates
@@ -174,6 +174,7 @@ async def delete_vehicle(request: Request, vehicle_id: int, user: dict = Depends
     resident = vehicle.resident
     target_name = f"车辆 {vehicle.plate_number}"
     
+    db.query(VehiclePause).filter_by(vehicle_id=vehicle_id).delete()
     db.query(PaymentRecord).filter_by(vehicle_id=vehicle_id).delete()
     db.delete(vehicle)
     
@@ -241,6 +242,7 @@ async def vehicle_status(request: Request, user: dict = Depends(require_login)):
     vehicles = db.query(Vehicle).all()
     
     free_vehicles = []
+    paused_vehicles = []
     contract_vehicles = []
     temp_vehicles = []
     expired_vehicles = []
@@ -262,6 +264,8 @@ async def vehicle_status(request: Request, user: dict = Depends(require_login)):
         entry = {"vehicle": v, "status": status, "has_invoice": has_invoice}
         if status["status"] == "免费":
             free_vehicles.append(entry)
+        elif status["status"] == "暂停":
+            paused_vehicles.append(entry)
         elif status["status"] == "合约":
             contract_vehicles.append(entry)
         elif status["status"] == "临时":
@@ -273,6 +277,7 @@ async def vehicle_status(request: Request, user: dict = Depends(require_login)):
         "request": request,
         "current_user": user,
         "free_vehicles": free_vehicles,
+        "paused_vehicles": paused_vehicles,
         "contract_vehicles": contract_vehicles,
         "temp_vehicles": temp_vehicles,
         "expired_vehicles": expired_vehicles,

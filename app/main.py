@@ -125,6 +125,7 @@ async def index(request: Request):
     current_month = today.replace(day=1)
     
     free_count = 0
+    paused_count = 0
     contract_count = 0
     temp_count = 0
     expired_count = 0
@@ -134,6 +135,8 @@ async def index(request: Request):
         status = get_vehicle_payment_status(v, db)
         if status["status"] == "免费":
             free_count += 1
+        elif status["status"] == "暂停":
+            paused_count += 1
         elif status["status"] == "合约":
             contract_count += 1
         elif status["status"] == "临时":
@@ -160,6 +163,7 @@ async def index(request: Request):
         "resident_count": resident_count,
         "vehicle_count": vehicle_count,
         "free_count": free_count,
+        "paused_count": paused_count,
         "contract_count": contract_count,
         "temp_count": temp_count,
         "expired_count": expired_count,
