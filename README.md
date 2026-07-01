@@ -26,7 +26,7 @@ build_installer.bat
 
 直接双击 `dist\停车管理系统.exe`，无需安装，等待数秒即可在浏览器中自动打开系统。
 - 无需安装 Python
-- 数据库 `parking.db` 自动创建在 exe 同级目录
+- 数据库自动创建在用户数据目录（`%APPDATA%\停车费管理系统\parking.db`）
 - 关闭控制台窗口即停止服务
 
 ### 面向开发者
@@ -92,14 +92,17 @@ parking-management/
 ├── installer.iss              # Inno Setup 安装脚本
 ├── run.py                     # Python 入口
 ├── requirements.txt           # 依赖列表
-├── parking.db                 # SQLite 数据库（自动创建）
+├── data/                      # 用户数据目录（自动创建，开发模式）
+│   ├── parking.db             # SQLite 数据库
+│   └── config.json            # 数据库路径配置
 ├── dist/                      # exe 输出目录
 │   └── 停车管理系统.exe
 ├── 启动说明.md
 ├── 停车费管理系统_规格说明书.md
 ├── app/
 │   ├── __init__.py
-│   ├── _path.py               # PyInstaller 路径辅助
+│   ├── _path.py               # 路径辅助（资源目录/用户数据目录/配置读写）
+│   ├── migration.py            # Schema 迁移框架
 │   ├── main.py                # FastAPI 应用
 │   ├── jinja.py               # Jinja2 模板引擎
 │   ├── models.py              # SQLAlchemy ORM 模型
@@ -131,3 +134,25 @@ parking-management/
 **"No module named 'uvicorn'"** → 运行 `dev_setup.bat` 重建虚拟环境。
 
 **Port 8080 in use** → 编辑 `run.py`，将 `port=8080` 改为其他端口。
+
+## Data Management
+
+**Database location:**
+- **Packaged mode (exe/installer):** `%APPDATA%\停车费管理系统\parking.db`
+- **Development mode:** `./data/parking.db`
+
+The data directory is **never deleted** during uninstall, so reinstalling the app preserves all data.
+
+**Custom database path:**
+1. Login as `super_admin`
+2. Go to ⚙️ System Settings → Database Management
+3. Enter a custom path for the SQLite database file
+4. Save and restart the app
+
+**Environment variable override:**
+```cmd
+set PARKING_DB_URL=sqlite:///D:\data\my_parking.db
+python run.py
+```
+
+**Schema upgrades:** The app auto-applies schema migrations on startup, so upgrading the app version preserves existing data without manual intervention.

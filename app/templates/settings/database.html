@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+
+{% block title %}数据库管理{% endblock %}
+{% block header %}数据库管理{% endblock %}
+
+{% block content %}
+<div id="page-data" {% if success %}data-success="{{ success }}"{% endif %}></div>
+<div class="row">
+    <div class="col-md-10">
+        <ul class="nav nav-tabs mb-4">
+            <li class="nav-item">
+                <a class="nav-link" href="/settings">系统基本设置</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/settings/temp-rules">临时停车费率规则</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/settings/external-api">外部接口配置</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/settings/invoice-titles">发票抬头预设</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link active" href="/settings/database">数据库管理</a>
+            </li>
+        </ul>
+
+        <div class="card mb-4">
+            <div class="card-header">当前数据库信息</div>
+            <div class="card-body">
+                <table class="table table-bordered">
+                    <tr>
+                        <td style="width: 150px" class="text-muted">数据文件位置</td>
+                        <td><code>{{ actual_db_path }}</code></td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">文件大小</td>
+                        <td>
+                            {% if db_file_size < 1024 %}
+                                {{ db_file_size }} B
+                            {% elif db_file_size < 1024 * 1024 %}
+                                {{ "%.1f"|format(db_file_size / 1024) }} KB
+                            {% else %}
+                                {{ "%.1f"|format(db_file_size / 1024 / 1024) }} MB
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">记录统计</td>
+                        <td>
+                            住户: {{ resident_count }} &nbsp;|&nbsp;
+                            车辆: {{ vehicle_count }} &nbsp;|&nbsp;
+                            缴费记录: {{ payment_count }} &nbsp;|&nbsp;
+                            用户: {{ user_count }}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">配置文件位置</td>
+                        <td><code>{{ config_path }}</code></td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">用户数据目录</td>
+                        <td><code>{{ data_dir }}</code></td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">切换数据库</div>
+            <div class="card-body">
+                <form method="post" action="/settings/database/save">
+                    <div class="row mb-3 align-items-center">
+                        <label class="col-sm-3 col-form-label">数据库文件路径</label>
+                        <div class="col-sm-9">
+                            <input type="text" name="db_path" class="form-control font-monospace"
+                                   value="{{ config_db_path }}"
+                                   placeholder="留空则使用默认路径：{{ default_db_path }}">
+                            <small class="text-muted">
+                                输入 SQLite 数据库文件的完整路径（如 <code>D:\data\parking.db</code>），留空恢复默认路径。
+                            </small>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-warning">保存配置</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="alert alert-info">
+            <strong>注意事项：</strong>
+            <ul class="mb-0">
+                <li>切换数据库路径后，需要<strong>手动重启应用</strong>才能使新路径生效。</li>
+                <li>指向已有数据库时，系统会自动识别其中的数据，无需额外操作。</li>
+                <li>指向一个空路径或不存在的位置时，系统会在启动时自动创建新的数据库。</li>
+                <li>切换操作不会删除原数据库文件，数据安全。</li>
+            </ul>
+        </div>
+    </div>
+</div>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var pageData = document.getElementById('page-data');
+        var successMsg = pageData.dataset.success;
+        if (successMsg) showNotification(successMsg);
+    });
+</script>
+{% endblock %}

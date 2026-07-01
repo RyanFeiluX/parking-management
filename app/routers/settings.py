@@ -1,10 +1,13 @@
+import os
+import json
+from pathlib import Path
 from fastapi import APIRouter, Request, Depends
 from sqlalchemy.orm import Session
-import json
 
-from ..models import SystemSetting, OperationLog
+from ..models import SystemSetting, OperationLog, Resident, Vehicle, PaymentRecord, User
 from ..deps import require_role
 from ..jinja import templates
+from .._path import get_db_path, get_config_path, load_config, save_config, get_user_data_dir
 
 router = APIRouter()
 
@@ -282,4 +285,70 @@ async def save_temp_rules(request: Request, user: dict = Depends(require_role("s
         "temp_rules": rules,
         "overflow_options": ["daily_reset", "continue"],
         "success": "临时停车规则已更新"
+    })
+
+@router.get("/database")
+async def database_settings_page(request: Request, user: dict = Depends(require_role("super_admin"))):
+    db = request.state.db
+
+    config = load_config()
+    default_db_path = str(get_db_path())
+    actual_db_path = str(Path(db.get_bind().url.database)) if db.get_bind().url.database else default_db_path
+
+    db_file_size = 0
+    if os.path.exists(actual_db_path):
+        db_file_size = os.path.getsize(actual_db_path)
+
+    resident_count = db.query(Resident).count()
+    vehicle_count = db.query(Vehicle).count()
+    payment_count = db.query(PaymentRecord).count()
+    user_count = db.query(User).count()
+
+    return templates.TemplateResponse("settings/database.html", {
+        "request": request,
+        "current_user": user,
+        "default_db_path": default_db_path,
+        "actual_db_path": actual_db_path,
+        "config_db_path": config.get('db_path', ''),
+        "config_path": str(get_config_path()),
+        "data_dir": str(get_user_data_dir()),
+        "db_file_size": db_file_size,
+        "resident_count": resident_count,
+        "vehicle_count": vehicle_count,
+        "payment_count": payment_count,
+        "user_count": user_count,
+        "success": None
+    })
+
+@router.post("/database/save")
+async def save_database_config(request: Request, user: dict = Depends(require_role("super_admin"))):
+    form_data = await request.form()
+    new_db_path = form_data.get("db_path", "").strip()
+
+    config = load_config()
+    if new_db_path:
+        config['db_path'] = new_db_path
+    else:
+        config.pop('db_path', None)
+        config.pop('db_url', None)
+    save_config(config)
+
+    db = request.state.db
+    client_host = request.client.host if request.client else "unknown"
+    log_operation(db, user["user_id"], "system_database", "数据库配置", f"切换数据库路径: {new_db_path or '默认'}", client_host)
+
+    return templates.TemplateResponse("settings/database.html", {
+        "request": request,
+        "current_user": user,
+        "default_db_path": str(get_db_path()),
+        "actual_db_path": str(get_db_path()),
+        "config_db_path": new_db_path,
+        "config_path": str(get_config_path()),
+        "data_dir": str(get_user_data_dir()),
+        "db_file_size": 0,
+        "resident_count": 0,
+        "vehicle_count": 0,
+        "payment_count": 0,
+        "user_count": 0,
+        "success": "配置已保存，请手动重启应用以使新数据库路径生效"
     })

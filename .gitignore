@@ -13,3 +13,6 @@ installer/
 
 # Python cache
 __pycache__/
+
+# Development user data directory
+data/

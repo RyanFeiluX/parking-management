@@ -12,7 +12,8 @@ from .models import User, SystemSetting
 from .auth import set_session_cookie, clear_session_cookie, verify_password, get_password_hash, decode_session_data, create_session_data
 from .deps import get_user, require_role
 from .jinja import templates
-from ._path import get_data_dir
+from ._path import get_data_dir, ensure_user_data_dir
+from .migration import run_migrations
 
 app = FastAPI()
 app.mount("/static", StaticFiles(directory=os.path.join(get_data_dir(), "app/static")), name="static")
@@ -34,7 +35,9 @@ def init_default_settings(db: Session):
             db.add(SystemSetting(**s))
     db.commit()
 
+ensure_user_data_dir()
 Base.metadata.create_all(bind=engine)
+run_migrations(engine)
 
 from .database import SessionLocal
 _db = SessionLocal()
