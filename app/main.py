@@ -1,3 +1,4 @@
+import os
 from fastapi import FastAPI, Depends, Request, HTTPException, Response
 from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
@@ -11,9 +12,10 @@ from .models import User, SystemSetting
 from .auth import set_session_cookie, clear_session_cookie, verify_password, get_password_hash, decode_session_data, create_session_data
 from .deps import get_user, require_role
 from .jinja import templates
+from ._path import get_data_dir
 
 app = FastAPI()
-app.mount("/static", StaticFiles(directory="app/static"), name="static")
+app.mount("/static", StaticFiles(directory=os.path.join(get_data_dir(), "app/static")), name="static")
 
 @app.get("/favicon.ico")
 async def favicon():

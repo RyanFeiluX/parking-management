@@ -1,6 +1,15 @@
 *.pyc
-venv/lib/python3.11/site-packages/
-venv/bin/
-venv/pyvenv.cfg
+venv/
 parking.db
 .idea/
+
+# PyInstaller build output
+build/
+dist/
+*.spec
+
+# Inno Setup installer
+installer/
+
+# Python cache
+__pycache__/

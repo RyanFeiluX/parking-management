@@ -11,30 +11,45 @@
 
 ## Quick Start
 
-### Option 1: `start.bat` (Recommended)
+### 面向最终用户
 
-优先使用虚拟环境 `venv`，自动检查依赖，启动更稳妥。
+#### Option 1: Windows 安装包（推荐）
 
+运行 `installer\停车费管理系统_安装程序.exe` 一键安装，自动创建开始菜单和桌面快捷方式，自带卸载程序。
+
+**制作安装包：** 需要先安装 [Inno Setup 6](https://jrsoftware.org/isdl.php)，然后双击：
+```cmd
+build_installer.bat
+```
+
+#### Option 2: 单文件 exe 便携版
+
+直接双击 `dist\停车管理系统.exe`，无需安装，等待数秒即可在浏览器中自动打开系统。
+- 无需安装 Python
+- 数据库 `parking.db` 自动创建在 exe 同级目录
+- 关闭控制台窗口即停止服务
+
+### 面向开发者
+
+#### 第一步：搭建开发环境
+
+首次使用，双击 `dev_setup.bat`，自动完成：
+1. 用 Python 3.12 创建虚拟环境 `venv`
+2. 从 `requirements.txt` 安装所有依赖
+
+#### 第二步：启动应用
 ```cmd
 双击 start.bat
 ```
-
-### Option 2: `quick-start.bat`
-
-直接 `python run.py`，不做检查，最快启动。适合已装好依赖的环境。
-
-```cmd
-双击 quick-start.bat
-```
-
-### Manual
-
-```bash
-pip install -r requirements_simple.txt
-python run.py
-```
-
 Open http://127.0.0.1:8080
+
+### 重新打包
+
+修改源码后：
+| 命令 | 产物 |
+|------|------|
+| `build_exe.bat` | `dist\停车管理系统.exe` |
+| `build_installer.bat` | `installer\停车费管理系统_安装程序.exe` |
 
 ## Default Login
 
@@ -70,40 +85,49 @@ Open http://127.0.0.1:8080
 
 ```
 parking-management/
-├── README.md                  # This file
-├── start.bat                  # [Recommended] Start script (venv + dep check)
-├── quick-start.bat            # Quick start (direct python run.py)
-├── run.py                     # Python entry point (uvicorn)
-├── requirements.txt           # Full dependencies
-├── requirements_simple.txt    # Minimal dependencies
-├── parking.db                 # SQLite database (auto-created)
-├── 启动说明.md                 # Startup guide (Chinese)
-├── 停车费管理系统_规格说明书.md    # Full spec (Chinese)
-└── app/
-    ├── main.py                # FastAPI app & routes registration
-    ├── models.py              # SQLAlchemy ORM models
-    ├── schemas.py             # Pydantic validation schemas
-    ├── database.py            # DB engine & session
-    ├── auth.py                # Password hash & session management
-    ├── deps.py                # FastAPI dependencies (auth/role check)
-    ├── utils.py               # Business logic (payment calc, status)
-    ├── routers/               # Route handlers
-    │   ├── invoices.py        # Invoicing CRUD
-    │   ├── payments.py        # Payment processing
-    │   ├── residents.py       # Resident management
-    │   ├── vehicles.py        # Vehicle management
-    │   ├── fee_tiers.py       # Fee tier configuration
-    │   ├── discounts.py       # Discount policy configuration
-    │   ├── users.py           # User management (super_admin)
-    │   ├── settings.py        # System settings
-    │   ├── stats.py           # Dashboard statistics
-    │   ├── logs.py            # Operation logs
-    │   └── api.py             # External API (vehicle status)
-    └── templates/             # Jinja2 HTML templates
+├── start.bat                  # 启动应用（自动检测 venv）
+├── dev_setup.bat              # 一键搭建开发环境（创建 venv + 安装依赖）
+├── build_exe.bat              # 打包为单文件 exe
+├── build_installer.bat        # 制作 Windows 安装包
+├── installer.iss              # Inno Setup 安装脚本
+├── run.py                     # Python 入口
+├── requirements.txt           # 依赖列表
+├── parking.db                 # SQLite 数据库（自动创建）
+├── dist/                      # exe 输出目录
+│   └── 停车管理系统.exe
+├── 启动说明.md
+├── 停车费管理系统_规格说明书.md
+├── app/
+│   ├── __init__.py
+│   ├── _path.py               # PyInstaller 路径辅助
+│   ├── main.py                # FastAPI 应用
+│   ├── jinja.py               # Jinja2 模板引擎
+│   ├── models.py              # SQLAlchemy ORM 模型
+│   ├── schemas.py             # Pydantic 校验
+│   ├── database.py            # DB 引擎 & Session
+│   ├── auth.py                # 密码哈希 & Session
+│   ├── deps.py                # 依赖注入（权限检查）
+│   ├── utils.py               # 业务逻辑
+│   ├── routers/               # 路由处理器
+│   │   ├── invoices.py
+│   │   ├── payments.py
+│   │   ├── residents.py
+│   │   ├── vehicles.py
+│   │   ├── fee_tiers.py
+│   │   ├── discounts.py
+│   │   ├── users.py
+│   │   ├── settings.py
+│   │   ├── stats.py
+│   │   ├── logs.py
+│   │   └── api.py
+│   ├── static/
+│   │   ├── favicon.svg
+│   │   └── js/notification.js
+│   └── templates/             # Jinja2 模板
 ```
 
 ## Troubleshooting
 
-**"No module named 'uvicorn'"** → Run `pip install -r requirements_simple.txt` or use `start.bat`.
+**"No module named 'uvicorn'"** → 运行 `dev_setup.bat` 重建虚拟环境。
 
-**Port 8080 in use** → Edit `run.py`, change `port=8080` to another number.
+**Port 8080 in use** → 编辑 `run.py`，将 `port=8080` 改为其他端口。
