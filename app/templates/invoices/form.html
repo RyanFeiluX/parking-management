@@ -66,6 +66,24 @@
                         <input type="text" name="tax_id" class="form-control" placeholder="纳税人识别号（选填）" value="{{ invoice.tax_id or '' if invoice else '' }}">
                     </div>
 
+                    <div class="mb-3">
+                        <label class="form-label">发票类型</label>
+                        <div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="invoice_type" id="typeNormal" value="普票"
+                                {% if not invoice or invoice.invoice_type == '普票' %}checked{% endif %}
+                                onchange="toggleSpecialFields()">
+                                <label class="form-check-label" for="typeNormal">普票</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="invoice_type" id="typeSpecial" value="专票"
+                                {% if invoice and invoice.invoice_type == '专票' %}checked{% endif %}
+                                onchange="toggleSpecialFields()">
+                                <label class="form-check-label" for="typeSpecial">专票</label>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="mb-3" id="specialInvoiceGroup" style="display: none;">
                         <div class="card card-body bg-light p-3">
                             <h6 class="mb-3">专票信息</h6>
@@ -97,24 +115,6 @@
                     <div class="mb-3">
                         <label class="form-label">发票摘要</label>
                         <textarea name="summary" class="form-control" rows="3" placeholder="开票内容摘要（可选）">{{ invoice.summary or '' if invoice else auto_summary }}</textarea>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">发票类型</label>
-                        <div>
-                            <div class="form-check form-check-inline">
-                                <input class="form-check-input" type="radio" name="invoice_type" id="typeNormal" value="普票"
-                                {% if not invoice or invoice.invoice_type == '普票' %}checked{% endif %}
-                                onchange="toggleSpecialFields()">
-                                <label class="form-check-label" for="typeNormal">普票</label>
-                            </div>
-                            <div class="form-check form-check-inline">
-                                <input class="form-check-input" type="radio" name="invoice_type" id="typeSpecial" value="专票"
-                                {% if invoice and invoice.invoice_type == '专票' %}checked{% endif %}
-                                onchange="toggleSpecialFields()">
-                                <label class="form-check-label" for="typeSpecial">专票</label>
-                            </div>
-                        </div>
                     </div>
 
                     <div class="mb-3">
