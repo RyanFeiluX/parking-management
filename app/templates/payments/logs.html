@@ -48,6 +48,7 @@
                             <th>车牌号</th>
                             <th>住户</th>
                             <th>缴费周期</th>
+                            <th>暂停时段</th>
                             <th>金额</th>
                             <th>方式</th>
                             <th>操作人</th>
@@ -67,6 +68,15 @@
                             <td>{{ item.vehicle.plate_number }}</td>
                             <td>{{ item.resident.room_number if item.resident else '-' }}</td>
                             <td>{{ item.payment.period_type }}{{ item.payment.period_start.strftime('%Y-%m-%d') }}~{{ item.payment.period_end.strftime('%Y-%m-%d') }}</td>
+                            <td>
+                                {% if item.pauses %}
+                                {% for pr in item.pauses %}
+                                {{ pr.pause_start }}~{{ pr.pause_end }}（{{ pr.pause_months }}个月）{% if not loop.last %}<br>{% endif %}
+                                {% endfor %}
+                                {% else %}
+                                -
+                                {% endif %}
+                            </td>
                             <td>{{ item.payment.amount }}</td>
                             <td>{{ item.payment.payment_method or '-' }}</td>
                             <td>{{ item.operator.display_name if item.operator else '-' }}</td>

@@ -306,11 +306,13 @@ async def payment_logs(request: Request, user: dict = Depends(require_login)):
         vehicle = p.vehicle
         resident = vehicle.resident if vehicle else None
         operator = db.query(User).filter_by(id=p.operator_id).first() if p.operator_id else None
+        pauses = db.query(VehiclePause).filter_by(payment_id=p.id).order_by(VehiclePause.pause_start).all()
         payment_data.append({
             "payment": p,
             "vehicle": vehicle,
             "resident": resident,
-            "operator": operator
+            "operator": operator,
+            "pauses": pauses
         })
     
     return templates.TemplateResponse("payments/logs.html", {
