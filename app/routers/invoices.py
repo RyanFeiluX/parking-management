@@ -33,9 +33,12 @@ def build_invoice_summary(payments):
     if len(payments) == 1:
         p = payments[0]
         return f"{plate} {p.period_type}缴 {p.period_start.strftime('%Y-%m-%d')}~{p.period_end.strftime('%Y-%m-%d')}"
-    items = [f"{p.period_type}缴{p.period_start.strftime('%Y-%m-%d')}~{p.period_end.strftime('%Y-%m-%d')}({float(p.amount):.0f}元)" for p in payments]
+    items = []
+    for p in payments:
+        plt = p.vehicle.plate_number if p.vehicle else "未知"
+        items.append(f"{plt} {p.period_type}缴{p.period_start.strftime('%Y-%m-%d')}~{p.period_end.strftime('%Y-%m-%d')}({float(p.amount):.0f}元)")
     total = sum(float(p.amount) for p in payments)
-    return f"{plate} 合并{len(payments)}笔交费：" + "、".join(items) + f"，合计{total:.0f}元"
+    return f"合并{len(payments)}笔交费：" + "、".join(items) + f"，合计{total:.0f}元"
 
 def build_invoice_data(db, invoices):
     data = []
@@ -46,6 +49,7 @@ def build_invoice_data(db, invoices):
         resident = vehicle.resident if vehicle else None
         operator = db.query(User).filter_by(id=first_payment.operator_id).first() if first_payment and first_payment.operator_id else None
         total_paid = sum(float(p.amount) for p in payments) if payments else 0
+        plates = sorted(set(p.vehicle.plate_number for p in payments if p.vehicle and p.vehicle.plate_number))
         data.append({
             "invoice": inv,
             "payments": payments,
@@ -53,7 +57,8 @@ def build_invoice_data(db, invoices):
             "vehicle": vehicle,
             "resident": resident,
             "operator": operator,
-            "total_paid": total_paid
+            "total_paid": total_paid,
+            "plates": plates
         })
     return data
 
@@ -140,7 +145,7 @@ async def export_invoices(request: Request, user: dict = Depends(require_login))
 
         writer.writerow([
             inv.created_at.strftime("%Y-%m-%d %H:%M") if inv.created_at else "",
-            vehicle.plate_number if vehicle else "-",
+            "、".join(item["plates"]) if item["plates"] else "-",
             resident.owner_name if resident else "-",
             len(payments) if payments else 0,
             period,
@@ -190,9 +195,14 @@ async def create_invoice_page(request: Request, user: dict = Depends(require_log
             total_amount += float(payment.amount)
 
     if not error and len(payments) > 0:
-        vehicles = set(p.vehicle_id for p in payments)
-        if len(vehicles) > 1:
-            error = "选择的交费记录必须属于同一辆车"
+        resident_ids = set(p.vehicle.resident_id for p in payments if p.vehicle)
+        resident_ids.discard(None)
+        if len(resident_ids) > 1:
+            error = "选择的交费记录必须属于同一住户"
+        if not error:
+            vehicles = set(p.vehicle_id for p in payments)
+            if len(vehicles) > 3:
+                error = "一次开票申请最多包含 3 辆车的交费记录"
 
     presets = []
     setting = db.query(SystemSetting).filter_by(key="invoice_title_presets").first()
@@ -274,10 +284,17 @@ async def create_invoice(request: Request, user: dict = Depends(require_login)):
             })
 
     vehicles = set(p.vehicle_id for p in payments)
-    if len(vehicles) > 1:
+    resident_ids = set(p.vehicle.resident_id for p in payments if p.vehicle)
+    resident_ids.discard(None)
+    if len(resident_ids) > 1:
         return templates.TemplateResponse("invoices/form.html", {
             "request": request, "current_user": user, **common_ctx,
-            "error": "选择的交费记录必须属于同一辆车"
+            "error": "选择的交费记录必须属于同一住户"
+        })
+    if len(vehicles) > 3:
+        return templates.TemplateResponse("invoices/form.html", {
+            "request": request, "current_user": user, **common_ctx,
+            "error": "一次开票申请最多包含 3 辆车的交费记录"
         })
 
     if not title:

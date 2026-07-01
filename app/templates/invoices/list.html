@@ -80,20 +80,20 @@
                         {% for item in invoices %}
                         <tr class="{% if item.invoice.status == '申请已取消' %}text-muted{% endif %}">
                             <td>{{ item.invoice.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
-                            <td>{{ item.vehicle.plate_number if item.vehicle else '-' }}</td>
+                            <td>{{ item.plates | join('、') if item.plates else '-' }}</td>
                             <td>{{ item.resident.owner_name if item.resident else '-' }}</td>
                             <td>
                                 {% if item.payments and item.payments|length > 1 %}
                                 <span class="badge bg-primary rounded-pill" title="{{ item.payments|length }} 笔缴费合并">{{ item.payments|length }}笔合并</span>
                                 <br>
                                 {% for p in item.payments[:3] %}
-                                <small>{{ p.period_type }}{{ p.period_start.strftime('%Y-%m-%d') }}~{{ p.period_end.strftime('%Y-%m-%d') }}<br></small>
+                                <small>{{ p.vehicle.plate_number if p.vehicle else '' }} {{ p.period_type }}{{ p.period_start.strftime('%Y-%m-%d') }}~{{ p.period_end.strftime('%Y-%m-%d') }}<br></small>
                                 {% endfor %}
                                 {% if item.payments|length > 3 %}
                                 <small class="text-muted">…共{{ item.payments|length }}笔</small>
                                 {% endif %}
                                 {% elif item.payment %}
-                                {{ item.payment.period_type }}{{ item.payment.period_start.strftime('%Y-%m-%d') }}~{{ item.payment.period_end.strftime('%Y-%m-%d') }}
+                                {{ item.payment.vehicle.plate_number if item.payment.vehicle else '' }} {{ item.payment.period_type }}{{ item.payment.period_start.strftime('%Y-%m-%d') }}~{{ item.payment.period_end.strftime('%Y-%m-%d') }}
                                 {% else %}
                                 -
                                 {% endif %}
