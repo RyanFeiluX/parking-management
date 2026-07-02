@@ -3,7 +3,7 @@
 
 #define MyAppName "停车费管理系统"
 #ifndef MyAppVersion
-#define MyAppVersion "1.8.10"
+#define MyAppVersion "1.8.15"
 #endif
 #define MyAppPublisher "Parking Management"
 #define MyAppURL "http://127.0.0.1:8080"
@@ -11,13 +11,16 @@
 
 [Setup]
 ; 安装到用户目录，无需管理员权限
+AppName={#MyAppName}
+AppVersion={#MyAppVersion}
+AppPublisher={#MyAppPublisher}
 DefaultDirName={localappdata}\{#MyAppName}
 DefaultGroupName={#MyAppName}
 UninstallDisplayIcon={app}\{#MyAppExeName}
 Compression=lzma2
 SolidCompression=yes
 OutputDir=installer
-OutputBaseFileName=停车费管理系统_安装程序
+OutputBaseFileName=ParkManSetup
 PrivilegesRequired=lowest
 PrivilegesRequiredOverridesAllowed=dialog
 DisableProgramGroupPage=yes
@@ -25,7 +28,7 @@ DisableDirPage=no
 DisableFinishedPage=no
 
 [Languages]
-Name: "chinesesimplified"; MessagesFile: "compiler:Languages\ChineseSimplified.isl"
+Name: "chinese"; MessagesFile: "compiler:Default.isl"
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Tasks]
