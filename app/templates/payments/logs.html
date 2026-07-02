@@ -4,6 +4,10 @@
 {% block header %}缴费记录查询{% endblock %}
 
 {% block content %}
+<style>
+    .table-scroll { max-height: calc(100vh - 280px); overflow-y: auto; }
+    .table-scroll thead th { position: sticky; top: 0; background: white; z-index: 1; }
+</style>
 <div class="row">
     <div class="col">
         <div class="card">
@@ -40,6 +44,7 @@
                     </div>
                 </form>
 
+                <div class="table-scroll">
                 <table class="table table-striped">
                     <thead>
                         <tr>
@@ -96,6 +101,7 @@
                         {% endfor %}
                     </tbody>
                 </table>
+                </div>
                 <p class="text-muted small"><span id="selected-count">0</span> 条记录已选择 <button class="btn btn-sm btn-primary ms-2" onclick="mergeInvoice()" id="mergeBtn" disabled>合并开票</button></p>
             </div>
         </div>
