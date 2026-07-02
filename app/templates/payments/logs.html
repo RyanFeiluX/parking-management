@@ -60,7 +60,7 @@
                         {% for item in payments %}
                         <tr>
                             <td>
-                                {% if not item.payment.invoice and item.payment.amount > 0 %}
+                                {% if (not item.payment.invoice or item.payment.invoice.status == '申请已取消') and item.payment.amount > 0 %}
                                 <input type="checkbox" class="payment-checkbox" value="{{ item.payment.id }}" onchange="updateMergeBtn()">
                                 {% endif %}
                             </td>
@@ -82,8 +82,8 @@
                             <td>{{ item.operator.display_name if item.operator else '-' }}</td>
                             <td>{{ item.payment.remark or '-' }}</td>
                             <td>
-                                {% if item.payment.invoice %}
-                                <span class="badge {% if item.payment.invoice.status == '开票已完成' %}bg-success{% elif item.payment.invoice.status == '申请已取消' %}bg-secondary{% else %}bg-warning{% endif %}">
+                                {% if item.payment.invoice and item.payment.invoice.status != '申请已取消' %}
+                                <span class="badge {% if item.payment.invoice.status == '开票已完成' %}bg-success{% else %}bg-warning{% endif %}">
                                     {{ item.payment.invoice.status }}
                                 </span>
                                 {% elif item.payment.amount <= 0 %}

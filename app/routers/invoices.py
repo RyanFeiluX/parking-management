@@ -224,7 +224,7 @@ async def create_invoice_page(request: Request, user: dict = Depends(require_log
             if not payment:
                 error = f"交费记录 {pid_str} 不存在"
                 break
-            if payment.invoice:
+            if payment.invoice and payment.invoice.status == '开票已完成':
                 error = f"交费记录 {pid_str} 已关联开票条目"
                 break
             if payment.amount <= 0:
@@ -321,7 +321,7 @@ async def create_invoice(request: Request, user: dict = Depends(require_login)):
         })
 
     for p in payments:
-        if p.invoice:
+        if p.invoice and p.invoice.status == '开票已完成':
             return templates.TemplateResponse("invoices/form.html", {
                 "request": request, "current_user": user, **common_ctx,
                 "error": f"交费记录 #{p.id} 已关联开票条目"
