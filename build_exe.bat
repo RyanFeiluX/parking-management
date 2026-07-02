@@ -19,7 +19,7 @@ echo Building as single exe file...
 echo.
 
 "%PYTHON%" -m PyInstaller --onefile --console ^
-  --name "parking-management" ^
+  --name "parkman" ^
   --add-data "app;app" ^
   --hidden-import secrets ^
   --hidden-import traceback ^
@@ -27,11 +27,11 @@ echo.
 
 echo.
 echo ================================================
-if exist "dist\parking-management.exe" (
+if exist "dist\parkman.exe" (
     echo Build succeeded!
     set "size="
-    for %%I in ("dist\parking-management.exe") do set "size=%%~zI"
-    echo Output: dist\parking-management.exe (%size% bytes)
+    for %%I in ("dist\parkman.exe") do set "size=%%~zI"
+    echo Output: dist\parkman.exe (%size% bytes)
     echo.
     echo Send this exe file to end users, double-click to run.
 ) else (

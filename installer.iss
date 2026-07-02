@@ -3,11 +3,11 @@
 
 #define MyAppName "停车费管理系统"
 #ifndef MyAppVersion
-#define MyAppVersion "1.5.3"
+#define MyAppVersion "1.8.10"
 #endif
 #define MyAppPublisher "Parking Management"
 #define MyAppURL "http://127.0.0.1:8080"
-#define MyAppExeName "停车管理系统.exe"
+#define MyAppExeName "parkman.exe"
 
 [Setup]
 ; 安装到用户目录，无需管理员权限
