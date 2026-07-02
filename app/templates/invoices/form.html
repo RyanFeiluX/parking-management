@@ -44,22 +44,37 @@
                     </table>
                 </div>
 
-                <script id="presetsData" type="application/json">{{ presets_json }}</script>
+                <script id="presetsData" type="application/json">{{ presets_json | safe }}</script>
                 <form method="post" action="{% if invoice %}/invoices/{{ invoice.id }}/edit{% else %}/invoices/create{% endif %}">
                     <input type="hidden" name="payment_ids" value="{% for p in payments %}{% if not loop.first %},{% endif %}{{ p.id }}{% endfor %}">
 
                     <div class="mb-3">
-                        <label class="form-label">发票抬头 <span class="text-danger">*</span></label>
-                        <div class="input-group">
-                            <select class="form-control" id="presetSelect" onchange="fillPreset(this.value)">
-                                <option value="">-- 选择预设抬头 --</option>
-                                {% for p in presets %}
-                                <option value="{{ loop.index0 }}">{{ p.title }}</option>
-                                {% endfor %}
-                                <option value="__custom__">其它（手动输入）</option>
-                            </select>
+                        <label class="form-label">抬头输入方式</label>
+                        <div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="title_source" id="srcPreset" value="preset" onchange="toggleTitleSource()">
+                                <label class="form-check-label" for="srcPreset">来自预设抬头</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="title_source" id="srcManual" value="manual" checked onchange="toggleTitleSource()">
+                                <label class="form-check-label" for="srcManual">手动输入</label>
+                            </div>
                         </div>
-                        <input type="text" name="title" id="titleInput" class="form-control mt-2" placeholder="输入发票抬头" value="{{ invoice.title if invoice else '' }}" required>
+                    </div>
+
+                    <div id="presetMode" style="display:none" class="mb-3">
+                        <label class="form-label">发票抬头 <span class="text-danger">*</span></label>
+                        <select id="presetSelectList" class="form-control" onchange="applyPreset(this.value)">
+                            <option value="">-- 选择预设抬头 --</option>
+                            {% for p in presets %}
+                            <option value="{{ loop.index0 }}">{{ p.title }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">发票抬头 <span class="text-danger">*</span></label>
+                        <input type="text" name="title" id="titleInput" class="form-control" placeholder="输入发票抬头" value="{{ invoice.title if invoice else '' }}" required>
                     </div>
 
                     <div class="mb-3" id="taxIdGroup">
@@ -157,23 +172,37 @@ function getPresets() {
     return [];
 }
 
-function fillPreset(value) {
-    var preset = getPresets()[parseInt(value)];
+function toggleTitleSource() {
+    var isPreset = document.getElementById('srcPreset').checked;
+    document.getElementById('presetMode').style.display = isPreset ? '' : 'none';
+    var titleInput = document.getElementById('titleInput');
     var requiredStar = document.getElementById('taxIdRequired');
-    if (preset) {
-        document.getElementById('titleInput').value = preset.title || '';
-        document.getElementById('taxIdInput').value = preset.tax_id || '';
-        document.getElementById('taxIdInput').required = true;
-        requiredStar.style.display = '';
-        document.querySelector('[name="phone"]').value = preset.phone || '';
-        document.querySelector('[name="email"]').value = preset.email || '';
-        document.getElementById('addressInput').value = preset.address || '';
-        document.getElementById('bankNameInput').value = preset.bank_name || '';
-        document.getElementById('bankAccountInput').value = preset.bank_account || '';
-    } else {
+    if (isPreset) {
+        titleInput.readOnly = true;
+        titleInput.required = false;
         document.getElementById('taxIdInput').required = false;
         requiredStar.style.display = 'none';
+    } else {
+        titleInput.readOnly = false;
+        titleInput.required = true;
+        document.getElementById('taxIdInput').required = true;
+        requiredStar.style.display = '';
     }
+}
+
+function applyPreset(index) {
+    var all = getPresets();
+    var preset = all[parseInt(index)];
+    if (!preset) return;
+    document.getElementById('titleInput').value = preset.title || '';
+    document.getElementById('taxIdInput').value = preset.tax_id || '';
+    document.getElementById('taxIdInput').required = true;
+    document.getElementById('taxIdRequired').style.display = '';
+    document.querySelector('[name="phone"]').value = preset.phone || '';
+    document.querySelector('[name="email"]').value = preset.email || '';
+    document.getElementById('addressInput').value = preset.address || '';
+    document.getElementById('bankNameInput').value = preset.bank_name || '';
+    document.getElementById('bankAccountInput').value = preset.bank_account || '';
 }
 
 function toggleSpecialFields() {
