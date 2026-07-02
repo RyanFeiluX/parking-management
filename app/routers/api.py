@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Request
 from sqlalchemy.orm import Session
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 import json
 
 from ..models import Vehicle, Resident, SystemSetting, VehiclePause
@@ -60,16 +60,16 @@ def get_vehicle_payment_status(vehicle, db):
             "detail": f"合约至{paid_to.strftime('%Y-%m-%d')}"
         }
     elif days_past <= grace_days:
-        grace_end = paid_to + datetime.timedelta(days=grace_days)
+        grace_end = paid_to + timedelta(days=grace_days)
         remaining_days = (grace_end - today).days
         return {
             "status": "临时",
-            "status_start": (paid_to + datetime.timedelta(days=1)).isoformat(),
+            "status_start": (paid_to + timedelta(days=1)).isoformat(),
             "status_end": grace_end.isoformat(),
             "detail": f"宽限期内，还剩{remaining_days}天"
         }
     else:
-        expired_since = paid_to + datetime.timedelta(days=grace_days + 1)
+        expired_since = paid_to + timedelta(days=grace_days + 1)
         expired_days = (today - expired_since).days
         return {
             "status": "过期",
@@ -154,7 +154,7 @@ async def vehicle_status(request: Request, plate_number: str):
                 est_fee = temp_days * daily_cap
                 temp_history = {
                     "from_date": vehicle.created_at.date().isoformat(),
-                    "to_date": (paid_from - datetime.timedelta(days=1)).isoformat(),
+                    "to_date": (paid_from - timedelta(days=1)).isoformat(),
                     "temp_days": temp_days,
                     "estimated_daily_charge": daily_cap,
                     "estimated_fee": est_fee,

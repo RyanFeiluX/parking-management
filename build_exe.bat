@@ -1,39 +1,41 @@
 @echo off
-chcp 65001 >nul
 cd /d "%~dp0"
 
 echo ================================================
-echo  停车费管理系统 - 打包工具
+echo  Parking Management System - Build Tool
 echo ================================================
 echo.
 
 if exist "venv\Scripts\python.exe" (set "PYTHON=venv\Scripts\python.exe") else (set "PYTHON=python.exe")
 
-echo 使用 Python: %PYTHON%
+echo Using Python: %PYTHON%
 "%PYTHON%" -m pip install pyinstaller -q
 
+echo Cleaning cache...
+rd /s /q app\__pycache__ app\routers\__pycache__ 2>nul
+
 echo.
-echo 正在打包为单文件 exe...
+echo Building as single exe file...
 echo.
 
 "%PYTHON%" -m PyInstaller --onefile --console ^
-  --name "停车管理系统" ^
+  --name "parking-management" ^
   --add-data "app;app" ^
-  --hidden-import passlib.handlers.bcrypt ^
-  --hidden-import passlib.handlers.sha2_crypt ^
-  --hidden-import bcrypt ^
-  --collect-all passlib ^
+  --hidden-import secrets ^
+  --hidden-import traceback ^
   run.py
 
 echo.
 echo ================================================
-if exist "dist\停车管理系统.exe" (
-    echo 打包成功！
-    for %%I in ("dist\停车管理系统.exe") do @echo 输出: dist\停车管理系统.exe (%%~zI 字节)
+if exist "dist\parking-management.exe" (
+    echo Build succeeded!
+    set "size="
+    for %%I in ("dist\parking-management.exe") do set "size=%%~zI"
+    echo Output: dist\parking-management.exe (%size% bytes)
     echo.
-    echo 将此 exe 文件发给最终用户，双击即可运行。
+    echo Send this exe file to end users, double-click to run.
 ) else (
-    echo 打包失败，请查看上方错误信息。
+    echo Build failed, please check error messages above.
 )
 echo ================================================
 pause

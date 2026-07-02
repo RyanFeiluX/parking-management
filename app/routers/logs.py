@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Request, Depends
 from sqlalchemy.orm import Session
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from ..models import OperationLog, User
 from ..deps import require_role
@@ -22,7 +22,7 @@ async def list_logs(request: Request, user: dict = Depends(require_role("super_a
     if start_date:
         query = query.filter(OperationLog.created_at >= datetime.strptime(start_date, "%Y-%m-%d"))
     if end_date:
-        query = query.filter(OperationLog.created_at <= datetime.strptime(end_date, "%Y-%m-%d") + datetime.timedelta(days=1))
+        query = query.filter(OperationLog.created_at <= datetime.strptime(end_date, "%Y-%m-%d") + timedelta(days=1))
     if action_type:
         query = query.filter(OperationLog.action_type == action_type)
     if username:

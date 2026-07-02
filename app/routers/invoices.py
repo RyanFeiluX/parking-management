@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Request, Depends
 from fastapi.responses import RedirectResponse, StreamingResponse
 from sqlalchemy.orm import Session
-from datetime import datetime
+from datetime import datetime, timedelta
 import csv
 import io
 import json
@@ -110,7 +110,7 @@ async def invoice_list(request: Request, user: dict = Depends(require_login)):
     if start_date:
         query = query.filter(Invoice.created_at >= datetime.strptime(start_date, "%Y-%m-%d"))
     if end_date:
-        query = query.filter(Invoice.created_at <= datetime.strptime(end_date, "%Y-%m-%d") + datetime.timedelta(days=1))
+        query = query.filter(Invoice.created_at <= datetime.strptime(end_date, "%Y-%m-%d") + timedelta(days=1))
     if plate_number:
         query = query.join(PaymentRecord).join(Vehicle).filter(Vehicle.plate_number.ilike(f"%{plate_number}%"))
 
@@ -147,7 +147,7 @@ async def export_invoices(request: Request, user: dict = Depends(require_login))
     if start_date:
         query = query.filter(Invoice.created_at >= datetime.strptime(start_date, "%Y-%m-%d"))
     if end_date:
-        query = query.filter(Invoice.created_at <= datetime.strptime(end_date, "%Y-%m-%d") + datetime.timedelta(days=1))
+        query = query.filter(Invoice.created_at <= datetime.strptime(end_date, "%Y-%m-%d") + timedelta(days=1))
     if plate_number:
         query = query.join(PaymentRecord).join(Vehicle).filter(Vehicle.plate_number.ilike(f"%{plate_number}%"))
 
