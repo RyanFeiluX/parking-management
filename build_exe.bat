@@ -23,6 +23,10 @@ echo.
   --add-data "app;app" ^
   --hidden-import secrets ^
   --hidden-import traceback ^
+  --hidden-import passlib.handlers.bcrypt ^
+  --hidden-import passlib.handlers.sha2_crypt ^
+  --hidden-import bcrypt ^
+  --collect-all passlib ^
   run.py
 
 echo.

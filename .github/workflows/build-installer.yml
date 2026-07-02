@@ -39,8 +39,10 @@ jobs:
         shell: pwsh
         run: |
           pyinstaller --onefile --console `
-            --name "停车管理系统" `
+            --name "parkman" `
             --add-data "app;app" `
+            --hidden-import secrets `
+            --hidden-import traceback `
             --hidden-import passlib.handlers.bcrypt `
             --hidden-import passlib.handlers.sha2_crypt `
             --hidden-import bcrypt `
@@ -58,7 +60,7 @@ jobs:
       - name: 上传安装包
         uses: actions/upload-artifact@v5
         with:
-          name: 停车费管理系统_安装程序_${{ steps.version.outputs.version }}
+          name: ParkManSetup_${{ steps.version.outputs.version }}
           path: installer/*.exe
 
       - name: 创建 Release
