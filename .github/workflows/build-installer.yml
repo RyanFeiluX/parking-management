@@ -1,0 +1,72 @@
+name: 构建安装包
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: 提取版本号
+        id: version
+        shell: pwsh
+        run: |
+          $tag = "$env:GITHUB_REF_NAME"
+          $ver = $tag -replace '^v', ''
+          echo "tag=$tag" >> $env:GITHUB_OUTPUT
+          echo "version=$ver" >> $env:GITHUB_OUTPUT
+
+      - name: 更新 app 版本号
+        shell: pwsh
+        run: |
+          Set-Content app/__init__.py "VERSION = `"${{ steps.version.outputs.version }}`""
+
+      - name: 安装 Python 依赖
+        run: |
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: PyInstaller 打包
+        shell: pwsh
+        run: |
+          pyinstaller --onefile --console `
+            --name "停车管理系统" `
+            --add-data "app;app" `
+            --hidden-import passlib.handlers.bcrypt `
+            --hidden-import passlib.handlers.sha2_crypt `
+            --hidden-import bcrypt `
+            --collect-all passlib `
+            run.py
+
+      - name: 安装 Inno Setup
+        run: choco install innosetup --no-progress -y
+
+      - name: 构建安装包
+        shell: pwsh
+        run: |
+          iscc /DMyAppVersion="${{ steps.version.outputs.version }}" installer.iss
+
+      - name: 上传安装包
+        uses: actions/upload-artifact@v4
+        with:
+          name: 停车费管理系统_安装程序_${{ steps.version.outputs.version }}
+          path: installer/*.exe
+
+      - name: 创建 Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: 停车费管理系统 v${{ steps.version.outputs.version }}
+          body: |
+            ## 停车费管理系统 v${{ steps.version.outputs.version }}
+
+            自动构建安装包。
+          files: installer/*.exe

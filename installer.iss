@@ -2,7 +2,9 @@
 ; 需要 Inno Setup 6+ (https://jrsoftware.org/isdl.php)
 
 #define MyAppName "停车费管理系统"
+#ifndef MyAppVersion
 #define MyAppVersion "1.5.3"
+#endif
 #define MyAppPublisher "Parking Management"
 #define MyAppURL "http://127.0.0.1:8080"
 #define MyAppExeName "停车管理系统.exe"
