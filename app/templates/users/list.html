@@ -39,11 +39,13 @@
                             <td>{{ user.last_login.strftime('%Y-%m-%d %H:%M') if user.last_login else '-' }}</td>
                             <td>
                                 <a href="/users/{{ user.id }}/edit" class="btn btn-sm btn-info">编辑</a>
+                                {% if user.id != current_user.user_id %}
                                 <form action="/users/{{ user.id }}/toggle" method="post" class="d-inline">
                                     <button type="submit" class="btn btn-sm {% if user.is_active %}btn-warning{% else %}btn-success{% endif %}">
                                         {% if user.is_active %}停用{% else %}启用{% endif %}
                                     </button>
                                 </form>
+                                {% endif %}
                                 {% if user.id != current_user.user_id %}
                                 <form action="/users/{{ user.id }}/delete" method="post" class="d-inline" onsubmit="return confirm('确定删除？')">
                                     <button type="submit" class="btn btn-sm btn-danger">删除</button>
