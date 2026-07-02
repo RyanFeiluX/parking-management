@@ -1,6 +1,7 @@
 from datetime import date, datetime, timedelta
 from calendar import monthrange
 from sqlalchemy.orm import Session
+from sqlalchemy import exists
 import json
 
 from .models import FeeTier, DiscountPolicy, SystemSetting, PaymentRecord, VehiclePause
@@ -13,11 +14,17 @@ def get_vehicle_payment_status(vehicle, db):
     grace_days = int(get_system_setting(db, "grace_period_days", "15"))
     today = date.today()
 
-    # 检查今天是否在暂停区间内
+    # 检查今天是否在暂停区间内（排除已被后续缴费填补的暂停）
     pause = db.query(VehiclePause).filter(
         VehiclePause.vehicle_id == vehicle.id,
         VehiclePause.pause_start <= today,
-        VehiclePause.pause_end >= today
+        VehiclePause.pause_end >= today,
+        ~exists().where(
+            PaymentRecord.vehicle_id == VehiclePause.vehicle_id,
+            PaymentRecord.id != VehiclePause.payment_id,
+            PaymentRecord.period_start <= VehiclePause.pause_start,
+            PaymentRecord.period_end >= VehiclePause.pause_end
+        )
     ).first()
     if pause:
         return {
@@ -78,9 +85,8 @@ def get_vehicle_payment_status(vehicle, db):
             "detail": "已登记免缴费" if vehicle.is_garage else "已登记未缴费"
         }
     
-    latest_payment = vehicle.payments[0]
-    
-    paid_to = latest_payment.period_end
+    paid_to = max(p.period_end for p in vehicle.payments)
+    latest_payment = [p for p in vehicle.payments if p.period_end == paid_to][0]
     
     days_past = (today - paid_to).days
     

@@ -230,7 +230,6 @@ async def pay(request: Request, user: dict = Depends(require_login)):
     db.flush()
     
     # 创建暂停记录
-    new_pause_id = None
     if pause_start and pause_months > 0:
         vp = VehiclePause(
             vehicle_id=vehicle_id,
@@ -241,26 +240,12 @@ async def pay(request: Request, user: dict = Depends(require_login)):
         )
         db.add(vp)
         db.flush()
-        new_pause_id = vp.id
-    
-    # 删除被新缴费覆盖的暂停记录（排除新建的）
-    covered_pauses = db.query(VehiclePause).filter(
-        VehiclePause.vehicle_id == vehicle_id,
-        VehiclePause.pause_start >= period_start,
-        VehiclePause.pause_end <= period_end,
-    ).all()
-    for cvp in covered_pauses:
-        if cvp.id == new_pause_id:
-            continue
-        db.delete(cvp)
     
     db.commit()
     
     detail_parts = [f"缴费 {amount}元，{period_type}{months}期，{period_start}~{period_end}"]
     if pause_start:
         detail_parts.append(f"暂停{pause_months}个月({pause_start}~{pause_end})")
-    if covered_pauses:
-        detail_parts.append(f"覆盖了{len(covered_pauses)}条暂停记录")
     detail = "，".join(detail_parts)
     
     client_host = request.client.host if request.client else "unknown"
