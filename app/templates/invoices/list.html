@@ -87,13 +87,13 @@
                                 <span class="badge bg-primary rounded-pill" title="{{ item.payments|length }} 笔缴费合并">{{ item.payments|length }}笔合并</span>
                                 <br>
                                 {% for p in item.payments[:3] %}
-                                <small>{{ p.vehicle.plate_number if p.vehicle else '' }} {{ p.period_type }}{{ p.period_start.strftime('%Y-%m-%d') }}~{{ p.period_end.strftime('%Y-%m-%d') }}<br></small>
+                                <small>{{ p.vehicle.plate_number if p.vehicle else '' }} {{ p.period_type }}{{ p.period_start.strftime('%Y-%m-%d') }}~{{ p.period_end.strftime('%Y-%m-%d') }}{{ item.pause_descs.get(p.id, '') }}<br></small>
                                 {% endfor %}
                                 {% if item.payments|length > 3 %}
                                 <small class="text-muted">…共{{ item.payments|length }}笔</small>
                                 {% endif %}
                                 {% elif item.payment %}
-                                {{ item.payment.vehicle.plate_number if item.payment.vehicle else '' }} {{ item.payment.period_type }}{{ item.payment.period_start.strftime('%Y-%m-%d') }}~{{ item.payment.period_end.strftime('%Y-%m-%d') }}
+                                {{ item.payment.vehicle.plate_number if item.payment.vehicle else '' }} {{ item.payment.period_type }}{{ item.payment.period_start.strftime('%Y-%m-%d') }}~{{ item.payment.period_end.strftime('%Y-%m-%d') }}{{ item.pause_descs.get(item.payment.id, '') }}
                                 {% else %}
                                 -
                                 {% endif %}

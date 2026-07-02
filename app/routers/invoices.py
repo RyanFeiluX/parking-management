@@ -79,6 +79,12 @@ def build_invoice_data(db, invoices):
         operator = db.query(User).filter_by(id=first_payment.operator_id).first() if first_payment and first_payment.operator_id else None
         total_paid = sum(float(p.amount) for p in payments) if payments else 0
         plates = sorted(set(p.vehicle.plate_number for p in payments if p.vehicle and p.vehicle.plate_number))
+        pause_descs = {}
+        for p in payments:
+            pauses = db.query(VehiclePause).filter_by(payment_id=p.id).all()
+            if pauses:
+                parts = [f"{pr.pause_start}~{pr.pause_end}" for pr in pauses]
+                pause_descs[p.id] = "（暂停：" + "；".join(parts) + "）"
         data.append({
             "invoice": inv,
             "payments": payments,
@@ -87,7 +93,8 @@ def build_invoice_data(db, invoices):
             "resident": resident,
             "operator": operator,
             "total_paid": total_paid,
-            "plates": plates
+            "plates": plates,
+            "pause_descs": pause_descs
         })
     return data
 
@@ -165,11 +172,12 @@ async def export_invoices(request: Request, user: dict = Depends(require_login))
         payments = item["payments"]
 
         if payments:
+            pause_descs = item["pause_descs"]
             if len(payments) == 1:
                 p = payments[0]
-                period = f"{p.period_type}缴 {p.period_start.strftime('%Y-%m-%d')}~{p.period_end.strftime('%Y-%m-%d')}"
+                period = f"{p.period_type}缴 {p.period_start.strftime('%Y-%m-%d')}~{p.period_end.strftime('%Y-%m-%d')}{pause_descs.get(p.id, '')}"
             else:
-                parts = [f"{p.period_type}缴{p.period_start.strftime('%Y-%m-%d')}~{p.period_end.strftime('%Y-%m-%d')}" for p in payments]
+                parts = [f"{p.period_type}缴{p.period_start.strftime('%Y-%m-%d')}~{p.period_end.strftime('%Y-%m-%d')}{pause_descs.get(p.id, '')}" for p in payments]
                 period = "; ".join(parts)
         else:
             period = ""
