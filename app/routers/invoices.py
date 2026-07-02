@@ -7,7 +7,7 @@ import io
 import json
 from urllib.parse import quote
 
-from ..models import Invoice, PaymentRecord, Vehicle, Resident, User, OperationLog, SystemSetting
+from ..models import Invoice, PaymentRecord, Vehicle, Resident, User, OperationLog, SystemSetting, VehiclePause
 from ..deps import require_role, require_login
 from ..jinja import templates
 
@@ -44,19 +44,30 @@ def normalize_presets(presets):
             })
     return normalized
 
-def build_invoice_summary(payments):
+def build_invoice_summary(payments, db=None):
     if not payments:
         return ""
     plate = payments[0].vehicle.plate_number if payments[0].vehicle else ""
     if len(payments) == 1:
         p = payments[0]
-        return f"{plate} {p.period_type}缴 {p.period_start.strftime('%Y-%m-%d')}~{p.period_end.strftime('%Y-%m-%d')}"
+        pause_desc = _get_pause_desc(p, db)
+        return f"{plate} {p.period_type}缴 {p.period_start.strftime('%Y-%m-%d')}~{p.period_end.strftime('%Y-%m-%d')}{pause_desc}"
     items = []
     for p in payments:
         plt = p.vehicle.plate_number if p.vehicle else "未知"
-        items.append(f"{plt} {p.period_type}缴{p.period_start.strftime('%Y-%m-%d')}~{p.period_end.strftime('%Y-%m-%d')}({float(p.amount):.0f}元)")
+        pause_desc = _get_pause_desc(p, db)
+        items.append(f"{plt} {p.period_type}缴{p.period_start.strftime('%Y-%m-%d')}~{p.period_end.strftime('%Y-%m-%d')}({float(p.amount):.0f}元){pause_desc}")
     total = sum(float(p.amount) for p in payments)
     return f"合并{len(payments)}笔交费：" + "、".join(items) + f"，合计{total:.0f}元"
+
+def _get_pause_desc(payment, db):
+    if not db:
+        return ""
+    pauses = db.query(VehiclePause).filter_by(payment_id=payment.id).all()
+    if pauses:
+        parts = [f"{pr.pause_start}~{pr.pause_end}" for pr in pauses]
+        return "（暂停：" + "；".join(parts) + "）"
+    return ""
 
 def build_invoice_data(db, invoices):
     data = []
@@ -235,7 +246,7 @@ async def create_invoice_page(request: Request, user: dict = Depends(require_log
         except (json.JSONDecodeError, TypeError):
             presets = []
 
-    auto_summary = build_invoice_summary(payments) if payments else ""
+    auto_summary = build_invoice_summary(payments, db) if payments else ""
 
     resident_phone = ""
     if not error and payments:
@@ -270,7 +281,7 @@ async def create_invoice(request: Request, user: dict = Depends(require_login)):
     payments = db.query(PaymentRecord).filter(PaymentRecord.id.in_(payment_ids)).all()
 
     total_amount = sum(float(p.amount) for p in payments)
-    auto_summary = build_invoice_summary(payments)
+    auto_summary = build_invoice_summary(payments, db)
 
     presets = []
     setting = db.query(SystemSetting).filter_by(key="invoice_title_presets").first()
@@ -326,11 +337,6 @@ async def create_invoice(request: Request, user: dict = Depends(require_login)):
         return templates.TemplateResponse("invoices/form.html", {
             "request": request, "current_user": user, **common_ctx,
             "error": "发票抬头不能为空"
-        })
-    if not tax_id:
-        return templates.TemplateResponse("invoices/form.html", {
-            "request": request, "current_user": user, **common_ctx,
-            "error": "纳税人识别号（税号）不能为空"
         })
     if amount <= 0:
         return templates.TemplateResponse("invoices/form.html", {
@@ -453,14 +459,6 @@ async def edit_invoice(request: Request, invoice_id: int, user: dict = Depends(r
             "presets": presets, "presets_json": json.dumps(presets, ensure_ascii=False),
             "error": "发票抬头不能为空"
         })
-    if not tax_id:
-        return templates.TemplateResponse("invoices/form.html", {
-            "request": request, "current_user": user, "invoice": invoice,
-            "payments": payments, "total_amount": total_amount,
-            "presets": presets, "presets_json": json.dumps(presets, ensure_ascii=False),
-            "error": "纳税人识别号（税号）不能为空"
-        })
-
     invoice.title = title
     invoice.tax_id = tax_id or None
     invoice.phone = form_data.get("phone", "").strip() or None

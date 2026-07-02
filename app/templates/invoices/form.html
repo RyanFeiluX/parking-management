@@ -56,15 +56,15 @@
                                 {% for p in presets %}
                                 <option value="{{ loop.index0 }}">{{ p.title }}</option>
                                 {% endfor %}
-                                <option value="__custom__">其他（手动输入）</option>
+                                <option value="__custom__">其它（手动输入）</option>
                             </select>
                         </div>
                         <input type="text" name="title" id="titleInput" class="form-control mt-2" placeholder="输入发票抬头" value="{{ invoice.title if invoice else '' }}" required>
                     </div>
 
                     <div class="mb-3" id="taxIdGroup">
-                        <label class="form-label">纳税人识别号（税号） <span class="text-danger">*</span></label>
-                        <input type="text" name="tax_id" id="taxIdInput" class="form-control" placeholder="纳税人识别号" value="{{ invoice.tax_id or '' if invoice else '' }}" required>
+                        <label class="form-label">纳税人识别号（税号） <span class="text-danger" id="taxIdRequired">*</span></label>
+                        <input type="text" name="tax_id" id="taxIdInput" class="form-control" placeholder="纳税人识别号" value="{{ invoice.tax_id or '' if invoice else '' }}">
                     </div>
 
                     <div class="mb-3">
@@ -159,14 +159,20 @@ function getPresets() {
 
 function fillPreset(value) {
     var preset = getPresets()[parseInt(value)];
+    var requiredStar = document.getElementById('taxIdRequired');
     if (preset) {
         document.getElementById('titleInput').value = preset.title || '';
         document.getElementById('taxIdInput').value = preset.tax_id || '';
+        document.getElementById('taxIdInput').required = true;
+        requiredStar.style.display = '';
         document.querySelector('[name="phone"]').value = preset.phone || '';
         document.querySelector('[name="email"]').value = preset.email || '';
         document.getElementById('addressInput').value = preset.address || '';
         document.getElementById('bankNameInput').value = preset.bank_name || '';
         document.getElementById('bankAccountInput').value = preset.bank_account || '';
+    } else {
+        document.getElementById('taxIdInput').required = false;
+        requiredStar.style.display = 'none';
     }
 }
 
