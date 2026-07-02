@@ -450,4 +450,13 @@ def check_period_overlap(vehicle_id, new_start, new_end, db):
         PaymentRecord.period_start <= new_end,
         PaymentRecord.period_end >= new_start
     ).order_by(PaymentRecord.period_start).all()
-    return [f"与已有缴费记录 {p.period_start}~{p.period_end} 重叠" for p in existing]
+    warnings = []
+    for p in existing:
+        paused = db.query(VehiclePause).filter(
+            VehiclePause.payment_id == p.id,
+            VehiclePause.pause_start <= new_end,
+            VehiclePause.pause_end >= new_start
+        ).first()
+        if not paused:
+            warnings.append(f"与已有缴费记录 {p.period_start}~{p.period_end} 重叠")
+    return warnings
