@@ -1,19 +1,19 @@
-# Parking Management System
+# 停车费管理系统
 
 小区包月制停车费管理系统 — 一户多车、车辆按序定档收费、三权分立权限管理。
 
-## Tech Stack
+## 技术栈
 
-- **Backend:** FastAPI (Python)
-- **Database:** SQLite (单机，无需安装)
-- **Template:** Jinja2 + Bootstrap 5
-- **Auth:** Session-based (itsdangerous)
+- **后端:** FastAPI (Python)
+- **数据库:** SQLite (单机，无需安装)
+- **模板:** Jinja2 + Bootstrap 5
+- **认证:** Session-based (itsdangerous)
 
-## Quick Start
+## 快速开始
 
 ### 面向最终用户
 
-#### Option 1: Windows 安装包（推荐）
+#### 方式一：Windows 安装包（推荐）
 
 运行 `installer\ParkManSetup.exe` 一键安装，自动创建开始菜单和桌面快捷方式，自带卸载程序。
 
@@ -22,7 +22,7 @@
 build_installer.bat
 ```
 
-#### Option 2: 单文件 exe 便携版
+#### 方式二：单文件 exe 便携版
 
 直接双击 `dist\parkman.exe`，无需安装，等待数秒即可在浏览器中自动打开系统。
 - 无需安装 Python
@@ -41,7 +41,7 @@ build_installer.bat
 ```cmd
 双击 start.bat
 ```
-Open http://127.0.0.1:8080
+访问 http://127.0.0.1:8080
 
 ### 重新打包
 
@@ -51,29 +51,29 @@ Open http://127.0.0.1:8080
 | `build_exe.bat` | `dist\parkman.exe` |
 | `build_installer.bat` | `installer\ParkManSetup.exe` |
 
-## Default Login
+## 默认登录
 
-| Username | Password | Role |
-|----------|----------|------|
+| 用户名 | 密码 | 角色 |
+|--------|------|------|
 | admin | password123 | super_admin |
 
-## Features
+## 功能模块
 
-| Module | Description | Access |
-|--------|-------------|--------|
-| Dashboard | 首页仪表盘，车辆状态/收费统计 | all |
+| 模块 | 说明 | 权限 |
+|------|------|------|
+| Dashboard | 首页仪表盘，车辆状态/收费统计 | 所有用户 |
 | Residents | 住户管理（房号/业主/电话） | admin+ |
 | Vehicles | 车辆管理（一户多车/排序） | admin+ |
-| Payments | 包月缴费（月/季/年），金额自动计算 | all |
+| Payments | 包月缴费（月/季/年），金额自动计算 | 所有用户 |
 | Fee Tiers | 收费档位配置（版本化管理） | admin+ |
 | Discounts | 优惠策略配置（新能源折扣/免费等） | admin+ |
-| **Invoices** | **开票管理（抬头/类型/金额，状态流转）** | **all** |
-| Stats | 统计报表 | all |
+| **Invoices** | **开票管理（抬头/类型/金额，状态流转）** | **所有用户** |
+| Stats | 统计报表 | 所有用户 |
 | Users | 用户管理（operator/admin/super_admin） | super_admin |
 | Settings | 系统设置（宽限期/临时费率/发票抬头预设） | super_admin |
 | Logs | 操作日志审计 | super_admin |
 
-## Invoicing
+## 发票管理
 
 - 每次交费最多关联一个开票条目（`payment_id` UNIQUE 约束）
 - 三种状态：**开票等待中** → **开票已完成** / **申请已取消**
@@ -81,7 +81,7 @@ Open http://127.0.0.1:8080
 - 发票抬头可从预设列表选择（系统设置中维护）
 - 入口：缴费记录、车辆状态页、住户详情
 
-## Project Structure
+## 项目结构
 
 ```
 parking-management/
@@ -129,30 +129,30 @@ parking-management/
 │   └── templates/             # Jinja2 模板
 ```
 
-## Troubleshooting
+## 常见问题
 
 **"No module named 'uvicorn'"** → 运行 `dev_setup.bat` 重建虚拟环境。
 
-**Port 8080 in use** → 编辑 `run.py`，将 `port=8080` 改为其他端口。
+**端口 8080 被占用** → 编辑 `run.py`，将 `port=8080` 改为其他端口。
 
-## Data Management
+## 数据管理
 
-**Database location:**
-- **Packaged mode (exe/installer):** `%APPDATA%\停车费管理系统\parking.db`
-- **Development mode:** `./data/parking.db`
+**数据库位置：**
+- **打包模式（exe/安装包）：** `%APPDATA%\停车费管理系统\parking.db`
+- **开发模式：** `./data/parking.db`
 
-The data directory is **never deleted** during uninstall, so reinstalling the app preserves all data.
+数据目录在卸载时**不会被删除**，因此重新安装应用会保留所有数据。
 
-**Custom database path:**
-1. Login as `super_admin`
-2. Go to ⚙️ System Settings → Database Management
-3. Enter a custom path for the SQLite database file
-4. Save and restart the app
+**自定义数据库路径：**
+1. 以 `super_admin` 身份登录
+2. 进入 ⚙️ 系统设置 → 数据库管理
+3. 输入 SQLite 数据库文件的自定义路径
+4. 保存并重启应用
 
-**Environment variable override:**
+**环境变量覆盖：**
 ```cmd
 set PARKING_DB_URL=sqlite:///D:\data\my_parking.db
 python run.py
 ```
 
-**Schema upgrades:** The app auto-applies schema migrations on startup, so upgrading the app version preserves existing data without manual intervention.
+**Schema 升级：** 应用在启动时自动应用 schema 迁移，升级应用版本无需手动干预即可保留现有数据。
