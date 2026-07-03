@@ -15,7 +15,7 @@
 
 #### Option 1: Windows 安装包（推荐）
 
-运行 `installer\停车费管理系统_安装程序.exe` 一键安装，自动创建开始菜单和桌面快捷方式，自带卸载程序。
+运行 `installer\ParkManSetup.exe` 一键安装，自动创建开始菜单和桌面快捷方式，自带卸载程序。
 
 **制作安装包：** 需要先安装 [Inno Setup 6](https://jrsoftware.org/isdl.php)，然后双击：
 ```cmd
@@ -24,7 +24,7 @@ build_installer.bat
 
 #### Option 2: 单文件 exe 便携版
 
-直接双击 `dist\停车管理系统.exe`，无需安装，等待数秒即可在浏览器中自动打开系统。
+直接双击 `dist\parkman.exe`，无需安装，等待数秒即可在浏览器中自动打开系统。
 - 无需安装 Python
 - 数据库自动创建在用户数据目录（`%APPDATA%\停车费管理系统\parking.db`）
 - 关闭控制台窗口即停止服务
@@ -48,8 +48,8 @@ Open http://127.0.0.1:8080
 修改源码后：
 | 命令 | 产物 |
 |------|------|
-| `build_exe.bat` | `dist\停车管理系统.exe` |
-| `build_installer.bat` | `installer\停车费管理系统_安装程序.exe` |
+| `build_exe.bat` | `dist\parkman.exe` |
+| `build_installer.bat` | `installer\ParkManSetup.exe` |
 
 ## Default Login
 
@@ -96,7 +96,7 @@ parking-management/
 │   ├── parking.db             # SQLite 数据库
 │   └── config.json            # 数据库路径配置
 ├── dist/                      # exe 输出目录
-│   └── 停车管理系统.exe
+│   └── parkman.exe
 ├── 启动说明.md
 ├── 停车费管理系统_规格说明书.md
 ├── app/
