@@ -11,6 +11,10 @@
     .clickable-row:hover {
         background-color: #e3f2fd !important;
     }
+    .vehicle-list-scroll { max-height: calc(100vh - 220px); overflow-y: auto; }
+    .status-card { cursor: pointer; transition: outline 0.15s; outline: 2px solid transparent; }
+    .status-card:hover { outline: 2px solid rgba(0,0,0,0.3); }
+    .status-card.active { outline: 2px solid #000; }
 </style>
 <div class="row mb-4">
     <div class="col">
@@ -22,56 +26,78 @@
     </div>
 </div>
 
-<div class="row mb-3">
+<div class="row mb-2 g-2">
     <div class="col">
-        <div class="card bg-success text-white">
-            <div class="card-body text-center">
-                <div class="text-4xl mb-2">🟢</div>
-                <div class="text-2xl font-bold">{{ free_vehicles|length }}</div>
-                <div class="text-sm">免费</div>
+        <div class="card bg-success text-white status-card" data-category="free" onclick="toggleCategory('free')">
+            <div class="card-body py-2">
+                <div class="row align-items-center">
+                    <div class="col">
+                        <div class="text-sm">免费</div>
+                        <div class="text-2xl font-bold">{{ free_vehicles|length }}</div>
+                    </div>
+                    <div class="col-auto">🟢</div>
+                </div>
             </div>
         </div>
     </div>
     <div class="col">
-        <div class="card bg-secondary text-white">
-            <div class="card-body text-center">
-                <div class="text-4xl mb-2">⚪</div>
-                <div class="text-2xl font-bold">{{ paused_vehicles|length }}</div>
-                <div class="text-sm">暂停</div>
+        <div class="card bg-secondary text-white status-card" data-category="paused" onclick="toggleCategory('paused')">
+            <div class="card-body py-2">
+                <div class="row align-items-center">
+                    <div class="col">
+                        <div class="text-sm">暂停</div>
+                        <div class="text-2xl font-bold">{{ paused_vehicles|length }}</div>
+                    </div>
+                    <div class="col-auto">⚪</div>
+                </div>
             </div>
         </div>
     </div>
     <div class="col">
-        <div class="card bg-primary text-white">
-            <div class="card-body text-center">
-                <div class="text-4xl mb-2">🔵</div>
-                <div class="text-2xl font-bold">{{ contract_vehicles|length }}</div>
-                <div class="text-sm">合约</div>
+        <div class="card bg-primary text-white status-card" data-category="contract" onclick="toggleCategory('contract')">
+            <div class="card-body py-2">
+                <div class="row align-items-center">
+                    <div class="col">
+                        <div class="text-sm">合约</div>
+                        <div class="text-2xl font-bold">{{ contract_vehicles|length }}</div>
+                    </div>
+                    <div class="col-auto">🔵</div>
+                </div>
             </div>
         </div>
     </div>
     <div class="col">
-        <div class="card bg-warning text-white">
-            <div class="card-body text-center">
-                <div class="text-4xl mb-2">🟡</div>
-                <div class="text-2xl font-bold">{{ temp_vehicles|length }}</div>
-                <div class="text-sm">临时</div>
+        <div class="card bg-warning text-white status-card" data-category="temp" onclick="toggleCategory('temp')">
+            <div class="card-body py-2">
+                <div class="row align-items-center">
+                    <div class="col">
+                        <div class="text-sm">临时</div>
+                        <div class="text-2xl font-bold">{{ temp_vehicles|length }}</div>
+                    </div>
+                    <div class="col-auto">🟡</div>
+                </div>
             </div>
         </div>
     </div>
     <div class="col">
-        <div class="card bg-danger text-white">
-            <div class="card-body text-center">
-                <div class="text-4xl mb-2">🔴</div>
-                <div class="text-2xl font-bold">{{ expired_vehicles|length }}</div>
-                <div class="text-sm">过期</div>
+        <div class="card bg-danger text-white status-card" data-category="expired" onclick="toggleCategory('expired')">
+            <div class="card-body py-2">
+                <div class="row align-items-center">
+                    <div class="col">
+                        <div class="text-sm">过期</div>
+                        <div class="text-2xl font-bold">{{ expired_vehicles|length }}</div>
+                    </div>
+                    <div class="col-auto">🔴</div>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
+<div class="vehicle-list-scroll">
+
 {% if free_vehicles %}
-<div class="card mb-4">
+<div class="card mb-4 vehicle-section" data-category="free">
     <div class="card-header bg-success text-white">🟢 免费 ({{ free_vehicles|length }})</div>
     <div class="card-body">
                 <table class="table table-striped">
@@ -111,7 +137,7 @@
 {% endif %}
 
 {% if paused_vehicles %}
-<div class="card mb-4">
+<div class="card mb-4 vehicle-section" data-category="paused">
     <div class="card-header bg-secondary text-white">⚪ 暂停 ({{ paused_vehicles|length }})</div>
     <div class="card-body">
                 <table class="table table-striped">
@@ -147,7 +173,7 @@
 {% endif %}
 
 {% if contract_vehicles %}
-<div class="card mb-4">
+<div class="card mb-4 vehicle-section" data-category="contract">
     <div class="card-header bg-primary text-white">🔵 合约 ({{ contract_vehicles|length }})</div>
     <div class="card-body">
                 <table class="table table-striped">
@@ -185,7 +211,7 @@
 {% endif %}
 
 {% if temp_vehicles %}
-<div class="card mb-4">
+<div class="card mb-4 vehicle-section" data-category="temp">
     <div class="card-header bg-warning text-white">🟡 临时 ({{ temp_vehicles|length }})</div>
     <div class="card-body">
                 <table class="table table-striped">
@@ -221,7 +247,7 @@
 {% endif %}
 
 {% if expired_vehicles %}
-<div class="card">
+<div class="card vehicle-section" data-category="expired">
     <div class="card-header bg-danger text-white">🔴 过期 ({{ expired_vehicles|length }})</div>
     <div class="card-body">
                 <table class="table table-striped">
@@ -260,6 +286,8 @@
 </div>
 {% endif %}
 
+</div>
+
 {% if not free_vehicles and not paused_vehicles and not contract_vehicles and not temp_vehicles and not expired_vehicles %}
 <div class="card">
     <div class="card-body text-center text-muted">
@@ -269,6 +297,21 @@
 {% endif %}
 
 <script>
+function toggleCategory(category) {
+    var cards = document.querySelectorAll('.status-card');
+    var sections = document.querySelectorAll('.vehicle-section');
+    var activeCard = document.querySelector('.status-card[data-category="' + category + '"]');
+    if (activeCard.classList.contains('active')) {
+        activeCard.classList.remove('active');
+        sections.forEach(function(s) { s.style.display = ''; });
+    } else {
+        cards.forEach(function(c) { c.classList.remove('active'); });
+        activeCard.classList.add('active');
+        sections.forEach(function(s) {
+            s.style.display = s.dataset.category === category ? '' : 'none';
+        });
+    }
+}
 document.addEventListener('DOMContentLoaded', function() {
     document.addEventListener('dblclick', function(e) {
         var row = e.target.closest('.clickable-row');
