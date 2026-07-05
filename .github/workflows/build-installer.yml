@@ -58,12 +58,12 @@ jobs:
       - name: 构建安装包
         shell: pwsh
         run: |
-          iscc /DMyAppVersion="${{ steps.version.outputs.version }}" installer.iss
+          iscc /DMyAppVersion="${{ steps.version.outputs.version }}" /DMyOutputBaseFileName="ParkMan_Setup_v${{ steps.version.outputs.version }}" installer.iss
 
       - name: 上传安装包
         uses: actions/upload-artifact@v5
         with:
-          name: ParkManSetup_${{ steps.version.outputs.version }}
+          name: ParkMan_Setup_v${{ steps.version.outputs.version }}
           path: installer/*.exe
 
       - name: 上传安装包到 Release

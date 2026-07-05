@@ -9,6 +9,10 @@
 #define MyAppURL "http://127.0.0.1:8080"
 #define MyAppExeName "parkman.exe"
 
+#ifndef MyOutputBaseFileName
+#define MyOutputBaseFileName "ParkManSetup"
+#endif
+
 [Setup]
 ; 安装到用户目录，无需管理员权限
 AppName={#MyAppName}
@@ -20,7 +24,7 @@ UninstallDisplayIcon={app}\{#MyAppExeName}
 Compression=lzma2
 SolidCompression=yes
 OutputDir=installer
-OutputBaseFileName=ParkManSetup
+OutputBaseFileName={#MyOutputBaseFileName}
 PrivilegesRequired=lowest
 PrivilegesRequiredOverridesAllowed=dialog
 DisableProgramGroupPage=yes

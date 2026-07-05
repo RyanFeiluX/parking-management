@@ -105,7 +105,8 @@ if defined VERSION_RAW (
 echo Using: %ISCC%
 if defined APP_VERSION (
     echo Version: %APP_VERSION% ^(from app/__init__.py^)
-    "%ISCC%" /DMyAppVersion="%APP_VERSION%" installer.iss
+    set "OUTPUT_NAME=ParkMan_Setup_v%APP_VERSION%"
+    "%ISCC%" /DMyAppVersion="%APP_VERSION%" /DMyOutputBaseFileName="!OUTPUT_NAME!" installer.iss
 ) else (
     echo Warning: could not parse version from app/__init__.py, using default
     "%ISCC%" installer.iss

@@ -19,7 +19,7 @@
 
 **制作安装包：** 需要先安装 [Inno Setup 6](https://jrsoftware.org/isdl.php)，然后双击：
 ```cmd
-build_installer.bat
+build-installer.bat
 ```
 
 #### 方式二：单文件 exe 便携版
@@ -49,7 +49,7 @@ build_installer.bat
 | 命令 | 产物 |
 |------|------|
 | `build_exe.bat` | `dist\parkman.exe` |
-| `build_installer.bat` | `installer\ParkManSetup.exe` |
+| `build-installer.bat` | `installer\ParkManSetup.exe` |
 
 ## 默认登录
 
@@ -88,7 +88,7 @@ parking-management/
 ├── start.bat                  # 启动应用（自动检测 venv）
 ├── dev_setup.bat              # 一键搭建开发环境（创建 venv + 安装依赖）
 ├── build_exe.bat              # 打包为单文件 exe
-├── build_installer.bat        # 制作 Windows 安装包
+├── build-installer.bat        # 制作 Windows 安装包
 ├── installer.iss              # Inno Setup 安装脚本
 ├── run.py                     # Python 入口
 ├── requirements.txt           # 依赖列表

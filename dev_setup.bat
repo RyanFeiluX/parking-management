@@ -42,6 +42,6 @@ echo ================================================
 echo.
 echo  启动应用: 双击 start.bat
 echo  打包 exe: 双击 build_exe.bat
-echo  制作安装包: 双击 build_installer.bat
+echo  制作安装包: 双击 build-installer.bat
 echo.
 pause
