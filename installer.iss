@@ -32,7 +32,7 @@ DisableDirPage=no
 DisableFinishedPage=no
 
 [Languages]
-Name: "chinese"; MessagesFile: "compiler:Default.isl"
+Name: "chinese"; MessagesFile: "app\language\ChineseSimplified.isl"
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Tasks]
