@@ -42,4 +42,3 @@ if exist "dist\parkman.exe" (
     echo Build failed, please check error messages above.
 )
 echo ================================================
-pause

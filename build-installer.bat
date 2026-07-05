@@ -7,33 +7,15 @@ echo  Parking Management System - Build Installer
 echo ================================================
 echo.
 
-REM === Find Python ===
-if exist "venv\Scripts\python.exe" (set "PYTHON=venv\Scripts\python.exe") else (set "PYTHON=python.exe")
-echo Using Python: %PYTHON%
-
 echo.
-echo [1/2] Checking if exe is already built...
+echo [1/2] Building exe using build_exe.bat...
+echo.
 
-REM === Check if exe exists, build if not ===
+call build_exe.bat
 if not exist "dist\parkman.exe" (
-    echo EXE not found, running PyInstaller...
-    echo.
-    echo Installing PyInstaller...
-    "%PYTHON%" -m pip install pyinstaller -q
-
-    echo Cleaning cache...
-    rd /s /q app\__pycache__ app\routers\__pycache__ 2>nul
-
-    echo Building exe...
-    "%PYTHON%" -m PyInstaller --onefile --console --name "parkman" --add-data "app;app" --hidden-import secrets --hidden-import traceback --hidden-import passlib.handlers.bcrypt --hidden-import passlib.handlers.sha2_crypt --hidden-import bcrypt --collect-all passlib run.py
-
-    if not exist "dist\parkman.exe" (
-        echo PyInstaller build failed!
-        pause
-        exit /b 1
-    )
-) else (
-    echo Found dist\parkman.exe
+    echo PyInstaller build failed!
+    pause
+    exit /b 1
 )
 
 echo.
