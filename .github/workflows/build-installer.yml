@@ -79,7 +79,7 @@ jobs:
           } else {
             Write-Host "Release $tag does not exist, creating new release..."
             gh release create $tag installer/*.exe `
-              --title "停车费管理系统 v$ver" `
+              --title "ParkMan v$ver" `
               --notes "## 停车费管理系统 v$ver`n`n自动构建安装包。" `
               --latest
           }
