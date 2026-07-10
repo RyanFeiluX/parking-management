@@ -78,10 +78,9 @@ jobs:
             gh release upload $tag installer/*.exe --clobber
           } else {
             Write-Host "Release $tag does not exist, creating new release..."
-            gh release create $tag installer/*.exe `
-              --title "ParkMan v$ver" `
-              # --notes "## ParkMan v$ver`n`n自动构建安装包。" `
-              --latest
+          gh release create $tag installer/*.exe `
+            --title "ParkMan v$ver" `
+            --latest
           }
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
