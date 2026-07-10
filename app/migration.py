@@ -8,8 +8,12 @@ SCHEMA_VERSION = 5
 def run_v3(engine):
     """新增收据日期和收据编号字段"""
     with engine.connect() as conn:
-        conn.execute(text("ALTER TABLE payment_records ADD COLUMN receipt_date DATE"))
-        conn.execute(text("ALTER TABLE payment_records ADD COLUMN receipt_number VARCHAR(50)"))
+        cursor = conn.execute(text("PRAGMA table_info(payment_records)"))
+        cols = {row[1] for row in cursor.fetchall()}
+        if "receipt_date" not in cols:
+            conn.execute(text("ALTER TABLE payment_records ADD COLUMN receipt_date DATE"))
+        if "receipt_number" not in cols:
+            conn.execute(text("ALTER TABLE payment_records ADD COLUMN receipt_number VARCHAR(50)"))
         conn.execute(text("UPDATE payment_records SET receipt_date = date(paid_on) WHERE receipt_date IS NULL"))
         conn.execute(text("UPDATE payment_records SET receipt_number = '' WHERE receipt_number IS NULL"))
         conn.commit()
@@ -27,6 +31,10 @@ def run_v4(engine):
 def run_v5(engine):
     """将 paid_on 从 DateTime 转为 Date（去除时间部分）"""
     with engine.connect() as conn:
+        cursor = conn.execute(text("SELECT 1 FROM payment_records WHERE paid_on LIKE '%:%' LIMIT 1"))
+        needs_convert = cursor.fetchone() is not None
+        if not needs_convert:
+            return
         conn.execute(text("ALTER TABLE payment_records ADD COLUMN paid_on_new DATE"))
         conn.execute(text("UPDATE payment_records SET paid_on_new = date(paid_on)"))
         conn.execute(text("ALTER TABLE payment_records DROP COLUMN paid_on"))

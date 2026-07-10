@@ -35,26 +35,35 @@ def init_default_settings(db: Session):
             db.add(SystemSetting(**s))
     db.commit()
 
-ensure_user_data_dir()
-Base.metadata.create_all(bind=engine)
-run_migrations(engine)
+try:
+    ensure_user_data_dir()
+    Base.metadata.create_all(bind=engine)
+    run_migrations(engine)
 
-from .database import SessionLocal
-_db = SessionLocal()
-if _db.query(User).count() == 0:
-    admin_user = User(
-        username="admin",
-        display_name="超级管理员",
-        password_hash=get_password_hash("password123"),
-        role="super_admin",
-        is_active=True,
-        created_at=datetime.now()
-    )
-    _db.add(admin_user)
-    init_default_settings(_db)
-    _db.commit()
-    print("[初始化] 默认超级管理员已创建: admin / password123")
-_db.close()
+    from .database import SessionLocal
+    _db = SessionLocal()
+    if _db.query(User).count() == 0:
+        admin_user = User(
+            username="admin",
+            display_name="超级管理员",
+            password_hash=get_password_hash("password123"),
+            role="super_admin",
+            is_active=True,
+            created_at=datetime.now()
+        )
+        _db.add(admin_user)
+        init_default_settings(_db)
+        _db.commit()
+        print("[初始化] 默认超级管理员已创建: admin / password123")
+    _db.close()
+except Exception:
+    import traceback
+    log_path = ensure_user_data_dir() / 'error.log'
+    with open(log_path, 'w', encoding='utf-8') as f:
+        f.write(f"启动异常时间: {datetime.now()}\n\n")
+        traceback.print_exc(file=f)
+    print(f"[错误] 启动失败，详情请查看: {log_path}")
+    raise
 
 @app.middleware("http")
 async def db_session_middleware(request: Request, call_next):
