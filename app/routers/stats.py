@@ -41,12 +41,12 @@ async def stats_dashboard(request: Request, user: dict = Depends(require_login))
     user_count = db.query(User).filter_by(is_active=True).count()
     
     monthly_payment = db.query(PaymentRecord).filter(
-        PaymentRecord.paid_at >= current_month
+        PaymentRecord.receipt_date >= current_month
     ).with_entities(PaymentRecord.amount).all()
     monthly_total = float(sum(p[0] for p in monthly_payment)) if monthly_payment else 0
     
     yearly_payment = db.query(PaymentRecord).filter(
-        PaymentRecord.paid_at >= today.replace(month=1, day=1)
+        PaymentRecord.receipt_date >= today.replace(month=1, day=1)
     ).with_entities(PaymentRecord.amount).all()
     yearly_total = float(sum(p[0] for p in yearly_payment)) if yearly_payment else 0
     
@@ -55,8 +55,8 @@ async def stats_dashboard(request: Request, user: dict = Depends(require_login))
         month_start = (current_month - relativedelta(months=i)).replace(day=1)
         month_end = month_start + relativedelta(months=1)
         payments = db.query(PaymentRecord).filter(
-            PaymentRecord.paid_at >= month_start,
-            PaymentRecord.paid_at < month_end
+            PaymentRecord.receipt_date >= month_start,
+            PaymentRecord.receipt_date < month_end
         ).with_entities(PaymentRecord.amount).all()
         monthly_data.append({
             "month": month_start.strftime("%Y-%m"),

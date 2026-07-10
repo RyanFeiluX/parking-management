@@ -122,13 +122,15 @@ class PaymentRecordBase(BaseModel):
     rule_summary: Optional[str] = None
     payment_method: Optional[str] = None
     remark: Optional[str] = None
+    receipt_date: date
+    receipt_number: str
 
 class PaymentRecordCreate(PaymentRecordBase):
     operator_id: Optional[int] = None
 
 class PaymentRecordResponse(PaymentRecordBase):
     id: int
-    paid_at: datetime
+    paid_on: date
 
     class Config:
         orm_mode = True

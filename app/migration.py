@@ -1,9 +1,42 @@
+from sqlalchemy import text
+
 from .models import SystemSetting
 from .database import SessionLocal
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 5
+
+def run_v3(engine):
+    """新增收据日期和收据编号字段"""
+    with engine.connect() as conn:
+        conn.execute(text("ALTER TABLE payment_records ADD COLUMN receipt_date DATE"))
+        conn.execute(text("ALTER TABLE payment_records ADD COLUMN receipt_number VARCHAR(50)"))
+        conn.execute(text("UPDATE payment_records SET receipt_date = date(paid_on) WHERE receipt_date IS NULL"))
+        conn.execute(text("UPDATE payment_records SET receipt_number = '' WHERE receipt_number IS NULL"))
+        conn.commit()
+
+def run_v4(engine):
+    """将 paid_at 字段重命名为 paid_on"""
+    with engine.connect() as conn:
+        # 先检查 paid_at 列是否存在（兼容新库已有 paid_on）
+        cursor = conn.execute(text("PRAGMA table_info(payment_records)"))
+        cols = {row[1] for row in cursor.fetchall()}
+        if "paid_at" in cols and "paid_on" not in cols:
+            conn.execute(text("ALTER TABLE payment_records RENAME COLUMN paid_at TO paid_on"))
+            conn.commit()
+
+def run_v5(engine):
+    """将 paid_on 从 DateTime 转为 Date（去除时间部分）"""
+    with engine.connect() as conn:
+        conn.execute(text("ALTER TABLE payment_records ADD COLUMN paid_on_new DATE"))
+        conn.execute(text("UPDATE payment_records SET paid_on_new = date(paid_on)"))
+        conn.execute(text("ALTER TABLE payment_records DROP COLUMN paid_on"))
+        conn.execute(text("ALTER TABLE payment_records RENAME COLUMN paid_on_new TO paid_on"))
+        conn.commit()
 
 MIGRATIONS = {
+    3: ("新增 receipt_date 和 receipt_number 字段", run_v3),
+    4: ("将 paid_at 重命名为 paid_on", run_v4),
+    5: ("将 paid_on 从 DateTime 转为 Date", run_v5),
 }
 
 def get_current_version(db):

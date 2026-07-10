@@ -57,7 +57,8 @@ async def payment_form(request: Request, user: dict = Depends(require_login)):
         "amount_info": amount_info,
         "plate_number": plate_number,
         "period_start": today,
-        "pause_records": pause_records
+        "pause_records": pause_records,
+        "today": today
     })
 
 @router.post("/calculate")
@@ -106,7 +107,8 @@ async def calculate_amount(request: Request, user: dict = Depends(require_login)
             "plate_number": plate_number,
             "period_type": period_type,
             "months": months,
-            "period_start": period_start
+            "period_start": period_start,
+            "today": date.today()
         })
     
     from ..utils import calculate_payment_amount, check_period_overlap
@@ -135,7 +137,8 @@ async def calculate_amount(request: Request, user: dict = Depends(require_login)
         "plate_number": plate_number,
         "period_type": period_type,
         "months": months,
-        "period_start": period_start
+        "period_start": period_start,
+        "today": date.today()
     })
 
 @router.post("/pay")
@@ -147,6 +150,8 @@ async def pay(request: Request, user: dict = Depends(require_login)):
     period_start_str = form_data.get("period_start", "")
     payment_method = form_data.get("payment_method")
     remark = form_data.get("remark")
+    receipt_date_str = form_data.get("receipt_date", "")
+    receipt_number = form_data.get("receipt_number", "")
     pause_start_str = form_data.get("pause_start", "")
     pause_months = int(form_data.get("pause_months", 0))
     
@@ -164,7 +169,8 @@ async def pay(request: Request, user: dict = Depends(require_login)):
         return templates.TemplateResponse("payments/form.html", {
             "request": request,
             "current_user": user,
-            "error": "车辆不存在"
+            "error": "车辆不存在",
+            "today": date.today()
         })
     
     pause_records = db.query(VehiclePause).filter_by(vehicle_id=vehicle.id).order_by(VehiclePause.pause_start).all()
@@ -179,26 +185,30 @@ async def pay(request: Request, user: dict = Depends(require_login)):
             return templates.TemplateResponse("payments/form.html", {
                 "request": request, "current_user": user, "vehicle": vehicle,
                 "error": "设置了暂停月数但未填写暂停起始日期",
-                "pause_records": pause_records
+                "pause_records": pause_records,
+                "today": date.today()
             })
         if pause_start < date.today():
             return templates.TemplateResponse("payments/form.html", {
                 "request": request, "current_user": user, "vehicle": vehicle,
                 "error": "暂停起始日期不能早于今天",
-                "pause_records": pause_records
+                "pause_records": pause_records,
+                "today": date.today()
             })
         if pause_start < period_start or pause_start > period_end:
             return templates.TemplateResponse("payments/form.html", {
                 "request": request, "current_user": user, "vehicle": vehicle,
                 "error": "暂停起始日期必须在缴费周期范围内",
-                "pause_records": pause_records
+                "pause_records": pause_records,
+                "today": date.today()
             })
         pause_end = pause_start + relativedelta(months=pause_months) - relativedelta(days=1)
         if pause_end > period_end:
             return templates.TemplateResponse("payments/form.html", {
                 "request": request, "current_user": user, "vehicle": vehicle,
                 "error": "暂停区间超出缴费周期范围",
-                "pause_records": pause_records
+                "pause_records": pause_records,
+                "today": date.today()
             })
     
     from ..utils import calculate_payment_amount
@@ -211,9 +221,15 @@ async def pay(request: Request, user: dict = Depends(require_login)):
             "current_user": user,
             "vehicle": vehicle,
             "error": "缴费金额必须大于0",
-            "pause_records": pause_records
+            "pause_records": pause_records,
+            "today": date.today()
         })
     
+    try:
+        receipt_date = datetime.strptime(receipt_date_str, "%Y-%m-%d").date()
+    except (ValueError, TypeError):
+        receipt_date = date.today()
+
     payment = PaymentRecord(
         vehicle_id=vehicle_id,
         period_start=period_start,
@@ -223,7 +239,9 @@ async def pay(request: Request, user: dict = Depends(require_login)):
         rule_summary=amount_info.get("summary", ""),
         payment_method=payment_method,
         operator_id=user["user_id"],
-        remark=remark
+        remark=remark,
+        receipt_date=receipt_date,
+        receipt_number=receipt_number
     )
     
     db.add(payment)
@@ -258,7 +276,8 @@ async def pay(request: Request, user: dict = Depends(require_login)):
         "vehicle": vehicle,
         "success": f"缴费成功！已缴纳 {amount} 元，{period_type}{months}期（{period_start}~{period_end}）",
         "plate_number": vehicle.plate_number,
-        "pause_records": pause_records
+        "pause_records": pause_records,
+        "today": date.today()
     })
 
 @router.get("/logs")
@@ -271,12 +290,12 @@ async def payment_logs(request: Request, user: dict = Depends(require_login)):
     room_number = request.query_params.get("room_number", "")
     payment_method = request.query_params.get("payment_method", "")
     
-    query = db.query(PaymentRecord).order_by(PaymentRecord.paid_at.desc())
+    query = db.query(PaymentRecord).order_by(PaymentRecord.receipt_date.desc(), PaymentRecord.id.desc())
     
     if start_date:
-        query = query.filter(PaymentRecord.paid_at >= datetime.strptime(start_date, "%Y-%m-%d"))
+        query = query.filter(PaymentRecord.receipt_date >= datetime.strptime(start_date, "%Y-%m-%d"))
     if end_date:
-        query = query.filter(PaymentRecord.paid_at <= datetime.strptime(end_date, "%Y-%m-%d") + relativedelta(days=1))
+        query = query.filter(PaymentRecord.receipt_date <= datetime.strptime(end_date, "%Y-%m-%d") + relativedelta(days=1))
     if plate_number:
         query = query.join(Vehicle).filter(Vehicle.plate_number.ilike(f"%{plate_number}%"))
     if room_number:

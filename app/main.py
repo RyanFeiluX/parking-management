@@ -148,12 +148,12 @@ async def index(request: Request):
     vehicle_count = len(vehicles)
     
     monthly_payment = db.query(PaymentRecord).filter(
-        PaymentRecord.paid_at >= current_month
+        PaymentRecord.receipt_date >= current_month
     ).with_entities(PaymentRecord.amount).all()
     monthly_total = sum(p[0] for p in monthly_payment)
     
     yearly_payment = db.query(PaymentRecord).filter(
-        PaymentRecord.paid_at >= today.replace(month=1, day=1)
+        PaymentRecord.receipt_date >= today.replace(month=1, day=1)
     ).with_entities(PaymentRecord.amount).all()
     yearly_total = sum(p[0] for p in yearly_payment)
     

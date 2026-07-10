@@ -1,7 +1,7 @@
 from sqlalchemy import Column, Integer, String, Text, DateTime, Date, ForeignKey, Boolean, Numeric, desc
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
-from datetime import datetime
+from datetime import datetime, date
 
 from .database import Base
 
@@ -85,7 +85,9 @@ class PaymentRecord(Base):
     payment_method = Column(String(20))
     operator_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     remark = Column(Text)
-    paid_at = Column(DateTime, default=datetime.now)
+    paid_on = Column(Date, default=date.today)
+    receipt_date = Column(Date, nullable=False, default=date.today)
+    receipt_number = Column(String(50), nullable=False, default="")
     vehicle = relationship("Vehicle", back_populates="payments")
     operator = relationship("User")
     invoice = relationship("Invoice", back_populates="payments")

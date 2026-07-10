@@ -49,7 +49,8 @@
                     <thead>
                         <tr>
                             <th><input type="checkbox" id="selectAll" onchange="toggleAll(this)"></th>
-                            <th>时间</th>
+                            <th>收据日期</th>
+                            <th>收据编号</th>
                             <th>车牌号</th>
                             <th>住户</th>
                             <th>缴费周期</th>
@@ -69,7 +70,8 @@
                                 <input type="checkbox" class="payment-checkbox" value="{{ item.payment.id }}" onchange="updateMergeBtn()">
                                 {% endif %}
                             </td>
-                            <td>{{ item.payment.paid_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                            <td>{{ item.payment.receipt_date.strftime('%Y-%m-%d') }}</td>
+                            <td>{{ item.payment.receipt_number }}</td>
                             <td>{{ item.vehicle.plate_number }}</td>
                             <td>{{ item.resident.room_number if item.resident else '-' }}</td>
                             <td>{{ item.payment.period_type }}{{ item.payment.period_start.strftime('%Y-%m-%d') }}~{{ item.payment.period_end.strftime('%Y-%m-%d') }}</td>
