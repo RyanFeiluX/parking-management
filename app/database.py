@@ -23,7 +23,7 @@ def _get_database_url():
             pass
 
     ensure_user_data_dir()
-    return f"sqlite:///{get_db_path()}"
+    return f"sqlite:///{get_db_path().as_posix()}"
 
 SQLALCHEMY_DATABASE_URL = _get_database_url()
 

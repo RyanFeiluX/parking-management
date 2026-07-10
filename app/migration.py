@@ -14,7 +14,8 @@ def run_v3(engine):
             conn.execute(text("ALTER TABLE payment_records ADD COLUMN receipt_date DATE"))
         if "receipt_number" not in cols:
             conn.execute(text("ALTER TABLE payment_records ADD COLUMN receipt_number VARCHAR(50)"))
-        conn.execute(text("UPDATE payment_records SET receipt_date = date(paid_on) WHERE receipt_date IS NULL"))
+        paid_col = "paid_on" if "paid_on" in cols else "paid_at"
+        conn.execute(text(f"UPDATE payment_records SET receipt_date = date({paid_col}) WHERE receipt_date IS NULL"))
         conn.execute(text("UPDATE payment_records SET receipt_number = '' WHERE receipt_number IS NULL"))
         conn.commit()
 

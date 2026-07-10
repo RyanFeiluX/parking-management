@@ -16,7 +16,6 @@ from ._path import get_data_dir, ensure_user_data_dir
 from .migration import run_migrations
 
 app = FastAPI()
-app.mount("/static", StaticFiles(directory=os.path.join(get_data_dir(), "app/static")), name="static")
 
 @app.get("/favicon.ico")
 async def favicon():
@@ -36,6 +35,8 @@ def init_default_settings(db: Session):
     db.commit()
 
 try:
+    app.mount("/static", StaticFiles(directory=os.path.join(get_data_dir(), "app/static")), name="static")
+
     ensure_user_data_dir()
     Base.metadata.create_all(bind=engine)
     run_migrations(engine)
@@ -56,6 +57,19 @@ try:
         _db.commit()
         print("[初始化] 默认超级管理员已创建: admin / password123")
     _db.close()
+
+    from .routers import users, residents, vehicles, payments, fee_tiers, discounts, stats, logs, settings, api, invoices
+    app.include_router(users.router, prefix="/users", tags=["users"])
+    app.include_router(residents.router, prefix="/residents", tags=["residents"])
+    app.include_router(vehicles.router, prefix="/vehicles", tags=["vehicles"])
+    app.include_router(payments.router, prefix="/payments", tags=["payments"])
+    app.include_router(fee_tiers.router, prefix="/fee-tiers", tags=["fee_tiers"])
+    app.include_router(discounts.router, prefix="/discounts", tags=["discounts"])
+    app.include_router(stats.router, prefix="/stats", tags=["stats"])
+    app.include_router(logs.router, prefix="/logs", tags=["logs"])
+    app.include_router(settings.router, prefix="/settings", tags=["settings"])
+    app.include_router(api.router, prefix="/api", tags=["api"])
+    app.include_router(invoices.router, prefix="/invoices", tags=["invoices"])
 except Exception:
     import traceback
     log_path = ensure_user_data_dir() / 'error.log'
@@ -281,17 +295,3 @@ async def change_password(request: Request, user: dict = Depends(require_role("s
     db.commit()
     
     return templates.TemplateResponse("auth/change_password.html", {"request": request, "current_user": user, "success": "密码修改成功"})
-
-from .routers import users, residents, vehicles, payments, fee_tiers, discounts, stats, logs, settings, api, invoices
-
-app.include_router(users.router, prefix="/users", tags=["users"])
-app.include_router(residents.router, prefix="/residents", tags=["residents"])
-app.include_router(vehicles.router, prefix="/vehicles", tags=["vehicles"])
-app.include_router(payments.router, prefix="/payments", tags=["payments"])
-app.include_router(fee_tiers.router, prefix="/fee-tiers", tags=["fee_tiers"])
-app.include_router(discounts.router, prefix="/discounts", tags=["discounts"])
-app.include_router(stats.router, prefix="/stats", tags=["stats"])
-app.include_router(logs.router, prefix="/logs", tags=["logs"])
-app.include_router(settings.router, prefix="/settings", tags=["settings"])
-app.include_router(api.router, prefix="/api", tags=["api"])
-app.include_router(invoices.router, prefix="/invoices", tags=["invoices"])
