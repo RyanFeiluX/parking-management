@@ -66,6 +66,14 @@ jobs:
           name: ParkMan_Setup_v${{ steps.version.outputs.version }}
           path: installer/*.exe
 
+      - name: 生成 Release Notes
+        shell: pwsh
+        run: |
+          python tools/generate_release_notes.py `
+            --current-tag "${{ steps.version.outputs.tag }}" `
+            --repo-url "${{ github.server_url }}/${{ github.repository }}" `
+            --output release_notes.md
+
       - name: 上传安装包到 Release
         shell: pwsh
         run: |
@@ -78,9 +86,10 @@ jobs:
             gh release upload $tag installer/*.exe --clobber
           } else {
             Write-Host "Release $tag does not exist, creating new release..."
-          gh release create $tag installer/*.exe `
-            --title "ParkMan v$ver" `
-            --latest
+            gh release create $tag installer/*.exe `
+              --title "ParkMan v$ver" `
+              --notes-file release_notes.md `
+              --latest
           }
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
