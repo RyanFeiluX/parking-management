@@ -84,6 +84,14 @@ except Exception:
 async def db_session_middleware(request: Request, call_next):
     request.state.db = next(get_db())
     try:
+        request.state.community_address = ""
+        try:
+            from .models import SystemSetting
+            setting = request.state.db.query(SystemSetting).filter_by(key="community_address").first()
+            if setting:
+                request.state.community_address = setting.value or ""
+        except Exception:
+            request.state.community_address = ""
         response = await call_next(request)
         return response
     except Exception as e:

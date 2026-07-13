@@ -4,6 +4,9 @@
 {% block header %}首页仪表盘{% endblock %}
 
 {% block content %}
+{% if community_address %}
+<div class="text-muted mb-3"><small>{{ community_address }}</small></div>
+{% endif %}
 <div class="row">
     <div class="col-lg-3 col-md-6 mb-4">
         <div class="card bg-success text-white">

@@ -13,6 +13,8 @@ class _CompatTemplates:
 
     def TemplateResponse(self, name, context, status_code=200, headers=None, media_type=None, background=None):
         request = context.get("request")
+        if request and hasattr(request.state, 'community_address') and 'community_address' not in context:
+            context['community_address'] = request.state.community_address
         return self._inner.TemplateResponse(
             request, name, context,
             status_code=status_code, headers=headers,

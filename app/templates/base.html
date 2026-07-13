@@ -32,7 +32,10 @@
         <div class="row">
             <nav class="app-sidebar d-none d-md-block bg-light sidebar">
                 <div class="sidebar-sticky pt-3">
-                    <h5 class="px-3 pb-2 border-bottom">停车费管理系统</h5>
+                    <h5 class="px-3 pb-0 border-bottom">停车费管理系统</h5>
+                    {% if community_address %}
+                    <div class="px-3 py-1 small text-muted border-bottom">{{ community_address }}</div>
+                    {% endif %}
                     <ul class="nav flex-column">
                         <li class="nav-item">
                             <a class="nav-link {% if request.url.path == '/' %}active{% endif %}" href="/">🏠 首页</a>
