@@ -20,6 +20,7 @@ echo.
 
 "%PYTHON%" -m PyInstaller --onefile --console ^
   --name "parkman" ^
+  --icon "app\static\favicon.ico" ^
   --add-data "app;app" ^
   --hidden-import secrets ^
   --hidden-import traceback ^
