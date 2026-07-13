@@ -26,6 +26,7 @@ def init_default_settings(db: Session):
         {"key": "grace_period_days", "value": "15", "description": "车辆过期宽限期(天)"},
         {"key": "api_token", "value": "", "description": "外部API访问令牌"},
         {"key": "company_name", "value": "小区停车管理系统", "description": "系统标题"},
+        {"key": "community_address", "value": "", "description": "小区地址（开票备注中使用）"},
         {"key": "temp_parking_rules", "value": '{"free_minutes": 30, "daily_cap": 20.00, "tiers": [{"from_hours": 0, "to_hours": 1, "fee": 0}, {"from_hours": 1, "to_hours": 2, "fee": 5}, {"from_hours": 2, "to_hours": 12, "fee": 10}, {"from_hours": 12, "to_hours": 24, "fee": 20}], "overflow": "daily_reset"}', "description": "临时停车费率规则"}
     ]
     for s in settings:

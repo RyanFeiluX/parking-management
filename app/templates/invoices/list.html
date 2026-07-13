@@ -9,6 +9,10 @@
     .table-invoice .btn-sm { font-size: 0.75rem; padding: 0.15rem 0.3rem; }
     .table-invoice .badge { font-size: 0.7rem; }
     .table-invoice td, .table-invoice th { padding: 0.3rem 0.4rem; }
+    .table-invoice .col-title { min-width: 4ch; }
+    .table-invoice .col-tax-id,
+    .table-invoice .col-invoice-no,
+    .table-invoice .col-email { min-width: 4ch; word-break: break-word; white-space: normal; }
     .filter-bar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
     .filter-col-status { flex: 0 0 12%; }
     .filter-col-type { flex: 0 0 10%; }
@@ -67,12 +71,12 @@
                             <th>申请时间</th>
                             <th>车牌号</th>
                             <th>房号</th>
-                            <th>缴费期间（笔数）</th>
-                            <th>发票抬头</th>
-                            <th>税号</th>
-                            <th>发票编号</th>
+                            <th>缴费时段</th>
+                            <th class="col-title">发票抬头</th>
+                            <th class="col-tax-id">税号</th>
+                            <th class="col-invoice-no">发票编号</th>
                             <th>电话</th>
-                            <th>邮箱</th>
+                            <th class="col-email">邮箱</th>
                             <th>类型</th>
                             <th>金额</th>
                             <th>状态</th>
@@ -101,11 +105,11 @@
                                 -
                                 {% endif %}
                             </td>
-                            <td>{{ item.invoice.title }}</td>
-                            <td>{{ item.invoice.tax_id or '-' }}</td>
-                            <td>{{ item.invoice.invoice_number or '-' }}</td>
+                            <td class="col-title">{{ item.invoice.title }}</td>
+                            <td class="col-tax-id">{{ item.invoice.tax_id or '-' }}</td>
+                            <td class="col-invoice-no">{{ item.invoice.invoice_number or '-' }}</td>
                             <td>{{ item.invoice.phone or '-' }}</td>
-                            <td>{{ item.invoice.email or '-' }}</td>
+                            <td class="col-email">{{ item.invoice.email or '-' }}</td>
                             <td>
                                 {% if item.invoice.invoice_type == '专票' %}
                                 <span class="badge bg-info">专票</span>

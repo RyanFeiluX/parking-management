@@ -8,6 +8,7 @@ import json
 from urllib.parse import quote
 
 from ..models import Invoice, PaymentRecord, Vehicle, Resident, User, OperationLog, SystemSetting, VehiclePause
+from ..utils import get_system_setting
 from ..deps import require_role, require_login
 from ..jinja import templates
 
@@ -161,9 +162,11 @@ async def export_invoices(request: Request, user: dict = Depends(require_login))
     invoices = query.all()
     invoice_data = build_invoice_data(db, invoices)
 
+    community_address = get_system_setting(db, "community_address", "")
+
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(["申请时间", "车牌号", "房号", "笔数", "缴费期间", "发票抬头", "税号", "发票编号", "电话", "邮箱", "类型", "金额", "状态"])
+    writer.writerow(["申请时间", "车牌号", "房号", "笔数", "缴费期间", "发票抬头", "税号", "发票编号", "电话", "邮箱", "类型", "价税合计", "状态", "备注"])
 
     for item in invoice_data:
         inv = item["invoice"]
@@ -182,6 +185,8 @@ async def export_invoices(request: Request, user: dict = Depends(require_login))
         else:
             period = ""
 
+        remark = f"租赁地址：{community_address}；租赁时间段:{period}" if community_address else ""
+
         writer.writerow([
             inv.created_at.strftime("%Y-%m-%d %H:%M") if inv.created_at else "",
             "、".join(item["plates"]) if item["plates"] else "-",
@@ -195,7 +200,8 @@ async def export_invoices(request: Request, user: dict = Depends(require_login))
             inv.email or "",
             inv.invoice_type or "",
             float(inv.amount) if inv.amount else 0,
-            inv.status or ""
+            inv.status or "",
+            remark
         ])
 
     output.seek(0)

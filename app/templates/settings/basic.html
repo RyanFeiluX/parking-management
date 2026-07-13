@@ -39,6 +39,12 @@
                         </div>
                     </div>
                     <div class="row mb-3 align-items-center">
+                        <label class="col-sm-3 col-form-label">小区地址</label>
+                        <div class="col-sm-9">
+                            <input type="text" name="community_address" class="form-control" value="{{ community_address.value }}" placeholder="例如：杭州市滨江区浦沿街道之江花园小区">
+                        </div>
+                    </div>
+                    <div class="row mb-3 align-items-center">
                         <label class="col-sm-3 col-form-label">车辆过期宽限期（天）</label>
                         <div class="col-sm-9">
                             <input type="number" name="grace_period_days" class="form-control" value="{{ grace_period.value }}" min="0" max="365">
@@ -315,7 +321,7 @@
         }, 0);
         
         // 监听基本设置字段变化
-        document.getElementById('settingsForm').querySelectorAll('input[name="company_name"], input[name="grace_period_days"], input[name="area_options"]').forEach(el => {
+        document.getElementById('settingsForm').querySelectorAll('input[name="company_name"], input[name="community_address"], input[name="grace_period_days"], input[name="area_options"]').forEach(el => {
             el.addEventListener('input', checkChanges);
             el.addEventListener('change', checkChanges);
         });

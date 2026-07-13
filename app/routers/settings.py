@@ -38,6 +38,7 @@ async def basic_settings_page(request: Request, user: dict = Depends(require_rol
     
     grace_period = get_or_create_setting(db, "grace_period_days", "15", "车辆过期宽限期(天)")
     company_name = get_or_create_setting(db, "company_name", "小区停车管理系统", "系统标题")
+    community_address = get_or_create_setting(db, "community_address", "", "小区地址（开票备注中使用）")
     area_options = get_or_create_setting(db, "area_options", "之荣径,之泰径", "区域选项，多个选项用逗号分隔")
     
     # 默认规则
@@ -64,6 +65,7 @@ async def basic_settings_page(request: Request, user: dict = Depends(require_rol
         "current_user": user,
         "grace_period": grace_period,
         "company_name": company_name,
+        "community_address": community_address,
         "area_options": area_options,
         "room_format_patterns": room_format_patterns,
         "rules_json_str": json.dumps(rules_json),
@@ -162,7 +164,10 @@ async def save_settings(request: Request, user: dict = Depends(require_role("sup
     
     company_name = get_or_create_setting(db, "company_name", "")
     company_name.value = form_data.get("company_name", "")
-    
+
+    community_address = get_or_create_setting(db, "community_address", "")
+    community_address.value = form_data.get("community_address", "")
+
     area_options = get_or_create_setting(db, "area_options", "之荣径,之泰径")
     area_options.value = form_data.get("area_options", "之荣径,之泰径")
     
@@ -180,6 +185,7 @@ async def save_settings(request: Request, user: dict = Depends(require_role("sup
         "current_user": user,
         "grace_period": grace_period,
         "company_name": company_name,
+        "community_address": community_address,
         "area_options": area_options,
         "room_format_patterns": room_format_patterns,
         "rules_json_str": json.dumps(rules_json),
