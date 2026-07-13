@@ -64,7 +64,7 @@ build-installer.bat
 | Dashboard | 首页仪表盘，车辆状态/收费统计 | 所有用户 |
 | Residents | 住户管理（房号/业主/电话） | admin+ |
 | Vehicles | 车辆管理（一户多车/排序） | admin+ |
-| Payments | 包月缴费（月/季/年），金额自动计算 | 所有用户 |
+| Payments | 包月缴费（包月/包季/包年），金额自动计算 | 所有用户 |
 | Fee Tiers | 收费档位配置（版本化管理） | admin+ |
 | Discounts | 优惠策略配置（新能源折扣/免费等） | admin+ |
 | **Invoices** | **开票管理（抬头/类型/金额，状态流转）** | **所有用户** |

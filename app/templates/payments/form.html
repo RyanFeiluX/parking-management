@@ -170,9 +170,9 @@
                     <div class="mb-3">
                         <label class="form-label">缴费周期</label>
                         <select name="period_type" class="form-control" onchange="recalc()">
-                            <option value="月" {% if period_type == '月' %}selected{% endif %}>月缴</option>
-                            <option value="季" {% if period_type == '季' %}selected{% endif %}>季缴</option>
-                            <option value="年" {% if period_type == '年' %}selected{% endif %}>年缴</option>
+                            <option value="月" {% if period_type == '月' %}selected{% endif %}>包月</option>
+                            <option value="季" {% if period_type == '季' %}selected{% endif %}>包季</option>
+                            <option value="年" {% if period_type == '年' %}selected{% endif %}>包年</option>
                         </select>
                     </div>
                     <div class="mb-3">
