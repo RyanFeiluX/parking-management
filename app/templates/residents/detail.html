@@ -46,6 +46,7 @@
                 <table class="table table-striped">
                     <thead>
                         <tr>
+                            <th>序号</th>
                             <th>车辆编号</th>
                             <th>车牌号</th>
                             <th>品牌/颜色</th>
@@ -58,6 +59,7 @@
                     <tbody>
                         {% for item in vehicles %}
                         <tr>
+                            <td>{{ loop.index }}</td>
                             <td>{{ item.vehicle.sort_order }}</td>
                             <td>
                                 {{ item.vehicle.plate_number }}

@@ -13,11 +13,11 @@
                 {% endif %}
                 <form method="post">
                     <div class="mb-3">
-                        <label class="form-label">序号起始</label>
+                        <label class="form-label">车辆编号起始</label>
                         <input type="number" name="seq_from" class="form-control" value="{{ tier.seq_from if tier else '' }}" required>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">序号截止</label>
+                        <label class="form-label">车辆编号截止</label>
                         <input type="number" name="seq_to" class="form-control" value="{{ tier.seq_to if tier else '' }}" required>
                     </div>
                     <div class="mb-3">
