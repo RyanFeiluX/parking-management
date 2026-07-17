@@ -39,6 +39,7 @@ async def add_vehicle(request: Request, resident_id: int, user: dict = Depends(r
     brand = form_data.get("brand")
     color = form_data.get("color")
     vehicle_type = form_data.get("vehicle_type", "小车")
+    remark = form_data.get("remark", "").strip() or None
     is_garage = form_data.get("is_garage") == "on"
     garage_number = form_data.get("garage_number", "").strip() or None
     garage_valid_until_str = form_data.get("garage_valid_until")
@@ -109,7 +110,8 @@ async def add_vehicle(request: Request, resident_id: int, user: dict = Depends(r
         resident_id=resident_id,
         is_garage=is_garage,
         garage_number=garage_number if is_garage else None,
-        garage_valid_until=garage_valid_until if is_garage else None
+        garage_valid_until=garage_valid_until if is_garage else None,
+        remark=remark
     )
     db.add(vehicle)
     db.commit()
@@ -191,6 +193,7 @@ async def edit_vehicle(request: Request, vehicle_id: int, user: dict = Depends(r
     color = form_data.get("color")
     vehicle_type = form_data.get("vehicle_type")
     status = form_data.get("status")
+    remark = form_data.get("remark", "").strip() or None
     is_garage = form_data.get("is_garage") == "on"
     garage_number = form_data.get("garage_number", "").strip() or None
     garage_valid_until_str = form_data.get("garage_valid_until")
@@ -265,6 +268,7 @@ async def edit_vehicle(request: Request, vehicle_id: int, user: dict = Depends(r
     vehicle.color = color
     vehicle.vehicle_type = vehicle_type
     vehicle.status = status
+    vehicle.remark = remark
     vehicle.is_garage = is_garage
     vehicle.garage_number = garage_number if is_garage else None
     vehicle.garage_valid_until = garage_valid_until if is_garage else None

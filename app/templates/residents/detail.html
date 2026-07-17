@@ -49,6 +49,7 @@
                             <th>序号</th>
                             <th>车辆编号</th>
                             <th>车牌号</th>
+                            <th>备注</th>
                             <th>品牌/颜色</th>
                             <th>类型</th>
                             <th>月费</th>
@@ -67,6 +68,7 @@
                                 <span class="badge bg-info ms-1">车库</span>
                                 {% endif %}
                             </td>
+                            <td>{{ item.vehicle.remark or '-' }}</td>
                             <td>{{ item.vehicle.brand or '-' }} / {{ item.vehicle.color or '-' }}</td>
                             <td>{{ item.vehicle.vehicle_type }}</td>
                             <td>
@@ -302,6 +304,10 @@
                             <option value="摩托">摩托</option>
                             <option value="新能源">新能源</option>
                         </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">备注</label>
+                        <textarea name="remark" class="form-control" rows="3" placeholder="输入车辆备注信息（可选）"></textarea>
                     </div>
                     <hr>
                     <div class="mb-3">

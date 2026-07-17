@@ -49,6 +49,10 @@
                             <option value="停用" {% if vehicle.status == '停用' %}selected{% endif %}>停用</option>
                         </select>
                     </div>
+                    <div class="mb-3">
+                        <label class="form-label">备注</label>
+                        <textarea name="remark" class="form-control" rows="3" placeholder="输入车辆备注信息（可选）">{{ vehicle.remark or '' }}</textarea>
+                    </div>
                     <hr>
                     <div class="mb-3">
                         <div class="form-check">
