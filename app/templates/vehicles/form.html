@@ -22,7 +22,7 @@
                         <input type="text" name="plate_number" class="form-control" value="{{ vehicle.plate_number }}" disabled>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">车辆序号</label>
+                        <label class="form-label">车辆编号</label>
                         <input type="number" name="sort_order" class="form-control" min="1" max="8" value="{{ vehicle.sort_order }}">
                     </div>
                     <div class="mb-3">
@@ -86,17 +86,17 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">确认修改序号</h5>
+                <h5 class="modal-title">确认修改编号</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <p>修改车辆序号将影响以下车辆的序号：</p>
+                <p>修改车辆编号将影响以下车辆的编号：</p>
                 <table class="table table-sm mt-3">
                     <thead>
                         <tr>
                             <th>车牌号</th>
-                            <th>当前序号</th>
-                            <th>新序号</th>
+                            <th>当前编号</th>
+                            <th>新编号</th>
                             <th>变化</th>
                         </tr>
                     </thead>

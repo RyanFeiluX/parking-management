@@ -232,8 +232,8 @@ async def edit_vehicle(request: Request, vehicle_id: int, user: dict = Depends(r
     resident_id = vehicle.resident_id
     total_vehicles = db.query(Vehicle).filter_by(resident_id=resident_id).count()
     
-    # 限制序号范围
-    new_sort_order = max(1, min(new_sort_order, total_vehicles))
+    # 限制序号范围为1-8
+    new_sort_order = max(1, min(new_sort_order, 8))
     
     # 如果序号发生变化，调整其他车辆的序号
     if new_sort_order != current_sort_order:
@@ -249,10 +249,12 @@ async def edit_vehicle(request: Request, vehicle_id: int, user: dict = Depends(r
                 v.sort_order += 1
         else:
             # 新序号大于当前序号，将中间的车辆序号依次-1
+            # 只调整在当前序号和新序号之间的车辆
+            max_shift_sort = min(new_sort_order, total_vehicles)
             vehicles_to_shift = db.query(Vehicle).filter(
                 Vehicle.resident_id == resident_id,
                 Vehicle.sort_order > current_sort_order,
-                Vehicle.sort_order <= new_sort_order,
+                Vehicle.sort_order <= max_shift_sort,
                 Vehicle.id != vehicle.id
             ).order_by(Vehicle.sort_order.asc()).all()
             for v in vehicles_to_shift:
