@@ -191,6 +191,12 @@
                         <input type="text" id="plateInputAdd" name="plate_number" class="form-control" required maxlength="8">
                     </div>
                     
+                    <div class="mb-3">
+                        <label class="form-label">车辆序号</label>
+                        <input type="number" name="sort_order" class="form-control" min="1" max="8" value="{{ vehicles|length + 1 }}">
+                        <small class="text-muted">默认为第 {{ vehicles|length + 1 }} 辆车，可手动修改</small>
+                    </div>
+                    
                     <div class="mb-4">
                         <div class="text-muted mb-2">车牌输入键盘：</div>
                         <div class="plate-keyboard">

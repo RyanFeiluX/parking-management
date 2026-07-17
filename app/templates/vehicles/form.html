@@ -22,6 +22,10 @@
                         <input type="text" name="plate_number" class="form-control" value="{{ vehicle.plate_number }}" disabled>
                     </div>
                     <div class="mb-3">
+                        <label class="form-label">车辆序号</label>
+                        <input type="number" name="sort_order" class="form-control" min="1" max="8" value="{{ vehicle.sort_order }}">
+                    </div>
+                    <div class="mb-3">
                         <label class="form-label">品牌</label>
                         <input type="text" name="brand" class="form-control" value="{{ vehicle.brand or '' }}">
                     </div>
@@ -70,9 +74,40 @@
                             <input type="date" name="garage_valid_until" class="form-control" value="{{ vehicle.garage_valid_until.strftime('%Y-%m-%d') if vehicle.garage_valid_until else '' }}">
                         </div>
                     </div>
-                    <button type="submit" class="btn btn-primary" onclick="enableGarageInputBeforeSubmit()">保存</button>
+                    <button type="submit" class="btn btn-primary">保存</button>
                     <a href="/residents/{{ vehicle.resident_id }}" class="btn btn-secondary">取消</a>
                 </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="confirmModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">确认修改序号</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>修改车辆序号将影响以下车辆的序号：</p>
+                <table class="table table-sm mt-3">
+                    <thead>
+                        <tr>
+                            <th>车牌号</th>
+                            <th>当前序号</th>
+                            <th>新序号</th>
+                            <th>变化</th>
+                        </tr>
+                    </thead>
+                    <tbody id="affectedVehiclesBody">
+                    </tbody>
+                </table>
+                <p class="text-warning mt-3">确认继续修改？</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="confirmSubmitBtn">确认修改</button>
             </div>
         </div>
     </div>
@@ -91,6 +126,9 @@ document.getElementById('isGarage').addEventListener('change', function() {
 var garageNumber = '{{ vehicle.garage_number or "" }}';
 var roomNumber = '{{ vehicle.resident.room_number if vehicle.resident else "" }}';
 var garageUsingRoomNumber = (garageNumber && roomNumber && garageNumber === roomNumber);
+var originalSortOrder = {{ vehicle.sort_order }};
+var vehicleId = {{ vehicle.id }};
+var formSubmitted = false;
 
 function enableGarageInputBeforeSubmit() {
     var input = document.getElementById('garageNumberInput');
@@ -137,11 +175,70 @@ function toggleGarageNumber() {
     }
 }
 
-// 初始化状态
 document.addEventListener('DOMContentLoaded', function() {
     if (garageUsingRoomNumber) {
         toggleGarageNumber();
     }
+    
+    var form = document.querySelector('form');
+    form.addEventListener('submit', function(e) {
+        if (formSubmitted) {
+            return;
+        }
+        
+        enableGarageInputBeforeSubmit();
+        
+        var sortOrderInput = document.querySelector('input[name="sort_order"]');
+        var newSortOrder = parseInt(sortOrderInput.value);
+        
+        if (newSortOrder === originalSortOrder) {
+            return;
+        }
+        
+        e.preventDefault();
+        
+        fetch('/vehicles/' + vehicleId + '/sort-order-preview?new_sort=' + newSortOrder)
+            .then(function(response) {
+                return response.json();
+            })
+            .then(function(data) {
+                if (data.error) {
+                    alert(data.error);
+                    return;
+                }
+                
+                if (data.affected && data.affected.length > 0) {
+                    var tbody = document.getElementById('affectedVehiclesBody');
+                    tbody.innerHTML = '';
+                    
+                    data.affected.forEach(function(v) {
+                        var row = document.createElement('tr');
+                        row.innerHTML = '<td>' + v.plate_number + '</td>' +
+                                        '<td>' + v.current_sort + '</td>' +
+                                        '<td>' + v.new_sort + '</td>' +
+                                        '<td>' + v.change + '</td>';
+                        tbody.appendChild(row);
+                    });
+                    
+                    var modal = new bootstrap.Modal(document.getElementById('confirmModal'));
+                    modal.show();
+                } else {
+                    formSubmitted = true;
+                    form.submit();
+                }
+            })
+            .catch(function(error) {
+                console.error('Error:', error);
+                formSubmitted = true;
+                form.submit();
+            });
+    });
+    
+    document.getElementById('confirmSubmitBtn').addEventListener('click', function() {
+        enableGarageInputBeforeSubmit();
+        formSubmitted = true;
+        document.querySelector('form').submit();
+    });
 });
 </script>
 {% endblock %}

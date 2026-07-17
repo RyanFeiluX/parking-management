@@ -78,13 +78,34 @@ async def add_vehicle(request: Request, resident_id: int, user: dict = Depends(r
         except ValueError:
             pass
     
-    max_sort = current_count
+    # 处理车辆序号
+    sort_order_input = form_data.get("sort_order")
+    if sort_order_input:
+        try:
+            sort_order = int(sort_order_input)
+        except ValueError:
+            sort_order = current_count + 1
+    else:
+        sort_order = current_count + 1
+    
+    # 限制序号范围
+    sort_order = max(1, min(sort_order, current_count + 1))
+    
+    # 如果用户指定的序号已被占用，将占用该序号的车辆及之后的车辆序号依次+1
+    if sort_order <= current_count:
+        vehicles_to_shift = db.query(Vehicle).filter(
+            Vehicle.resident_id == resident_id,
+            Vehicle.sort_order >= sort_order
+        ).order_by(Vehicle.sort_order.desc()).all()
+        for v in vehicles_to_shift:
+            v.sort_order += 1
+    
     vehicle = Vehicle(
         plate_number=plate_number,
         brand=brand,
         color=color,
         vehicle_type=vehicle_type,
-        sort_order=max_sort + 1,
+        sort_order=sort_order,
         resident_id=resident_id,
         is_garage=is_garage,
         garage_number=garage_number if is_garage else None,
@@ -114,6 +135,54 @@ async def edit_vehicle_page(request: Request, vehicle_id: int, user: dict = Depe
     if not vehicle:
         return templates.TemplateResponse("residents/list.html", {"request": request, "current_user": user, "residents": db.query(Resident).all(), "error": "车辆不存在"})
     return templates.TemplateResponse("vehicles/form.html", {"request": request, "current_user": user, "vehicle": vehicle})
+
+@router.get("/{vehicle_id}/sort-order-preview")
+async def sort_order_preview(request: Request, vehicle_id: int, new_sort: int, user: dict = Depends(require_role("admin", "super_admin"))):
+    db = request.state.db
+    vehicle = db.query(Vehicle).filter_by(id=vehicle_id).first()
+    if not vehicle:
+        return {"error": "车辆不存在"}
+    
+    current_sort_order = vehicle.sort_order
+    resident_id = vehicle.resident_id
+    total_vehicles = db.query(Vehicle).filter_by(resident_id=resident_id).count()
+    
+    new_sort_order = max(1, min(new_sort, total_vehicles))
+    
+    if new_sort_order == current_sort_order:
+        return {"affected": []}
+    
+    affected = []
+    if new_sort_order < current_sort_order:
+        vehicles_to_shift = db.query(Vehicle).filter(
+            Vehicle.resident_id == resident_id,
+            Vehicle.sort_order >= new_sort_order,
+            Vehicle.sort_order < current_sort_order,
+            Vehicle.id != vehicle.id
+        ).order_by(Vehicle.sort_order.desc()).all()
+        for v in vehicles_to_shift:
+            affected.append({
+                "plate_number": v.plate_number,
+                "current_sort": v.sort_order,
+                "new_sort": v.sort_order + 1,
+                "change": "+1"
+            })
+    else:
+        vehicles_to_shift = db.query(Vehicle).filter(
+            Vehicle.resident_id == resident_id,
+            Vehicle.sort_order > current_sort_order,
+            Vehicle.sort_order <= new_sort_order,
+            Vehicle.id != vehicle.id
+        ).order_by(Vehicle.sort_order.asc()).all()
+        for v in vehicles_to_shift:
+            affected.append({
+                "plate_number": v.plate_number,
+                "current_sort": v.sort_order,
+                "new_sort": v.sort_order - 1,
+                "change": "-1"
+            })
+    
+    return {"affected": affected}
 
 @router.post("/{vehicle_id}/edit")
 async def edit_vehicle(request: Request, vehicle_id: int, user: dict = Depends(require_role("admin", "super_admin"))):
@@ -149,6 +218,47 @@ async def edit_vehicle(request: Request, vehicle_id: int, user: dict = Depends(r
         except ValueError:
             pass
     
+    # 处理车辆序号
+    sort_order_input = form_data.get("sort_order")
+    if sort_order_input:
+        try:
+            new_sort_order = int(sort_order_input)
+        except ValueError:
+            new_sort_order = vehicle.sort_order
+    else:
+        new_sort_order = vehicle.sort_order
+    
+    current_sort_order = vehicle.sort_order
+    resident_id = vehicle.resident_id
+    total_vehicles = db.query(Vehicle).filter_by(resident_id=resident_id).count()
+    
+    # 限制序号范围
+    new_sort_order = max(1, min(new_sort_order, total_vehicles))
+    
+    # 如果序号发生变化，调整其他车辆的序号
+    if new_sort_order != current_sort_order:
+        if new_sort_order < current_sort_order:
+            # 新序号小于当前序号，将中间的车辆序号依次+1
+            vehicles_to_shift = db.query(Vehicle).filter(
+                Vehicle.resident_id == resident_id,
+                Vehicle.sort_order >= new_sort_order,
+                Vehicle.sort_order < current_sort_order,
+                Vehicle.id != vehicle.id
+            ).order_by(Vehicle.sort_order.desc()).all()
+            for v in vehicles_to_shift:
+                v.sort_order += 1
+        else:
+            # 新序号大于当前序号，将中间的车辆序号依次-1
+            vehicles_to_shift = db.query(Vehicle).filter(
+                Vehicle.resident_id == resident_id,
+                Vehicle.sort_order > current_sort_order,
+                Vehicle.sort_order <= new_sort_order,
+                Vehicle.id != vehicle.id
+            ).order_by(Vehicle.sort_order.asc()).all()
+            for v in vehicles_to_shift:
+                v.sort_order -= 1
+    
+    vehicle.sort_order = new_sort_order
     vehicle.brand = brand
     vehicle.color = color
     vehicle.vehicle_type = vehicle_type
