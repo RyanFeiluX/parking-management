@@ -202,7 +202,7 @@
             <div class="card mt-4">
                 <div class="card-header">费用计算</div>
                 <div class="card-body">
-                    <p><strong>缴费期间：</strong><span id="calc-period-start">{{ period_start.strftime('%Y-%m-%d') if period_start else '' }}</span> ~ <span id="calc-period-end"></span></p>
+                    <p><strong>缴费期间：</strong><span id="calc-period-start">{{ period_start.strftime('%Y-%m-%d') if period_start else '' }}</span> ~ <span id="calc-period-end">{{ period_end.strftime('%Y-%m-%d') if period_end else '' }}</span></p>
                     <div id="calc-pause-info" style="display:none" class="mb-2">
                         <p><strong>暂停期间：</strong><span id="calc-pause-start"></span> ~ <span id="calc-pause-end"></span>（<span id="calc-pause-months"></span>个月）</p>
                     </div>
@@ -277,6 +277,8 @@ function deleteChar() {
 
 function recalc() {
     var form = document.getElementById('calc-form');
+    if (!form) return;
+    
     var data = new FormData(form);
     fetch('/payments/calculate', {
         method: 'POST',

@@ -39,12 +39,16 @@ async def payment_form(request: Request, user: dict = Depends(require_login)):
     
     vehicle = None
     amount_info = None
+    period_end = None
+    period_type = "月"
+    months = 1
     
     if plate_number:
         vehicle = db.query(Vehicle).filter_by(plate_number=plate_number).first()
         if vehicle:
             from ..utils import calculate_payment_amount
-            amount_info = calculate_payment_amount(vehicle, "月", 1, db)
+            amount_info = calculate_payment_amount(vehicle, period_type, months, db)
+            period_end = calc_period_end(date.today(), period_type, months)
     
     today = date.today()
     pause_records = []
@@ -57,6 +61,9 @@ async def payment_form(request: Request, user: dict = Depends(require_login)):
         "amount_info": amount_info,
         "plate_number": plate_number,
         "period_start": today,
+        "period_end": period_end,
+        "period_type": period_type,
+        "months": months,
         "pause_records": pause_records,
         "today": today
     })
