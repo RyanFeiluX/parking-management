@@ -156,6 +156,18 @@
                                     {% endif %}
                                 </span>
                                 <button type="button" class="btn btn-sm btn-danger ms-1" onclick="openReverseModal({{ item.invoice.id }})">冲销</button>
+                                {% elif item.invoice.status == '已冲销' %}
+                                <span class="text-muted small">
+                                    {% if item.invoice.completed_at %}
+                                    {{ item.invoice.completed_at.strftime('%Y-%m-%d %H:%M') }} 完成
+                                    {% endif %}
+                                    {% if item.invoice.completed_at and item.invoice.cancelled_at %}
+                                    |
+                                    {% endif %}
+                                    {% if item.invoice.cancelled_at %}
+                                    {{ item.invoice.cancelled_at.strftime('%Y-%m-%d %H:%M') }} 冲销
+                                    {% endif %}
+                                </span>
                                 {% else %}
                                 <span class="text-muted small">已取消</span>
                                 {% endif %}
