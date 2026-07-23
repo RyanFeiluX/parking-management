@@ -173,7 +173,7 @@ async def export_invoices(request: Request, user: dict = Depends(require_login))
 
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(["申请时间", "车牌号", "房号", "笔数", "缴费期间", "发票抬头", "税号", "发票编号", "电话", "邮箱", "类型", "价税合计", "状态", "备注"])
+    writer.writerow(["申请时间", "车牌号", "房号", "笔数", "缴费期间", "发票抬头", "税号", "发票号码", "电话", "邮箱", "类型", "价税合计", "状态", "备注"])
 
     for item in invoice_data:
         inv = item["invoice"]

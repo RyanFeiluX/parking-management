@@ -75,7 +75,7 @@
                             <th>缴费时段</th>
                             <th class="col-title">发票抬头</th>
                             <th class="col-tax-id">税号</th>
-                            <th class="col-invoice-no">发票编号</th>
+                            <th class="col-invoice-no">发票号码</th>
                             <th>电话</th>
                             <th class="col-email">邮箱</th>
                             <th>类型</th>
@@ -225,7 +225,7 @@
 {% block scripts %}
 <script>
 function promptInvoiceNumber(btn) {
-    const num = prompt('请输入开具的发票编号（选填）：');
+    const num = prompt('请输入开具的发票号码（选填）：');
     if (num === null) return;
     const form = btn.closest('form');
     form.querySelector('[name="invoice_number"]').value = num || '';
