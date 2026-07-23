@@ -37,6 +37,7 @@
                                 <option value="">全部状态</option>
                                 <option value="开票等待中" {% if status_filter == '开票等待中' %}selected{% endif %}>等待中</option>
                                 <option value="开票已完成" {% if status_filter == '开票已完成' %}selected{% endif %}>已完成</option>
+                                <option value="已冲销" {% if status_filter == '已冲销' %}selected{% endif %}>已冲销</option>
                                 <option value="申请已取消" {% if status_filter == '申请已取消' %}selected{% endif %}>申请已取消</option>
                             </select>
                         </div>
@@ -107,7 +108,16 @@
                             </td>
                             <td class="col-title">{{ item.invoice.title }}</td>
                             <td class="col-tax-id">{{ item.invoice.tax_id or '-' }}</td>
-                            <td class="col-invoice-no">{{ item.invoice.invoice_number or '-' }}</td>
+                            <td class="col-invoice-no">
+                                {% if item.invoice.status == '已冲销' %}
+                                <span title="红字发票号码：{{ item.invoice.red_invoice_number }}{% if item.invoice.cancelled_reason %} | 原因：{{ item.invoice.cancelled_reason }}{% endif %}">
+                                    {{ item.invoice.invoice_number or '-' }}
+                                    <span class="badge bg-danger" style="font-size:0.65rem;">已冲销</span>
+                                </span>
+                                {% else %}
+                                {{ item.invoice.invoice_number or '-' }}
+                                {% endif %}
+                            </td>
                             <td>{{ item.invoice.phone or '-' }}</td>
                             <td class="col-email">{{ item.invoice.email or '-' }}</td>
                             <td>
@@ -123,6 +133,8 @@
                                 <span class="badge bg-warning">等待中</span>
                                 {% elif item.invoice.status == '开票已完成' %}
                                 <span class="badge bg-success">已完成</span>
+                                {% elif item.invoice.status == '已冲销' %}
+                                <span class="badge bg-danger">已冲销</span>
                                 {% else %}
                                 <span class="badge bg-secondary">申请已取消</span>
                                 {% endif %}
@@ -143,6 +155,7 @@
                                     {{ item.invoice.completed_at.strftime('%Y-%m-%d %H:%M') }} 完成
                                     {% endif %}
                                 </span>
+                                <button type="button" class="btn btn-sm btn-danger ms-1" onclick="openReverseModal({{ item.invoice.id }})">冲销</button>
                                 {% else %}
                                 <span class="text-muted small">已取消</span>
                                 {% endif %}
@@ -168,6 +181,33 @@
         </div>
     </div>
 </div>
+<!-- 冲销确认模态框 -->
+<div class="modal fade" id="reverseModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">发票冲销确认</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="reverseForm" method="post">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">红字发票号码 <span class="text-danger">*</span></label>
+                        <input type="text" name="red_invoice_number" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">冲销原因</label>
+                        <textarea name="cancelled_reason" class="form-control" rows="2"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-danger">确认冲销</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
@@ -179,6 +219,26 @@ function promptInvoiceNumber(btn) {
     form.querySelector('[name="invoice_number"]').value = num || '';
     form.submit();
 }
+
+function openReverseModal(invoiceId) {
+    const form = document.getElementById('reverseForm');
+    form.action = '/invoices/' + invoiceId + '/reverse';
+    form.reset();
+    const modal = new bootstrap.Modal(document.getElementById('reverseModal'));
+    modal.show();
+}
+
+document.getElementById('reverseForm').addEventListener('submit', function(e) {
+    const num = this.querySelector('[name="red_invoice_number"]').value.trim();
+    if (!num) {
+        e.preventDefault();
+        alert('请输入红字发票号码');
+        return;
+    }
+    if (!confirm('确认对该发票进行冲销？此操作不可撤销。')) {
+        e.preventDefault();
+    }
+});
 
 document.addEventListener('DOMContentLoaded', function() {
     const pageData = document.getElementById('page-data');

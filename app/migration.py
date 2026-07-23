@@ -3,7 +3,7 @@ from sqlalchemy import text
 from .models import SystemSetting
 from .database import SessionLocal
 
-SCHEMA_VERSION = 5
+SCHEMA_VERSION = 6
 
 def run_v3(engine):
     """新增收据日期和收据编号字段"""
@@ -29,6 +29,19 @@ def run_v4(engine):
             conn.execute(text("ALTER TABLE payment_records RENAME COLUMN paid_at TO paid_on"))
             conn.commit()
 
+def run_v6(engine):
+    """发票表新增冲销相关字段"""
+    with engine.connect() as conn:
+        cursor = conn.execute(text("PRAGMA table_info(invoices)"))
+        cols = {row[1] for row in cursor.fetchall()}
+        if "red_invoice_number" not in cols:
+            conn.execute(text("ALTER TABLE invoices ADD COLUMN red_invoice_number VARCHAR(100)"))
+        if "cancelled_reason" not in cols:
+            conn.execute(text("ALTER TABLE invoices ADD COLUMN cancelled_reason TEXT"))
+        if "cancelled_at" not in cols:
+            conn.execute(text("ALTER TABLE invoices ADD COLUMN cancelled_at DATETIME"))
+        conn.commit()
+
 def run_v5(engine):
     """将 paid_on 从 DateTime 转为 Date（去除时间部分）"""
     with engine.connect() as conn:
@@ -46,6 +59,7 @@ MIGRATIONS = {
     3: ("新增 receipt_date 和 receipt_number 字段", run_v3),
     4: ("将 paid_at 重命名为 paid_on", run_v4),
     5: ("将 paid_on 从 DateTime 转为 Date", run_v5),
+    6: ("发票表新增冲销相关字段", run_v6),
 }
 
 def get_current_version(db):

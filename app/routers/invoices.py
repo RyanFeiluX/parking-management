@@ -561,3 +561,45 @@ async def cancel_invoice(request: Request, invoice_id: int, user: dict = Depends
         "invoices": build_invoice_data(db, invoices),
         "success": "开票申请已取消"
     })
+
+@router.post("/{invoice_id}/reverse")
+async def reverse_invoice(request: Request, invoice_id: int, user: dict = Depends(require_login)):
+    db = request.state.db
+    invoice = db.query(Invoice).filter_by(id=invoice_id).first()
+    if not invoice:
+        invoices = db.query(Invoice).order_by(Invoice.created_at.desc()).all()
+        return templates.TemplateResponse("invoices/list.html", {
+            "request": request, "current_user": user, "invoices": build_invoice_data(db, invoices), "error": "开票记录不存在"
+        })
+    if invoice.status != "开票已完成":
+        invoices = db.query(Invoice).order_by(Invoice.created_at.desc()).all()
+        return templates.TemplateResponse("invoices/list.html", {
+            "request": request, "current_user": user, "invoices": build_invoice_data(db, invoices), "error": "仅开票已完成的记录可冲销"
+        })
+
+    form_data = await request.form()
+    red_invoice_number = form_data.get("red_invoice_number", "").strip()
+    if not red_invoice_number:
+        invoices = db.query(Invoice).order_by(Invoice.created_at.desc()).all()
+        return templates.TemplateResponse("invoices/list.html", {
+            "request": request, "current_user": user, "invoices": build_invoice_data(db, invoices), "error": "红字发票号码不能为空"
+        })
+
+    cancelled_reason = form_data.get("cancelled_reason", "").strip() or None
+
+    invoice.red_invoice_number = red_invoice_number
+    invoice.cancelled_reason = cancelled_reason
+    invoice.cancelled_at = datetime.now()
+    invoice.status = "已冲销"
+    db.commit()
+
+    client_host = request.client.host if request.client else "unknown"
+    log_operation(db, user["user_id"], "reverse_invoice", f"开票 #{invoice_id}",
+                  f"冲销发票: {invoice.title}, 红字发票号码: {red_invoice_number}", client_host)
+
+    invoices = db.query(Invoice).order_by(Invoice.created_at.desc()).all()
+    return templates.TemplateResponse("invoices/list.html", {
+        "request": request, "current_user": user,
+        "invoices": build_invoice_data(db, invoices),
+        "success": "发票已成功冲销"
+    })

@@ -189,6 +189,9 @@ class InvoiceResponse(BaseModel):
     amount: float
     status: str
     invoice_number: Optional[str] = None
+    red_invoice_number: Optional[str] = None
+    cancelled_reason: Optional[str] = None
+    cancelled_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
     created_at: datetime
     updated_at: datetime
