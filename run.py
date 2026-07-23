@@ -1,4 +1,5 @@
 import sys
+import os
 import uvicorn
 import webbrowser
 import threading
@@ -6,12 +7,32 @@ import time
 
 frozen = getattr(sys, 'frozen', False)
 
-def open_browser():
+
+def find_available_port(start_port=8080, max_attempts=4):
+    import socket
+    for port in range(start_port, start_port + max_attempts):
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.bind(("127.0.0.1", port))
+                return port
+        except OSError:
+            continue
+    return None
+
+
+def open_browser(port):
     time.sleep(2)
-    webbrowser.open("http://127.0.0.1:8080")
+    webbrowser.open(f"http://127.0.0.1:{port}")
+
 
 if __name__ == "__main__":
-    threading.Thread(target=open_browser).start()
+    port = find_available_port()
+    if not port:
+        print("[错误] 无法找到可用端口，应用启动失败")
+        input("按 Enter 键退出...")
+        sys.exit(1)
+
+    threading.Thread(target=open_browser, args=(port,)).start()
     if frozen:
         try:
             from app.main import app
@@ -25,6 +46,6 @@ if __name__ == "__main__":
             print(f"[错误] 启动失败，详情请查看: {log_path}")
             input("按 Enter 键退出...")
             raise
-        uvicorn.run(app, host="127.0.0.1", port=8080, reload=False)
+        uvicorn.run(app, host="127.0.0.1", port=port, reload=False)
     else:
-        uvicorn.run("app.main:app", host="127.0.0.1", port=8080, reload=True)
+        uvicorn.run("app.main:app", host="127.0.0.1", port=port, reload=True)
