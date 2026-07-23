@@ -53,7 +53,7 @@
                             <th>收据编号</th>
                             <th>车牌号</th>
                             <th>住户</th>
-                            <th>缴费周期</th>
+                            <th>缴费时段</th>
                             <th>暂停时段</th>
                             <th>金额</th>
                             <th>方式</th>
@@ -74,7 +74,7 @@
                             <td>{{ item.payment.receipt_number }}</td>
                             <td>{{ item.vehicle.plate_number }}</td>
                             <td>{{ item.resident.room_number if item.resident else '-' }}</td>
-                            <td>{{ item.payment.period_type }}{{ item.payment.period_start.strftime('%Y-%m-%d') }}~{{ item.payment.period_end.strftime('%Y-%m-%d') }}</td>
+                            <td>{{ item.payment.period_type }} {{ item.payment.period_start.strftime('%Y-%m-%d') }}~{{ item.payment.period_end.strftime('%Y-%m-%d') }}</td>
                             <td>
                                 {% if item.pauses %}
                                 {% for pr in item.pauses %}

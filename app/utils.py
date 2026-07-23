@@ -173,21 +173,21 @@ def calculate_payment_amount(vehicle, period_type, months, db, pause_months=0):
         return {"amount": 0, "base_amount": 0, "discount_amount": 0, "summary": "暂停月数等于缴费月数，无需缴费", "tier": None, "discount": None}
     
     period_months = paid_months
-    if period_type == "季":
+    if period_type == "包季":
         period_months = paid_months * 3
-    elif period_type == "年":
+    elif period_type == "包年":
         period_months = paid_months * 12
     
     monthly_fee = float(tier.monthly_fee)
     
-    if period_type == "月":
+    if period_type == "包月":
         base_amount = monthly_fee * paid_months
-    elif period_type == "季":
+    elif period_type == "包季":
         if tier.quarterly_fee:
             base_amount = float(tier.quarterly_fee) * paid_months
         else:
             base_amount = monthly_fee * 3 * paid_months
-    elif period_type == "年":
+    elif period_type == "包年":
         if tier.yearly_fee:
             base_amount = float(tier.yearly_fee) * paid_months
         else:
@@ -214,9 +214,9 @@ def calculate_payment_amount(vehicle, period_type, months, db, pause_months=0):
             discount_info = f"{discount.name}(固定{float(discount.discount_value)}元)"
     
     total_months = months
-    if period_type == "季":
+    if period_type == "包季":
         total_months = months * 3
-    elif period_type == "年":
+    elif period_type == "包年":
         total_months = months * 12
     summary_parts = [f"第{vehicle.sort_order}辆车 {monthly_fee}元/月 × {period_months}个月（总{total_months}个月，暂停{pause_months}个月） = {base_amount:.2f}元"]
     if discount_info:

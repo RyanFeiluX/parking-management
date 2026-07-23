@@ -13,9 +13,9 @@ from ..jinja import templates
 router = APIRouter()
 
 def calc_period_end(period_start: date, period_type: str, months: int) -> date:
-    if period_type == "季":
+    if period_type == "包季":
         months *= 3
-    elif period_type == "年":
+    elif period_type == "包年":
         months *= 12
     return period_start + relativedelta(months=months) - relativedelta(days=1)
 
@@ -40,7 +40,7 @@ async def payment_form(request: Request, user: dict = Depends(require_login)):
     vehicle = None
     amount_info = None
     period_end = None
-    period_type = "月"
+    period_type = "包月"
     months = 1
     
     if plate_number:
@@ -72,7 +72,7 @@ async def payment_form(request: Request, user: dict = Depends(require_login)):
 async def calculate_amount(request: Request, user: dict = Depends(require_login)):
     form_data = await request.form()
     plate_number = form_data.get("plate_number")
-    period_type = form_data.get("period_type", "月")
+    period_type = form_data.get("period_type", "包月")
     months = int(form_data.get("months", 1))
     period_start_str = form_data.get("period_start", "")
     pause_start_str = form_data.get("pause_start", "")

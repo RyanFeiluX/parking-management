@@ -148,7 +148,7 @@
                             <td>
                                 {% if item.payments %}
                                 {% for p in item.payments %}
-                                {{ p.period_type }}{{ p.period_start.strftime('%Y-%m-%d') }}~{{ p.period_end.strftime('%Y-%m-%d') }}{% if not loop.last %}<br>{% endif %}
+                                {{ p.period_type }} {{ p.period_start.strftime('%Y-%m-%d') }}~{{ p.period_end.strftime('%Y-%m-%d') }}{% if not loop.last %}<br>{% endif %}
                                 {% endfor %}
                                 {% else %}
                                 -

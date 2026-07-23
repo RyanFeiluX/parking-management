@@ -46,25 +46,18 @@ def normalize_presets(presets):
     return normalized
 
 def build_invoice_summary(payments, db=None):
-    period_type_map = {
-        "月": "包月",
-        "季": "包季",
-        "年": "包年"
-    }
     if not payments:
         return ""
     plate = payments[0].vehicle.plate_number if payments[0].vehicle else ""
     if len(payments) == 1:
         p = payments[0]
-        period_desc = period_type_map.get(p.period_type, p.period_type + "缴")
         pause_desc = _get_pause_desc(p, db)
-        return f"{plate} {period_desc} {p.period_start.strftime('%Y-%m-%d')}~{p.period_end.strftime('%Y-%m-%d')}{pause_desc}"
+        return f"{plate} {p.period_type} {p.period_start.strftime('%Y-%m-%d')}~{p.period_end.strftime('%Y-%m-%d')}{pause_desc}"
     items = []
     for p in payments:
         plt = p.vehicle.plate_number if p.vehicle else "未知"
-        period_desc = period_type_map.get(p.period_type, p.period_type + "缴")
         pause_desc = _get_pause_desc(p, db)
-        items.append(f"{plt} {period_desc}{p.period_start.strftime('%Y-%m-%d')}~{p.period_end.strftime('%Y-%m-%d')}({float(p.amount):.0f}元){pause_desc}")
+        items.append(f"{plt} {p.period_type} {p.period_start.strftime('%Y-%m-%d')}~{p.period_end.strftime('%Y-%m-%d')}({float(p.amount):.0f}元){pause_desc}")
     total = sum(float(p.amount) for p in payments)
     return f"合并{len(payments)}笔交费：" + "、".join(items) + f"，合计{total:.0f}元"
 
@@ -185,9 +178,9 @@ async def export_invoices(request: Request, user: dict = Depends(require_login))
             pause_descs = item["pause_descs"]
             if len(payments) == 1:
                 p = payments[0]
-                period = f"{p.period_type}缴 {p.period_start.strftime('%Y-%m-%d')}~{p.period_end.strftime('%Y-%m-%d')}{pause_descs.get(p.id, '')}"
+                period = f"{p.period_type} {p.period_start.strftime('%Y-%m-%d')}~{p.period_end.strftime('%Y-%m-%d')}{pause_descs.get(p.id, '')}"
             else:
-                parts = [f"{p.period_type}缴{p.period_start.strftime('%Y-%m-%d')}~{p.period_end.strftime('%Y-%m-%d')}{pause_descs.get(p.id, '')}" for p in payments]
+                parts = [f"{p.period_type} {p.period_start.strftime('%Y-%m-%d')}~{p.period_end.strftime('%Y-%m-%d')}{pause_descs.get(p.id, '')}" for p in payments]
                 period = "; ".join(parts)
         else:
             period = ""

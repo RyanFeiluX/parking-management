@@ -168,11 +168,11 @@
                         <input type="date" name="period_start" class="form-control" value="{{ period_start.strftime('%Y-%m-%d') if period_start else '' }}" onchange="recalc()">
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">缴费周期</label>
+                        <label class="form-label">缴费时段</label>
                         <select name="period_type" class="form-control" onchange="recalc()">
-                            <option value="月" {% if period_type == '月' %}selected{% endif %}>包月</option>
-                            <option value="季" {% if period_type == '季' %}selected{% endif %}>包季</option>
-                            <option value="年" {% if period_type == '年' %}selected{% endif %}>包年</option>
+                            <option value="包月" {% if period_type == '包月' %}selected{% endif %}>包月</option>
+                            <option value="包季" {% if period_type == '包季' %}selected{% endif %}>包季</option>
+                            <option value="包年" {% if period_type == '包年' %}selected{% endif %}>包年</option>
                         </select>
                     </div>
                     <div class="mb-3">
@@ -222,7 +222,7 @@
                 <div class="card-body">
                     <form method="post" action="/payments/pay">
                         <input type="hidden" name="vehicle_id" value="{{ vehicle.id }}">
-                        <input type="hidden" name="period_type" id="pay-period-type" value="{{ period_type or '月' }}">
+                        <input type="hidden" name="period_type" id="pay-period-type" value="{{ period_type or '包月' }}">
                         <input type="hidden" name="months" id="pay-months" value="{{ months or 1 }}">
                         <input type="hidden" name="period_start" id="pay-period-start" value="{{ period_start.strftime('%Y-%m-%d') if period_start else '' }}">
                         <input type="hidden" name="amount" id="pay-amount" value="{{ amount_info.amount if amount_info else '' }}">

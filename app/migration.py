@@ -3,7 +3,7 @@ from sqlalchemy import text
 from .models import SystemSetting
 from .database import SessionLocal
 
-SCHEMA_VERSION = 6
+SCHEMA_VERSION = 7
 
 def run_v3(engine):
     """新增收据日期和收据编号字段"""
@@ -55,11 +55,20 @@ def run_v5(engine):
         conn.execute(text("ALTER TABLE payment_records RENAME COLUMN paid_on_new TO paid_on"))
         conn.commit()
 
+def run_v7(engine):
+    """将 period_type 从月/季/年改为包月/包季/包年"""
+    with engine.connect() as conn:
+        conn.execute(text("UPDATE payment_records SET period_type = '包月' WHERE period_type = '月'"))
+        conn.execute(text("UPDATE payment_records SET period_type = '包季' WHERE period_type = '季'"))
+        conn.execute(text("UPDATE payment_records SET period_type = '包年' WHERE period_type = '年'"))
+        conn.commit()
+
 MIGRATIONS = {
     3: ("新增 receipt_date 和 receipt_number 字段", run_v3),
     4: ("将 paid_at 重命名为 paid_on", run_v4),
     5: ("将 paid_on 从 DateTime 转为 Date", run_v5),
     6: ("发票表新增冲销相关字段", run_v6),
+    7: ("将 period_type 从月/季/年改为包月/包季/包年", run_v7),
 }
 
 def get_current_version(db):
