@@ -7,6 +7,7 @@ import io
 import json
 from urllib.parse import quote
 
+from ..constants import InvoiceStatus
 from ..models import Invoice, PaymentRecord, Vehicle, Resident, User, OperationLog, SystemSetting, VehiclePause
 from ..utils import get_system_setting
 from ..deps import require_role, require_login
@@ -230,7 +231,7 @@ async def create_invoice_page(request: Request, user: dict = Depends(require_log
             if not payment:
                 error = f"交费记录 {pid_str} 不存在"
                 break
-            if payment.invoice and payment.invoice.status == '开票已完成':
+            if payment.invoice and payment.invoice.status == InvoiceStatus.COMPLETED:
                 error = f"交费记录 {pid_str} 已关联开票条目"
                 break
             if payment.amount <= 0:
@@ -327,7 +328,7 @@ async def create_invoice(request: Request, user: dict = Depends(require_login)):
         })
 
     for p in payments:
-        if p.invoice and p.invoice.status == '开票已完成':
+        if p.invoice and p.invoice.status == InvoiceStatus.COMPLETED:
             return templates.TemplateResponse("invoices/form.html", {
                 "request": request, "current_user": user, **common_ctx,
                 "error": f"交费记录 #{p.id} 已关联开票条目"
@@ -382,7 +383,7 @@ async def create_invoice(request: Request, user: dict = Depends(require_login)):
         summary=summary,
         invoice_type=invoice_type,
         amount=amount,
-        status="开票等待中"
+        status=InvoiceStatus.PENDING
     )
     db.add(invoice)
     db.flush()
@@ -410,7 +411,7 @@ async def edit_invoice_page(request: Request, invoice_id: int, user: dict = Depe
             "request": request, "current_user": user, "invoices": [], "error": "开票记录不存在"
         })
 
-    if invoice.status != "开票等待中":
+    if invoice.status != InvoiceStatus.PENDING:
         invoices = db.query(Invoice).order_by(Invoice.created_at.desc()).all()
         return templates.TemplateResponse("invoices/list.html", {
             "request": request, "current_user": user, "invoices": build_invoice_data(db, invoices), "error": "仅开票等待中的记录可编辑"
@@ -444,7 +445,7 @@ async def edit_invoice(request: Request, invoice_id: int, user: dict = Depends(r
         return templates.TemplateResponse("invoices/list.html", {
             "request": request, "current_user": user, "invoices": [], "error": "开票记录不存在"
         })
-    if invoice.status != "开票等待中":
+    if invoice.status != InvoiceStatus.PENDING:
         invoices = db.query(Invoice).order_by(Invoice.created_at.desc()).all()
         return templates.TemplateResponse("invoices/list.html", {
             "request": request, "current_user": user, "invoices": build_invoice_data(db, invoices), "error": "仅开票等待中的记录可编辑"
@@ -505,14 +506,14 @@ async def complete_invoice(request: Request, invoice_id: int, user: dict = Depen
         return templates.TemplateResponse("invoices/list.html", {
             "request": request, "current_user": user, "invoices": [], "error": "开票记录不存在"
         })
-    if invoice.status != "开票等待中":
+    if invoice.status != InvoiceStatus.PENDING:
         invoices = db.query(Invoice).order_by(Invoice.created_at.desc()).all()
         return templates.TemplateResponse("invoices/list.html", {
             "request": request, "current_user": user, "invoices": build_invoice_data(db, invoices), "error": "仅开票等待中的记录可标记完成"
         })
 
     invoice.invoice_number = form_data.get("invoice_number", "").strip() or None
-    invoice.status = "开票已完成"
+    invoice.status = InvoiceStatus.COMPLETED
     invoice.completed_at = datetime.now()
     db.commit()
 
@@ -535,13 +536,13 @@ async def cancel_invoice(request: Request, invoice_id: int, user: dict = Depends
         return templates.TemplateResponse("invoices/list.html", {
             "request": request, "current_user": user, "invoices": [], "error": "开票记录不存在"
         })
-    if invoice.status != "开票等待中":
+    if invoice.status != InvoiceStatus.PENDING:
         invoices = db.query(Invoice).order_by(Invoice.created_at.desc()).all()
         return templates.TemplateResponse("invoices/list.html", {
             "request": request, "current_user": user, "invoices": build_invoice_data(db, invoices), "error": "仅开票等待中的记录可取消"
         })
 
-    invoice.status = "申请已取消"
+    invoice.status = InvoiceStatus.CANCELLED
     db.commit()
 
     client_host = request.client.host if request.client else "unknown"
@@ -564,7 +565,7 @@ async def reverse_invoice(request: Request, invoice_id: int, user: dict = Depend
         return templates.TemplateResponse("invoices/list.html", {
             "request": request, "current_user": user, "invoices": build_invoice_data(db, invoices), "error": "开票记录不存在"
         })
-    if invoice.status != "开票已完成":
+    if invoice.status != InvoiceStatus.COMPLETED:
         invoices = db.query(Invoice).order_by(Invoice.created_at.desc()).all()
         return templates.TemplateResponse("invoices/list.html", {
             "request": request, "current_user": user, "invoices": build_invoice_data(db, invoices), "error": "仅开票已完成的记录可冲销"
@@ -583,7 +584,7 @@ async def reverse_invoice(request: Request, invoice_id: int, user: dict = Depend
     invoice.red_invoice_number = red_invoice_number
     invoice.cancelled_reason = cancelled_reason
     invoice.cancelled_at = datetime.now()
-    invoice.status = "已冲销"
+    invoice.status = InvoiceStatus.REVERSED
     db.commit()
 
     client_host = request.client.host if request.client else "unknown"

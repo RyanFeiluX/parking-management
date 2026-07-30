@@ -3,6 +3,7 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from datetime import datetime, date
 
+from .constants import InvoiceStatus
 from .database import Base
 
 class User(Base):
@@ -105,7 +106,7 @@ class Invoice(Base):
     address = Column(String(300))
     invoice_type = Column(String(10), nullable=False, default="普票")
     amount = Column(Numeric(10, 2), nullable=False)
-    status = Column(String(20), nullable=False, default="开票等待中")
+    status = Column(String(20), nullable=False, default=InvoiceStatus.PENDING)
     invoice_number = Column(String(100))
     red_invoice_number = Column(String(100))
     cancelled_reason = Column(Text)
