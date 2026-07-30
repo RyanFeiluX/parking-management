@@ -86,7 +86,7 @@
                             </td>
                             <td>{{ item.payment.amount }}</td>
                             <td>{{ item.payment.payment_method or '-' }}</td>
-                            <td>{{ item.operator.display_name if item.operator else '-' }}</td>
+                            <td>{{ item.operator.username if item.operator else '-' }}</td>
                             <td>{{ item.payment.remark or '-' }}</td>
                             <td>
                                 {% if item.payment.invoice and item.payment.invoice.status != '申请已取消' %}
