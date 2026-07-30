@@ -35,10 +35,9 @@
                         <div class="filter-col-status">
                             <select name="status" class="form-control form-control-sm">
                                 <option value="">全部状态</option>
-                                <option value="开票等待中" {% if status_filter == '开票等待中' %}selected{% endif %}>等待中</option>
-                                <option value="开票已完成" {% if status_filter == '开票已完成' %}selected{% endif %}>已完成</option>
-                                <option value="已冲销" {% if status_filter == '已冲销' %}selected{% endif %}>已冲销</option>
-                                <option value="申请已取消" {% if status_filter == '申请已取消' %}selected{% endif %}>申请已取消</option>
+                                {% for value, label in INVOICE_STATUS_CHOICES %}
+                                <option value="{{ value }}" {% if status_filter == value %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
                             </select>
                         </div>
                         <div class="filter-col-type">
@@ -86,7 +85,7 @@
                     </thead>
                     <tbody>
                         {% for item in invoices %}
-                        <tr class="{% if item.invoice.status == '申请已取消' %}text-muted{% endif %}">
+                        <tr class="{{ item.invoice.status|status_row_class }}">
                             <td>{{ item.invoice.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
                             <td>{{ item.plates | join('、') if item.plates else '-' }}</td>
                             <td>{{ item.resident.room_number if item.resident else '-' }}</td>
@@ -109,10 +108,10 @@
                             <td class="col-title">{{ item.invoice.title }}</td>
                             <td class="col-tax-id">{{ item.invoice.tax_id or '-' }}</td>
                             <td class="col-invoice-no">
-                                {% if item.invoice.status == '已冲销' %}
+                                {% if item.invoice.status is invoice_status 'REVERSED' %}
                                 <span title="红字发票号码：{{ item.invoice.red_invoice_number }}{% if item.invoice.cancelled_reason %} | 原因：{{ item.invoice.cancelled_reason }}{% endif %}">
                                     {{ item.invoice.invoice_number or '-' }}
-                                    <span class="badge bg-danger" style="font-size:0.65rem;">已冲销</span>
+                                    <span class="{{ item.invoice.status|status_badge }}" style="font-size:0.65rem;">{{ item.invoice.status|status_label }}</span>
                                 </span>
                                 {% else %}
                                 {{ item.invoice.invoice_number or '-' }}
@@ -129,18 +128,10 @@
                             </td>
                             <td>{{ item.invoice.amount }}</td>
                             <td>
-                                {% if item.invoice.status == '开票等待中' %}
-                                <span class="badge bg-warning">等待中</span>
-                                {% elif item.invoice.status == '开票已完成' %}
-                                <span class="badge bg-success">已完成</span>
-                                {% elif item.invoice.status == '已冲销' %}
-                                <span class="badge bg-danger">已冲销</span>
-                                {% else %}
-                                <span class="badge bg-secondary">申请已取消</span>
-                                {% endif %}
+                                <span class="{{ item.invoice.status|status_badge }}">{{ item.invoice.status|status_label }}</span>
                             </td>
                             <td>
-                                {% if item.invoice.status == '开票等待中' %}
+                                {% if item.invoice.status is invoice_status 'PENDING' %}
                                 <a href="/invoices/{{ item.invoice.id }}/edit" class="btn btn-sm btn-info">编辑</a>
                                 <form action="/invoices/{{ item.invoice.id }}/complete" method="post" class="d-inline complete-form">
                                     <input type="hidden" name="invoice_number" value="">
@@ -149,14 +140,14 @@
                                 <form action="/invoices/{{ item.invoice.id }}/cancel" method="post" class="d-inline">
                                     <button type="submit" class="btn btn-sm btn-warning" onclick="return confirm('确认取消开票申请？')">取消</button>
                                 </form>
-                                {% elif item.invoice.status == '开票已完成' %}
+                                {% elif item.invoice.status is invoice_status 'COMPLETED' %}
                                 <span class="text-muted small">
                                     {% if item.invoice.completed_at %}
                                     {{ item.invoice.completed_at.strftime('%Y-%m-%d %H:%M') }} 完成
                                     {% endif %}
                                 </span>
                                 <button type="button" class="btn btn-sm btn-danger ms-1" onclick="openReverseModal({{ item.invoice.id }})">冲销</button>
-                                {% elif item.invoice.status == '已冲销' %}
+                                {% elif item.invoice.status is invoice_status 'REVERSED' %}
                                 <span class="text-muted small">
                                     {% if item.invoice.completed_at %}
                                     {{ item.invoice.completed_at.strftime('%Y-%m-%d %H:%M') }} 完成
@@ -169,7 +160,7 @@
                                     {% endif %}
                                 </span>
                                 {% else %}
-                                <span class="text-muted small">已取消</span>
+                                <span class="text-muted small">{{ item.invoice.status|status_label }}</span>
                                 {% endif %}
                             </td>
                         </tr>

@@ -142,7 +142,7 @@
                     </thead>
                     <tbody>
                         {% for item in resident_invoices %}
-                        <tr class="{% if item.invoice.status == '申请已取消' %}text-muted{% endif %}">
+                        <tr class="{{ item.invoice.status|status_row_class }}">
                             <td>{{ item.invoice.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
                             <td>{{ item.vehicle.plate_number if item.vehicle else '-' }}</td>
                             <td>
@@ -161,13 +161,7 @@
                             <td>{% if item.invoice.invoice_type == '专票' %}<span class="badge bg-info">专票</span>{% else %}<span class="badge bg-secondary">普票</span>{% endif %}</td>
                             <td>{{ item.invoice.amount }}</td>
                             <td>
-                                {% if item.invoice.status == '开票等待中' %}
-                                <span class="badge bg-warning">开票等待中</span>
-                                {% elif item.invoice.status == '开票已完成' %}
-                                <span class="badge bg-success">开票已完成</span>
-                                {% else %}
-                                <span class="badge bg-secondary">申请已取消</span>
-                                {% endif %}
+                                <span class="{{ item.invoice.status|status_badge }}">{{ item.invoice.status|status_label }}</span>
                             </td>
                         </tr>
                         {% endfor %}

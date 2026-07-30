@@ -3,6 +3,11 @@ import os
 from fastapi.templating import Jinja2Templates
 from . import VERSION
 from ._path import get_data_dir
+from .constants import (
+    InvoiceStatus, INVOICE_STATUS_LABELS,
+    INVOICE_STATUS_BADGES, INVOICE_STATUS_ROW_CLASS,
+    INVOICE_STATUS_CHOICES,
+)
 
 _templates = Jinja2Templates(directory=os.path.join(get_data_dir(), "app/templates"))
 
@@ -26,6 +31,7 @@ class _CompatTemplates:
 
 templates = _CompatTemplates(_templates)
 templates.env.globals["APP_VERSION"] = VERSION
+templates.env.globals["INVOICE_STATUS_CHOICES"] = INVOICE_STATUS_CHOICES
 
 def escapejs_filter(value):
     if value is None:
@@ -33,3 +39,14 @@ def escapejs_filter(value):
     return json.dumps(str(value))[1:-1]
 
 templates.env.filters["escapejs"] = escapejs_filter
+
+templates.env.filters["status_label"] = lambda s: INVOICE_STATUS_LABELS.get(s, s)
+templates.env.filters["status_badge"] = lambda s: INVOICE_STATUS_BADGES.get(s, "badge bg-secondary")
+templates.env.filters["status_row_class"] = lambda s: INVOICE_STATUS_ROW_CLASS.get(s, "")
+
+def _invoice_status_test(value, name):
+    try:
+        return value == getattr(InvoiceStatus, name.upper()).value
+    except (KeyError, AttributeError):
+        return False
+templates.env.tests["invoice_status"] = _invoice_status_test
