@@ -49,6 +49,7 @@
                             <th>序号</th>
                             <th>车辆编号</th>
                             <th>车牌号</th>
+                            <th>替换信息</th>
                             <th>备注</th>
                             <th>品牌/颜色</th>
                             <th>类型</th>
@@ -66,6 +67,16 @@
                                 {{ item.vehicle.plate_number }}
                                 {% if item.vehicle.is_garage %}
                                 <span class="badge bg-info ms-1">车库</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if item.replaced_in_date %}
+                                <span class="badge bg-info">替换入 {{ item.replaced_in_date }}</span>
+                                {% if item.replaced_from_plate %}
+                                <div class="small text-muted">替代 {{ item.replaced_from_plate }}</div>
+                                {% endif %}
+                                {% else %}
+                                -
                                 {% endif %}
                             </td>
                             <td>{{ item.vehicle.remark or '-' }}</td>
@@ -93,6 +104,10 @@
                             <td>
                                 <a href="/vehicles/{{ item.vehicle.id }}/edit" class="btn btn-sm btn-info">编辑</a>
                                 {% if current_user.role in ['admin', 'super_admin'] %}
+                                <button type="button" class="btn btn-sm btn-warning"
+                                        onclick="openReplaceModal({{ item.vehicle.id }}, '{{ item.vehicle.plate_number }}', {{ item.vehicle.sort_order }})">
+                                    替换
+                                </button>
                                 {% if item.vehicle.sort_order > 1 %}
                                 <form action="/vehicles/{{ item.vehicle.id }}/move-up" method="post" class="d-inline">
                                     <button type="submit" class="btn btn-sm btn-secondary">↑上移</button>
@@ -335,6 +350,136 @@
     </div>
 </div>
 
+<div class="modal fade" id="replaceVehicleModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">替换车辆</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-warning py-2" id="replaceHint"></div>
+                <form id="replaceForm" method="post" onsubmit="return confirm('确定执行替换？原车将变为未登记访客车辆。')">
+                    <div class="mb-3">
+                        <label class="form-label">新车牌号</label>
+                        <input type="text" id="replacePlateInput" name="plate_number" class="form-control" required maxlength="8">
+                    </div>
+
+                    <div class="mb-4">
+                        <div class="text-muted mb-2">车牌输入键盘：</div>
+                        <div class="plate-keyboard">
+                            <div class="keyboard-row mb-2">
+                                <button type="button" class="key-btn btn btn-sm btn-outline-secondary" onclick="addCharReplace('京')">京</button>
+                                <button type="button" class="key-btn btn btn-sm btn-outline-secondary" onclick="addCharReplace('津')">津</button>
+                                <button type="button" class="key-btn btn btn-sm btn-outline-secondary" onclick="addCharReplace('冀')">冀</button>
+                                <button type="button" class="key-btn btn btn-sm btn-outline-secondary" onclick="addCharReplace('晋')">晋</button>
+                                <button type="button" class="key-btn btn btn-sm btn-outline-secondary" onclick="addCharReplace('蒙')">蒙</button>
+                                <button type="button" class="key-btn btn btn-sm btn-outline-secondary" onclick="addCharReplace('辽')">辽</button>
+                                <button type="button" class="key-btn btn btn-sm btn-outline-secondary" onclick="addCharReplace('吉')">吉</button>
+                                <button type="button" class="key-btn btn btn-sm btn-outline-secondary" onclick="addCharReplace('黑')">黑</button>
+                                <button type="button" class="key-btn btn btn-sm btn-outline-secondary" onclick="addCharReplace('沪')">沪</button>
+                                <button type="button" class="key-btn btn btn-sm btn-outline-secondary" onclick="addCharReplace('苏')">苏</button>
+                                <button type="button" class="key-btn btn btn-sm btn-outline-secondary" onclick="addCharReplace('浙')">浙</button>
+                                <button type="button" class="key-btn btn btn-sm btn-outline-secondary" onclick="addCharReplace('皖')">皖</button>
+                            </div>
+                            <div class="keyboard-row mb-2">
+                                <button type="button" class="key-btn btn btn-sm btn-outline-secondary" onclick="addCharReplace('闽')">闽</button>
+                                <button type="button" class="key-btn btn btn-sm btn-outline-secondary" onclick="addCharReplace('赣')">赣</button>
+                                <button type="button" class="key-btn btn btn-sm btn-outline-secondary" onclick="addCharReplace('鲁')">鲁</button>
+                                <button type="button" class="key-btn btn btn-sm btn-outline-secondary" onclick="addCharReplace('豫')">豫</button>
+                                <button type="button" class="key-btn btn btn-sm btn-outline-secondary" onclick="addCharReplace('鄂')">鄂</button>
+                                <button type="button" class="key-btn btn btn-sm btn-outline-secondary" onclick="addCharReplace('湘')">湘</button>
+                                <button type="button" class="key-btn btn btn-sm btn-outline-secondary" onclick="addCharReplace('粤')">粤</button>
+                                <button type="button" class="key-btn btn btn-sm btn-outline-secondary" onclick="addCharReplace('桂')">桂</button>
+                                <button type="button" class="key-btn btn btn-sm btn-outline-secondary" onclick="addCharReplace('琼')">琼</button>
+                                <button type="button" class="key-btn btn btn-sm btn-outline-secondary" onclick="addCharReplace('渝')">渝</button>
+                                <button type="button" class="key-btn btn btn-sm btn-outline-secondary" onclick="addCharReplace('川')">川</button>
+                                <button type="button" class="key-btn btn btn-sm btn-outline-secondary" onclick="addCharReplace('贵')">贵</button>
+                            </div>
+                            <div class="keyboard-row mb-2">
+                                <button type="button" class="key-btn btn btn-sm btn-outline-secondary" onclick="addCharReplace('云')">云</button>
+                                <button type="button" class="key-btn btn btn-sm btn-outline-secondary" onclick="addCharReplace('藏')">藏</button>
+                                <button type="button" class="key-btn btn btn-sm btn-outline-secondary" onclick="addCharReplace('陕')">陕</button>
+                                <button type="button" class="key-btn btn btn-sm btn-outline-secondary" onclick="addCharReplace('甘')">甘</button>
+                                <button type="button" class="key-btn btn btn-sm btn-outline-secondary" onclick="addCharReplace('青')">青</button>
+                                <button type="button" class="key-btn btn btn-sm btn-outline-secondary" onclick="addCharReplace('宁')">宁</button>
+                                <button type="button" class="key-btn btn btn-sm btn-outline-secondary" onclick="addCharReplace('新')">新</button>
+                                <button type="button" class="key-btn btn btn-sm btn-outline-secondary" onclick="addCharReplace('港')">港</button>
+                                <button type="button" class="key-btn btn btn-sm btn-outline-secondary" onclick="addCharReplace('澳')">澳</button>
+                                <button type="button" class="key-btn btn btn-sm btn-outline-secondary" onclick="addCharReplace('台')">台</button>
+                                <button type="button" class="key-btn btn btn-sm btn-outline-danger" onclick="deleteCharReplace()">⌫</button>
+                            </div>
+                            <div class="keyboard-row mb-2">
+                                <button type="button" class="key-btn btn btn-sm btn-outline-secondary" onclick="addCharReplace('A')">A</button>
+                                <button type="button" class="key-btn btn btn-sm btn-outline-secondary" onclick="addCharReplace('B')">B</button>
+                                <button type="button" class="key-btn btn btn-sm btn-outline-secondary" onclick="addCharReplace('C')">C</button>
+                                <button type="button" class="key-btn btn btn-sm btn-outline-secondary" onclick="addCharReplace('D')">D</button>
+                                <button type="button" class="key-btn btn btn-sm btn-outline-secondary" onclick="addCharReplace('E')">E</button>
+                                <button type="button" class="key-btn btn btn-sm btn-outline-secondary" onclick="addCharReplace('F')">F</button>
+                                <button type="button" class="key-btn btn btn-sm btn-outline-secondary" onclick="addCharReplace('G')">G</button>
+                                <button type="button" class="key-btn btn btn-sm btn-outline-secondary" onclick="addCharReplace('H')">H</button>
+                                <button type="button" class="key-btn btn btn-sm btn-outline-secondary" onclick="addCharReplace('J')">J</button>
+                                <button type="button" class="key-btn btn btn-sm btn-outline-secondary" onclick="addCharReplace('K')">K</button>
+                                <button type="button" class="key-btn btn btn-sm btn-outline-secondary" onclick="addCharReplace('L')">L</button>
+                                <button type="button" class="key-btn btn btn-sm btn-outline-secondary" onclick="addCharReplace('M')">M</button>
+                            </div>
+                            <div class="keyboard-row mb-2">
+                                <button type="button" class="key-btn btn btn-sm btn-outline-secondary" onclick="addCharReplace('N')">N</button>
+                                <button type="button" class="key-btn btn btn-sm btn-outline-secondary" onclick="addCharReplace('P')">P</button>
+                                <button type="button" class="key-btn btn btn-sm btn-outline-secondary" onclick="addCharReplace('Q')">Q</button>
+                                <button type="button" class="key-btn btn btn-sm btn-outline-secondary" onclick="addCharReplace('R')">R</button>
+                                <button type="button" class="key-btn btn btn-sm btn-outline-secondary" onclick="addCharReplace('S')">S</button>
+                                <button type="button" class="key-btn btn btn-sm btn-outline-secondary" onclick="addCharReplace('T')">T</button>
+                                <button type="button" class="key-btn btn btn-sm btn-outline-secondary" onclick="addCharReplace('U')">U</button>
+                                <button type="button" class="key-btn btn btn-sm btn-outline-secondary" onclick="addCharReplace('V')">V</button>
+                                <button type="button" class="key-btn btn btn-sm btn-outline-secondary" onclick="addCharReplace('W')">W</button>
+                                <button type="button" class="key-btn btn btn-sm btn-outline-secondary" onclick="addCharReplace('X')">X</button>
+                                <button type="button" class="key-btn btn btn-sm btn-outline-secondary" onclick="addCharReplace('Y')">Y</button>
+                                <button type="button" class="key-btn btn btn-sm btn-outline-secondary" onclick="addCharReplace('Z')">Z</button>
+                            </div>
+                            <div class="keyboard-row mb-2">
+                                <button type="button" class="key-btn btn btn-sm btn-outline-secondary" onclick="addCharReplace('1')">1</button>
+                                <button type="button" class="key-btn btn btn-sm btn-outline-secondary" onclick="addCharReplace('2')">2</button>
+                                <button type="button" class="key-btn btn btn-sm btn-outline-secondary" onclick="addCharReplace('3')">3</button>
+                                <button type="button" class="key-btn btn btn-sm btn-outline-secondary" onclick="addCharReplace('4')">4</button>
+                                <button type="button" class="key-btn btn btn-sm btn-outline-secondary" onclick="addCharReplace('5')">5</button>
+                                <button type="button" class="key-btn btn btn-sm btn-outline-secondary" onclick="addCharReplace('6')">6</button>
+                                <button type="button" class="key-btn btn btn-sm btn-outline-secondary" onclick="addCharReplace('7')">7</button>
+                                <button type="button" class="key-btn btn btn-sm btn-outline-secondary" onclick="addCharReplace('8')">8</button>
+                                <button type="button" class="key-btn btn btn-sm btn-outline-secondary" onclick="addCharReplace('9')">9</button>
+                                <button type="button" class="key-btn btn btn-sm btn-outline-secondary" onclick="addCharReplace('0')">0</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">品牌</label>
+                        <input type="text" id="replaceBrand" name="brand" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">颜色</label>
+                        <input type="text" id="replaceColor" name="color" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">车辆类型</label>
+                        <select id="replaceVehicleType" name="vehicle_type" class="form-control">
+                            <option value="小车">小车</option>
+                            <option value="大车">大车</option>
+                            <option value="摩托">摩托</option>
+                            <option value="新能源">新能源</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">备注</label>
+                        <textarea id="replaceRemark" name="remark" class="form-control" rows="3" placeholder="输入车辆备注信息（可选）"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-warning">确认替换</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
 // 页面加载时显示通知
 document.addEventListener('DOMContentLoaded', function() {
@@ -406,6 +551,33 @@ function toggleGarageNumber() {
         hint.textContent = '已使用房号: ' + roomNumber;
         garageUsingRoomNumber = true;
     }
+}
+
+function openReplaceModal(vehicleId, plate, sortOrder) {
+    document.getElementById('replaceForm').action = '/vehicles/' + vehicleId + '/replace';
+    document.getElementById('replaceHint').textContent =
+        '将替换车辆编号 ' + sortOrder + ' 的原车 ' + plate + '。原车将变为未登记访客车辆，缴费历史保留。';
+    document.getElementById('replacePlateInput').value = '';
+    document.getElementById('replaceBrand').value = '';
+    document.getElementById('replaceColor').value = '';
+    document.getElementById('replaceRemark').value = '';
+    document.getElementById('replaceVehicleType').value = '小车';
+    var modal = new bootstrap.Modal(document.getElementById('replaceVehicleModal'));
+    modal.show();
+}
+
+function addCharReplace(char) {
+    var input = document.getElementById('replacePlateInput');
+    if (input.value.length < 8) {
+        input.value += char;
+        input.focus();
+    }
+}
+
+function deleteCharReplace() {
+    var input = document.getElementById('replacePlateInput');
+    input.value = input.value.slice(0, -1);
+    input.focus();
 }
 </script>
 {% endblock %}

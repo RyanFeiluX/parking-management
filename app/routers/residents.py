@@ -38,10 +38,23 @@ def build_resident_detail_context(resident, db, request, user, extra=None):
     for vehicle in resident.vehicles:
         status = calculate_payment_status(vehicle, db)
         latest_payment = vehicle.payments[0] if vehicle.payments else None
+
+        # Replacement info: replaced_in_at non-null means this vehicle was
+        # swapped in; look up the old vehicle it replaced for display.
+        replaced_in_date = None
+        replaced_from_plate = None
+        if vehicle.replaced_in_at:
+            replaced_in_date = vehicle.replaced_in_at.date()
+            old = db.query(Vehicle).filter_by(replacement_vehicle_id=vehicle.id).first()
+            if old:
+                replaced_from_plate = old.plate_number
+
         vehicles_with_status.append({
             "vehicle": vehicle,
             "status": status,
-            "latest_payment": latest_payment
+            "latest_payment": latest_payment,
+            "replaced_in_date": replaced_in_date,
+            "replaced_from_plate": replaced_from_plate,
         })
 
     max_sort_order = 0
