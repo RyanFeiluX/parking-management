@@ -152,6 +152,13 @@ async def resident_detail(request: Request, resident_id: int, user: dict = Depen
             "latest_payment": latest_payment
         })
     
+    # Calculate max sort order for next vehicle number default
+    max_sort_order = 0
+    for item in vehicles_with_status:
+        if item["vehicle"].sort_order > max_sort_order:
+            max_sort_order = item["vehicle"].sort_order
+    next_sort_order = max_sort_order + 1
+
     invoices = []
     seen_invoice_ids = set()
     for v in resident.vehicles:
@@ -163,8 +170,8 @@ async def resident_detail(request: Request, resident_id: int, user: dict = Depen
                     "payments": p.invoice.payments,
                     "vehicle": v
                 })
-    
-    return templates.TemplateResponse("residents/detail.html", {"request": request, "current_user": user, "resident": resident, "vehicles": vehicles_with_status, "resident_invoices": invoices})
+
+    return templates.TemplateResponse("residents/detail.html", {"request": request, "current_user": user, "resident": resident, "vehicles": vehicles_with_status, "resident_invoices": invoices, "max_sort_order": max_sort_order, "next_sort_order": next_sort_order})
 
 @router.get("/{resident_id}/edit")
 async def edit_resident_page(request: Request, resident_id: int, user: dict = Depends(require_role("admin", "super_admin"))):

@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Request, Depends
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from datetime import datetime, date
 
 from ..models import Vehicle, Resident, VehiclePause, Invoice, PaymentRecord, OperationLog
@@ -79,21 +80,29 @@ async def add_vehicle(request: Request, resident_id: int, user: dict = Depends(r
         except ValueError:
             pass
     
-    # 处理车辆序号
+    # Resolve vehicle sort order
     sort_order_input = form_data.get("sort_order")
+
+    # Calculate current max sort order for the resident
+    max_sort_row = db.query(func.max(Vehicle.sort_order)).filter_by(resident_id=resident_id).first()
+    max_sort_order = max_sort_row[0] if max_sort_row[0] is not None else 0
+
     if sort_order_input:
         try:
             sort_order = int(sort_order_input)
         except ValueError:
-            sort_order = current_count + 1
+            sort_order = max_sort_order + 1
     else:
-        sort_order = current_count + 1
-    
-    # 限制序号范围
-    sort_order = max(1, min(sort_order, current_count + 1))
-    
-    # 如果用户指定的序号已被占用，将占用该序号的车辆及之后的车辆序号依次+1
-    if sort_order <= current_count:
+        sort_order = max_sort_order + 1
+
+    # Clamp to valid 1..8 range (business rule: max 8 vehicles per resident)
+    sort_order = max(1, min(sort_order, 8))
+
+    # If the requested sort_order is already taken, shift later vehicles backward
+    existing_with_sort = db.query(Vehicle).filter_by(
+        resident_id=resident_id, sort_order=sort_order
+    ).first()
+    if existing_with_sort:
         vehicles_to_shift = db.query(Vehicle).filter(
             Vehicle.resident_id == resident_id,
             Vehicle.sort_order >= sort_order
@@ -147,9 +156,9 @@ async def sort_order_preview(request: Request, vehicle_id: int, new_sort: int, u
     
     current_sort_order = vehicle.sort_order
     resident_id = vehicle.resident_id
-    total_vehicles = db.query(Vehicle).filter_by(resident_id=resident_id).count()
     
-    new_sort_order = max(1, min(new_sort, total_vehicles))
+    # Clamp to business rule: sort_order must be in 1..8
+    new_sort_order = max(1, min(new_sort, 8))
     
     if new_sort_order == current_sort_order:
         return {"affected": []}
@@ -233,15 +242,14 @@ async def edit_vehicle(request: Request, vehicle_id: int, user: dict = Depends(r
     
     current_sort_order = vehicle.sort_order
     resident_id = vehicle.resident_id
-    total_vehicles = db.query(Vehicle).filter_by(resident_id=resident_id).count()
     
-    # 限制序号范围为1-8
+    # Clamp sort order to business rule 1..8
     new_sort_order = max(1, min(new_sort_order, 8))
     
-    # 如果序号发生变化，调整其他车辆的序号
+    # Adjust sort orders of sibling vehicles if the order changed
     if new_sort_order != current_sort_order:
         if new_sort_order < current_sort_order:
-            # 新序号小于当前序号，将中间的车辆序号依次+1
+            # Moving earlier: shift vehicles in [new, current) forward by +1
             vehicles_to_shift = db.query(Vehicle).filter(
                 Vehicle.resident_id == resident_id,
                 Vehicle.sort_order >= new_sort_order,
@@ -251,13 +259,11 @@ async def edit_vehicle(request: Request, vehicle_id: int, user: dict = Depends(r
             for v in vehicles_to_shift:
                 v.sort_order += 1
         else:
-            # 新序号大于当前序号，将中间的车辆序号依次-1
-            # 只调整在当前序号和新序号之间的车辆
-            max_shift_sort = min(new_sort_order, total_vehicles)
+            # Moving later: shift vehicles in (current, new] backward by -1
             vehicles_to_shift = db.query(Vehicle).filter(
                 Vehicle.resident_id == resident_id,
                 Vehicle.sort_order > current_sort_order,
-                Vehicle.sort_order <= max_shift_sort,
+                Vehicle.sort_order <= new_sort_order,
                 Vehicle.id != vehicle.id
             ).order_by(Vehicle.sort_order.asc()).all()
             for v in vehicles_to_shift:
@@ -294,10 +300,10 @@ async def delete_vehicle(request: Request, vehicle_id: int, user: dict = Depends
     db.query(PaymentRecord).filter_by(vehicle_id=vehicle_id).delete()
     db.delete(vehicle)
     
-    remaining_vehicles = db.query(Vehicle).filter_by(resident_id=resident.id).order_by(Vehicle.sort_order).all()
-    for idx, v in enumerate(remaining_vehicles, 1):
-        v.sort_order = idx
-    
+    # Intentionally NOT re-indexing remaining vehicle sort_order numbers,
+    # because sort_order represents a stable business vehicle number (e.g. the
+    # 5th car of the household), not a 1..N display sequential index. Display
+    # ordering is handled by loop.index in the template.
     db.commit()
     
     client_host = request.client.host if request.client else "unknown"
@@ -316,7 +322,11 @@ async def move_up(request: Request, vehicle_id: int, user: dict = Depends(requir
         resident = vehicle.resident
         return templates.TemplateResponse("residents/detail.html", {"request": request, "current_user": user, "resident": resident, "vehicles": get_vehicles_with_status(resident, db)})
     
-    prev_vehicle = db.query(Vehicle).filter_by(resident_id=vehicle.resident_id, sort_order=vehicle.sort_order - 1).first()
+    # Find the previous vehicle by sort order (not necessarily -1, since orders can be non-contiguous)
+    prev_vehicle = db.query(Vehicle).filter(
+        Vehicle.resident_id == vehicle.resident_id,
+        Vehicle.sort_order < vehicle.sort_order
+    ).order_by(Vehicle.sort_order.desc()).first()
     if prev_vehicle:
         vehicle.sort_order, prev_vehicle.sort_order = prev_vehicle.sort_order, vehicle.sort_order
         db.commit()
@@ -334,12 +344,17 @@ async def move_down(request: Request, vehicle_id: int, user: dict = Depends(requ
     if not vehicle:
         return templates.TemplateResponse("residents/list.html", {"request": request, "current_user": user, "residents": db.query(Resident).all(), "error": "车辆不存在"})
     
-    max_sort = db.query(Vehicle).filter_by(resident_id=vehicle.resident_id).count()
-    if vehicle.sort_order == max_sort:
+    max_sort_row = db.query(func.max(Vehicle.sort_order)).filter_by(resident_id=vehicle.resident_id).first()
+    max_sort = max_sort_row[0] if max_sort_row[0] is not None else 0
+    if vehicle.sort_order >= max_sort:
         resident = vehicle.resident
         return templates.TemplateResponse("residents/detail.html", {"request": request, "current_user": user, "resident": resident, "vehicles": get_vehicles_with_status(resident, db)})
     
-    next_vehicle = db.query(Vehicle).filter_by(resident_id=vehicle.resident_id, sort_order=vehicle.sort_order + 1).first()
+    # Find the next vehicle by sort order (not necessarily +1, since orders can be non-contiguous)
+    next_vehicle = db.query(Vehicle).filter(
+        Vehicle.resident_id == vehicle.resident_id,
+        Vehicle.sort_order > vehicle.sort_order
+    ).order_by(Vehicle.sort_order.asc()).first()
     if next_vehicle:
         vehicle.sort_order, next_vehicle.sort_order = next_vehicle.sort_order, vehicle.sort_order
         db.commit()
