@@ -3,7 +3,7 @@ from sqlalchemy import text
 from .models import SystemSetting
 from .database import SessionLocal
 
-SCHEMA_VERSION = 8
+SCHEMA_VERSION = 9
 
 def run_v3(engine):
     """新增收据日期和收据编号字段"""
@@ -69,6 +69,15 @@ def run_v8(engine):
         conn.execute(text("UPDATE invoices SET status = '发票已冲销' WHERE status = '已冲销'"))
         conn.commit()
 
+def run_v9(engine):
+    """车辆表新增 remark 备注字段"""
+    with engine.connect() as conn:
+        cursor = conn.execute(text("PRAGMA table_info(vehicles)"))
+        cols = {row[1] for row in cursor.fetchall()}
+        if "remark" not in cols:
+            conn.execute(text("ALTER TABLE vehicles ADD COLUMN remark TEXT"))
+            conn.commit()
+
 MIGRATIONS = {
     3: ("新增 receipt_date 和 receipt_number 字段", run_v3),
     4: ("将 paid_at 重命名为 paid_on", run_v4),
@@ -76,6 +85,7 @@ MIGRATIONS = {
     6: ("发票表新增冲销相关字段", run_v6),
     7: ("将 period_type 从月/季/年改为包月/包季/包年", run_v7),
     8: ("将发票状态'已冲销'统一更新为'发票已冲销'", run_v8),
+    9: ("车辆表新增 remark 备注字段", run_v9),
 }
 
 def get_current_version(db):
@@ -96,15 +106,20 @@ def run_migrations(engine):
     db = SessionLocal()
     try:
         current = get_current_version(db)
-        if current >= SCHEMA_VERSION:
-            return
 
-        for v in range(current + 1, SCHEMA_VERSION + 1):
+        # Always sweep from v=1 up to SCHEMA_VERSION. Each run_vX function is
+        # idempotent internally (PRAGMA checks for ADD COLUMN, WHERE guards on
+        # UPDATEs, etc.) so repeated runs are safe and let us heal scenarios
+        # where db_schema_version drifted ahead of the actual table structure.
+        for v in range(1, SCHEMA_VERSION + 1):
             if v in MIGRATIONS:
                 desc, fn = MIGRATIONS[v]
-                print(f"[迁移] 正在执行 v{v}: {desc}")
+                print(f"[迁移] 检查 v{v}: {desc}")
                 fn(engine)
             set_current_version(db, v)
-            print(f"[迁移] schema 已升级到 v{v}")
+
+        # Force-align the version marker so any lagging marker catches up.
+        set_current_version(db, SCHEMA_VERSION)
+        print(f"[迁移] schema 已校验并对齐至 v{SCHEMA_VERSION}")
     finally:
         db.close()

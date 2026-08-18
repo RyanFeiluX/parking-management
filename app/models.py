@@ -42,6 +42,7 @@ class Vehicle(Base):
     is_garage = Column(Boolean, default=False)  # 是否车库车
     garage_number = Column(String(50), nullable=True)  # 车库编号（唯一）
     garage_valid_until = Column(Date, nullable=True)  # 车库有效期
+    remark = Column(Text)  # 车辆备注
     created_at = Column(DateTime, default=datetime.now)
     updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
     resident = relationship("Resident", back_populates="vehicles")

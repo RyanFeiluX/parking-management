@@ -27,6 +27,41 @@ def calculate_payment_status(vehicle, db):
     from ..utils import get_vehicle_payment_status
     return get_vehicle_payment_status(vehicle, db)
 
+def build_resident_detail_context(resident, db, request, user, extra=None):
+    """Build the common template context for the resident detail page.
+
+    Packages vehicles_with_status, max_sort_order and next_sort_order along
+    with the standard fields. Callers can inject page-specific keys via
+    ``extra`` (e.g. "error", "success", "resident_invoices").
+    """
+    vehicles_with_status = []
+    for vehicle in resident.vehicles:
+        status = calculate_payment_status(vehicle, db)
+        latest_payment = vehicle.payments[0] if vehicle.payments else None
+        vehicles_with_status.append({
+            "vehicle": vehicle,
+            "status": status,
+            "latest_payment": latest_payment
+        })
+
+    max_sort_order = 0
+    for item in vehicles_with_status:
+        if item["vehicle"].sort_order > max_sort_order:
+            max_sort_order = item["vehicle"].sort_order
+    next_sort_order = max_sort_order + 1
+
+    context = {
+        "request": request,
+        "current_user": user,
+        "resident": resident,
+        "vehicles": vehicles_with_status,
+        "max_sort_order": max_sort_order,
+        "next_sort_order": next_sort_order,
+    }
+    if extra:
+        context.update(extra)
+    return context
+
 @router.get("/")
 async def list_residents(request: Request, user: dict = Depends(require_login)):
     db = request.state.db
@@ -142,23 +177,6 @@ async def resident_detail(request: Request, resident_id: int, user: dict = Depen
         resident_data = [{"resident": r, "vehicle_count": len(r.vehicles), "expired_count": 0} for r in residents]
         return templates.TemplateResponse("residents/list.html", {"request": request, "current_user": user, "residents": resident_data, "error": "住户不存在"})
     
-    vehicles_with_status = []
-    for vehicle in resident.vehicles:
-        status = calculate_payment_status(vehicle, db)
-        latest_payment = vehicle.payments[0] if vehicle.payments else None
-        vehicles_with_status.append({
-            "vehicle": vehicle,
-            "status": status,
-            "latest_payment": latest_payment
-        })
-    
-    # Calculate max sort order for next vehicle number default
-    max_sort_order = 0
-    for item in vehicles_with_status:
-        if item["vehicle"].sort_order > max_sort_order:
-            max_sort_order = item["vehicle"].sort_order
-    next_sort_order = max_sort_order + 1
-
     invoices = []
     seen_invoice_ids = set()
     for v in resident.vehicles:
@@ -171,7 +189,9 @@ async def resident_detail(request: Request, resident_id: int, user: dict = Depen
                     "vehicle": v
                 })
 
-    return templates.TemplateResponse("residents/detail.html", {"request": request, "current_user": user, "resident": resident, "vehicles": vehicles_with_status, "resident_invoices": invoices, "max_sort_order": max_sort_order, "next_sort_order": next_sort_order})
+    return templates.TemplateResponse("residents/detail.html",
+        build_resident_detail_context(resident, db, request, user,
+            extra={"resident_invoices": invoices}))
 
 @router.get("/{resident_id}/edit")
 async def edit_resident_page(request: Request, resident_id: int, user: dict = Depends(require_role("admin", "super_admin"))):

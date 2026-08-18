@@ -7,6 +7,7 @@ from ..models import Vehicle, Resident, VehiclePause, Invoice, PaymentRecord, Op
 from ..deps import require_role, require_login
 from ..utils import validate_plate_number
 from ..jinja import templates
+from .residents import build_resident_detail_context
 
 router = APIRouter()
 
@@ -34,8 +35,8 @@ async def add_vehicle(request: Request, resident_id: int, user: dict = Depends(r
         resident = db.query(Resident).filter_by(id=resident_id).first()
         if not resident:
             return templates.TemplateResponse("residents/list.html", {"request": request, "current_user": user, "residents": db.query(Resident).all(), "error": "住户不存在"})
-        vehicles_with_status = get_vehicles_with_status(resident, db)
-        return templates.TemplateResponse("residents/detail.html", {"request": request, "current_user": user, "resident": resident, "vehicles": vehicles_with_status, "error": msg})
+        return templates.TemplateResponse("residents/detail.html",
+            build_resident_detail_context(resident, db, request, user, extra={"error": msg}))
     
     brand = form_data.get("brand")
     color = form_data.get("color")
@@ -54,13 +55,13 @@ async def add_vehicle(request: Request, resident_id: int, user: dict = Depends(r
     # 检查车辆数量限制（最多8辆）
     current_count = db.query(Vehicle).filter_by(resident_id=resident_id).count()
     if current_count >= 8:
-        vehicles_with_status = get_vehicles_with_status(resident, db)
-        return templates.TemplateResponse("residents/detail.html", {"request": request, "current_user": user, "resident": resident, "vehicles": vehicles_with_status, "error": "最多只能添加8辆车"})
+        return templates.TemplateResponse("residents/detail.html",
+            build_resident_detail_context(resident, db, request, user, extra={"error": "最多只能添加8辆车"}))
     
     existing = db.query(Vehicle).filter_by(plate_number=plate_number).first()
     if existing:
-        vehicles_with_status = get_vehicles_with_status(resident, db)
-        return templates.TemplateResponse("residents/detail.html", {"request": request, "current_user": user, "resident": resident, "vehicles": vehicles_with_status, "error": "车牌号已存在"})
+        return templates.TemplateResponse("residents/detail.html",
+            build_resident_detail_context(resident, db, request, user, extra={"error": "车牌号已存在"}))
     
     # 检查车库编号唯一性
     if garage_number:
@@ -69,8 +70,9 @@ async def add_vehicle(request: Request, resident_id: int, user: dict = Depends(r
             Vehicle.id != 0
         ).first()
         if existing_garage:
-            vehicles_with_status = get_vehicles_with_status(resident, db)
-            return templates.TemplateResponse("residents/detail.html", {"request": request, "current_user": user, "resident": resident, "vehicles": vehicles_with_status, "error": f"车库编号 {garage_number} 已被车辆 {existing_garage.plate_number} 使用"})
+            return templates.TemplateResponse("residents/detail.html",
+                build_resident_detail_context(resident, db, request, user,
+                    extra={"error": f"车库编号 {garage_number} 已被车辆 {existing_garage.plate_number} 使用"}))
     
     # 解析车库有效期
     garage_valid_until = None
@@ -128,16 +130,8 @@ async def add_vehicle(request: Request, resident_id: int, user: dict = Depends(r
     client_host = request.client.host if request.client else "unknown"
     log_operation(db, user["user_id"], "create_vehicle", f"车辆 {plate_number}", f"为住户 {resident.room_number} 添加车辆{'（车库车）' if is_garage else ''}", client_host)
     
-    return templates.TemplateResponse("residents/detail.html", {"request": request, "current_user": user, "resident": resident, "vehicles": get_vehicles_with_status(resident, db), "success": "车辆添加成功"})
-
-def get_vehicles_with_status(resident, db):
-    vehicles_with_status = []
-    for v in resident.vehicles:
-        from ..utils import get_vehicle_payment_status
-        status = get_vehicle_payment_status(v, db)
-        latest_payment = v.payments[0] if v.payments else None
-        vehicles_with_status.append({"vehicle": v, "status": status, "latest_payment": latest_payment})
-    return vehicles_with_status
+    return templates.TemplateResponse("residents/detail.html",
+        build_resident_detail_context(resident, db, request, user, extra={"success": "车辆添加成功"}))
 
 @router.get("/{vehicle_id}/edit")
 async def edit_vehicle_page(request: Request, vehicle_id: int, user: dict = Depends(require_role("admin", "super_admin"))):
@@ -220,7 +214,9 @@ async def edit_vehicle(request: Request, vehicle_id: int, user: dict = Depends(r
         ).first()
         if existing_garage:
             resident = vehicle.resident
-            return templates.TemplateResponse("residents/detail.html", {"request": request, "current_user": user, "resident": resident, "vehicles": get_vehicles_with_status(resident, db), "error": f"车库编号 {garage_number} 已被车辆 {existing_garage.plate_number} 使用"})
+            return templates.TemplateResponse("residents/detail.html",
+                build_resident_detail_context(resident, db, request, user,
+                    extra={"error": f"车库编号 {garage_number} 已被车辆 {existing_garage.plate_number} 使用"}))
     
     # 解析车库有效期
     garage_valid_until = None
@@ -284,7 +280,8 @@ async def edit_vehicle(request: Request, vehicle_id: int, user: dict = Depends(r
     log_operation(db, user["user_id"], "update_vehicle", f"车辆 {vehicle.plate_number}", f"修改车辆信息{'（车库车）' if is_garage else ''}", client_host)
     
     resident = vehicle.resident
-    return templates.TemplateResponse("residents/detail.html", {"request": request, "current_user": user, "resident": resident, "vehicles": get_vehicles_with_status(resident, db), "success": "车辆信息已更新"})
+    return templates.TemplateResponse("residents/detail.html",
+        build_resident_detail_context(resident, db, request, user, extra={"success": "车辆信息已更新"}))
 
 @router.post("/{vehicle_id}/delete")
 async def delete_vehicle(request: Request, vehicle_id: int, user: dict = Depends(require_role("admin", "super_admin"))):
@@ -309,7 +306,8 @@ async def delete_vehicle(request: Request, vehicle_id: int, user: dict = Depends
     client_host = request.client.host if request.client else "unknown"
     log_operation(db, user["user_id"], "delete_vehicle", target_name, f"从住户 {resident.room_number} 删除车辆", client_host)
     
-    return templates.TemplateResponse("residents/detail.html", {"request": request, "current_user": user, "resident": resident, "vehicles": get_vehicles_with_status(resident, db)})
+    return templates.TemplateResponse("residents/detail.html",
+        build_resident_detail_context(resident, db, request, user))
 
 @router.post("/{vehicle_id}/move-up")
 async def move_up(request: Request, vehicle_id: int, user: dict = Depends(require_role("admin", "super_admin"))):
@@ -320,7 +318,8 @@ async def move_up(request: Request, vehicle_id: int, user: dict = Depends(requir
     
     if vehicle.sort_order == 1:
         resident = vehicle.resident
-        return templates.TemplateResponse("residents/detail.html", {"request": request, "current_user": user, "resident": resident, "vehicles": get_vehicles_with_status(resident, db)})
+        return templates.TemplateResponse("residents/detail.html",
+            build_resident_detail_context(resident, db, request, user))
     
     # Find the previous vehicle by sort order (not necessarily -1, since orders can be non-contiguous)
     prev_vehicle = db.query(Vehicle).filter(
@@ -335,7 +334,8 @@ async def move_up(request: Request, vehicle_id: int, user: dict = Depends(requir
     log_operation(db, user["user_id"], "update_vehicle", f"车辆 {vehicle.plate_number}", f"排序上移", client_host)
     
     resident = vehicle.resident
-    return templates.TemplateResponse("residents/detail.html", {"request": request, "current_user": user, "resident": resident, "vehicles": get_vehicles_with_status(resident, db)})
+    return templates.TemplateResponse("residents/detail.html",
+        build_resident_detail_context(resident, db, request, user))
 
 @router.post("/{vehicle_id}/move-down")
 async def move_down(request: Request, vehicle_id: int, user: dict = Depends(require_role("admin", "super_admin"))):
@@ -348,7 +348,8 @@ async def move_down(request: Request, vehicle_id: int, user: dict = Depends(requ
     max_sort = max_sort_row[0] if max_sort_row[0] is not None else 0
     if vehicle.sort_order >= max_sort:
         resident = vehicle.resident
-        return templates.TemplateResponse("residents/detail.html", {"request": request, "current_user": user, "resident": resident, "vehicles": get_vehicles_with_status(resident, db)})
+        return templates.TemplateResponse("residents/detail.html",
+            build_resident_detail_context(resident, db, request, user))
     
     # Find the next vehicle by sort order (not necessarily +1, since orders can be non-contiguous)
     next_vehicle = db.query(Vehicle).filter(
@@ -363,7 +364,8 @@ async def move_down(request: Request, vehicle_id: int, user: dict = Depends(requ
     log_operation(db, user["user_id"], "update_vehicle", f"车辆 {vehicle.plate_number}", f"排序下移", client_host)
     
     resident = vehicle.resident
-    return templates.TemplateResponse("residents/detail.html", {"request": request, "current_user": user, "resident": resident, "vehicles": get_vehicles_with_status(resident, db)})
+    return templates.TemplateResponse("residents/detail.html",
+        build_resident_detail_context(resident, db, request, user))
 
 @router.get("/status")
 async def vehicle_status(request: Request, user: dict = Depends(require_login)):
