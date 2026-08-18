@@ -25,8 +25,8 @@ INVOICE_STATUS_ROW_CLASS = {
 }
 
 INVOICE_STATUS_CHOICES = [
-    (InvoiceStatus.PENDING, INVOICE_STATUS_LABELS[InvoiceStatus.PENDING]),
-    (InvoiceStatus.COMPLETED, INVOICE_STATUS_LABELS[InvoiceStatus.COMPLETED]),
-    (InvoiceStatus.CANCELLED, INVOICE_STATUS_LABELS[InvoiceStatus.CANCELLED]),
-    (InvoiceStatus.REVERSED, INVOICE_STATUS_LABELS[InvoiceStatus.REVERSED]),
+    (InvoiceStatus.PENDING.value, INVOICE_STATUS_LABELS[InvoiceStatus.PENDING]),
+    (InvoiceStatus.COMPLETED.value, INVOICE_STATUS_LABELS[InvoiceStatus.COMPLETED]),
+    (InvoiceStatus.CANCELLED.value, INVOICE_STATUS_LABELS[InvoiceStatus.CANCELLED]),
+    (InvoiceStatus.REVERSED.value, INVOICE_STATUS_LABELS[InvoiceStatus.REVERSED]),
 ]
