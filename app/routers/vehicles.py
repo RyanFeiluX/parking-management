@@ -367,6 +367,92 @@ async def move_down(request: Request, vehicle_id: int, user: dict = Depends(requ
     return templates.TemplateResponse("residents/detail.html",
         build_resident_detail_context(resident, db, request, user))
 
+@router.post("/{vehicle_id}/replace")
+async def replace_vehicle(request: Request, vehicle_id: int, user: dict = Depends(require_role("admin", "super_admin"))):
+    """替换车辆：新建一辆车占用原车辆编号位置，原车变为未登记访客车辆"""
+    db = request.state.db
+    old_vehicle = db.query(Vehicle).filter_by(id=vehicle_id).first()
+    if not old_vehicle or old_vehicle.resident_id is None:
+        return templates.TemplateResponse("residents/list.html", {"request": request, "current_user": user, "residents": db.query(Resident).all(), "error": "车辆不存在或已不在住户名下"})
+
+    resident = old_vehicle.resident
+    form_data = await request.form()
+    new_plate = form_data.get("plate_number")
+    valid, msg = validate_plate_number(new_plate)
+    if not valid:
+        return templates.TemplateResponse("residents/detail.html",
+            build_resident_detail_context(resident, db, request, user, extra={"error": msg}))
+
+    # 新车牌若存在于数据库：
+    # - 当前归属某住户（生效车辆）→ 拒绝
+    # - 未登记访客车（resident_id 为空，含被替换出的历史车）→ 允许，下面接管
+    existing = db.query(Vehicle).filter_by(plate_number=new_plate).first()
+    if existing and existing.resident_id is not None:
+        return templates.TemplateResponse("residents/detail.html",
+            build_resident_detail_context(resident, db, request, user,
+                extra={"error": "车牌号已存在（当前为生效车辆）"}))
+
+    brand = form_data.get("brand")
+    color = form_data.get("color")
+    vehicle_type = form_data.get("vehicle_type", "小车")
+    remark = (form_data.get("remark") or "").strip() or None
+
+    if existing:
+        # 接管未登记访客记录：保留缴费历史，绑定到新住户并标记替换入时间
+        new_vehicle = existing
+        new_vehicle.resident_id = resident.id
+        new_vehicle.sort_order = old_vehicle.sort_order  # 继承车辆编号
+        new_vehicle.replaced_in_at = datetime.now()  # 本次替换入时间
+        new_vehicle.replaced_out_at = None  # 恢复生效，清除历史替换出标记
+        new_vehicle.replacement_vehicle_id = None  # 不再是"被替换出的旧车"
+        if brand:
+            new_vehicle.brand = brand  # 表单优先，未填保留原值
+        if color:
+            new_vehicle.color = color
+        new_vehicle.vehicle_type = vehicle_type
+        if remark:
+            new_vehicle.remark = remark
+        # 车库属性随编号位置转移给新车
+        new_vehicle.is_garage = old_vehicle.is_garage
+        new_vehicle.garage_number = old_vehicle.garage_number
+        new_vehicle.garage_valid_until = old_vehicle.garage_valid_until
+    else:
+        # 数据库中不存在该车牌：正常新建
+        new_vehicle = Vehicle(
+            plate_number=new_plate,
+            brand=brand,
+            color=color,
+            vehicle_type=vehicle_type,
+            sort_order=old_vehicle.sort_order,  # 继承车辆编号
+            resident_id=old_vehicle.resident_id,
+            is_garage=old_vehicle.is_garage,  # 车库随编号位置转移
+            garage_number=old_vehicle.garage_number,
+            garage_valid_until=old_vehicle.garage_valid_until,
+            remark=remark,
+            replaced_in_at=datetime.now(),  # 替换入时间
+        )
+        db.add(new_vehicle)
+
+    db.flush()  # 获得新车辆 id（接管时即访客记录 id）
+
+    # 旧车：变为未登记访客车辆，记录替换出时间与新车关联，清空车库属性
+    old_vehicle.resident_id = None
+    old_vehicle.replaced_out_at = datetime.now()
+    old_vehicle.replacement_vehicle_id = new_vehicle.id
+    old_vehicle.is_garage = False
+    old_vehicle.garage_number = None
+    old_vehicle.garage_valid_until = None
+
+    db.commit()
+
+    client_host = request.client.host if request.client else "unknown"
+    log_operation(db, user["user_id"], "replace_vehicle",
+                  f"车辆 {old_vehicle.plate_number} → {new_vehicle.plate_number}",
+                  f"住户 {resident.room_number} 车辆编号{old_vehicle.sort_order} 完成替换", client_host)
+
+    return templates.TemplateResponse("residents/detail.html",
+        build_resident_detail_context(resident, db, request, user, extra={"success": "车辆替换成功"}))
+
 @router.get("/status")
 async def vehicle_status(request: Request, user: dict = Depends(require_login)):
     db = request.state.db

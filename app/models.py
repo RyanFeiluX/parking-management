@@ -43,6 +43,10 @@ class Vehicle(Base):
     garage_number = Column(String(50), nullable=True)  # 车库编号（唯一）
     garage_valid_until = Column(Date, nullable=True)  # 车库有效期
     remark = Column(Text)  # 车辆备注
+    # 替换信息：新车记录替换入时间，旧车记录替换出时间并关联新车
+    replaced_in_at = Column(DateTime, nullable=True)  # 该车被替换入（进入住户）的时间；空=普通添加
+    replaced_out_at = Column(DateTime, nullable=True)  # 该车被替换出（离开住户、变为未登记）的时间；空=当前登记中
+    replacement_vehicle_id = Column(Integer, nullable=True)  # 旧车→新车 关联；仅旧车有此值
     created_at = Column(DateTime, default=datetime.now)
     updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
     resident = relationship("Resident", back_populates="vehicles")

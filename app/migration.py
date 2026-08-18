@@ -3,7 +3,7 @@ from sqlalchemy import text
 from .models import SystemSetting
 from .database import SessionLocal
 
-SCHEMA_VERSION = 9
+SCHEMA_VERSION = 10
 
 def run_v3(engine):
     """新增收据日期和收据编号字段"""
@@ -78,6 +78,19 @@ def run_v9(engine):
             conn.execute(text("ALTER TABLE vehicles ADD COLUMN remark TEXT"))
             conn.commit()
 
+def run_v10(engine):
+    """车辆表新增替换字段（replaced_in_at / replaced_out_at / replacement_vehicle_id）"""
+    with engine.connect() as conn:
+        cursor = conn.execute(text("PRAGMA table_info(vehicles)"))
+        cols = {row[1] for row in cursor.fetchall()}
+        if "replaced_in_at" not in cols:
+            conn.execute(text("ALTER TABLE vehicles ADD COLUMN replaced_in_at DATETIME"))
+        if "replaced_out_at" not in cols:
+            conn.execute(text("ALTER TABLE vehicles ADD COLUMN replaced_out_at DATETIME"))
+        if "replacement_vehicle_id" not in cols:
+            conn.execute(text("ALTER TABLE vehicles ADD COLUMN replacement_vehicle_id INTEGER"))
+        conn.commit()
+
 MIGRATIONS = {
     3: ("新增 receipt_date 和 receipt_number 字段", run_v3),
     4: ("将 paid_at 重命名为 paid_on", run_v4),
@@ -86,6 +99,7 @@ MIGRATIONS = {
     7: ("将 period_type 从月/季/年改为包月/包季/包年", run_v7),
     8: ("将发票状态'已冲销'统一更新为'发票已冲销'", run_v8),
     9: ("车辆表新增 remark 备注字段", run_v9),
+    10: ("车辆表新增替换字段", run_v10),
 }
 
 def get_current_version(db):
