@@ -127,6 +127,7 @@
                         {% endif %}
                         </p>
                         <p><strong>所属住户:</strong> {{ vehicle.resident.room_number }} - {{ vehicle.resident.owner_name }}</p>
+                        <p><strong>车辆编号:</strong> 第{{ vehicle.sort_order }}辆车</p>
                     </div>
                     <div class="col-md-6">
                         <p><strong>品牌:</strong> {{ vehicle.brand or '-' }}</p>
