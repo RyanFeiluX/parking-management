@@ -10,6 +10,10 @@ def get_system_setting(db: Session, key: str, default: str = "") -> str:
     setting = db.query(SystemSetting).filter_by(key=key).first()
     return setting.value if setting else default
 
+def build_contract_remark(vehicle) -> str:
+    """Build the default payment remark for a contract vehicle."""
+    return f"第{vehicle.sort_order}辆合约车"
+
 def get_vehicle_payment_status(vehicle, db):
     grace_days = int(get_system_setting(db, "grace_period_days", "15"))
     today = date.today()

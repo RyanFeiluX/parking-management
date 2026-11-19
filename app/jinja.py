@@ -8,6 +8,7 @@ from .constants import (
     INVOICE_STATUS_BADGES, INVOICE_STATUS_ROW_CLASS,
     INVOICE_STATUS_CHOICES,
 )
+from .utils import build_contract_remark
 
 _templates = Jinja2Templates(directory=os.path.join(get_data_dir(), "app/templates"))
 
@@ -32,6 +33,7 @@ class _CompatTemplates:
 templates = _CompatTemplates(_templates)
 templates.env.globals["APP_VERSION"] = VERSION
 templates.env.globals["INVOICE_STATUS_CHOICES"] = INVOICE_STATUS_CHOICES
+templates.env.globals["contract_remark"] = build_contract_remark
 
 def escapejs_filter(value):
     if value is None:

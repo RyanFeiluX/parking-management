@@ -9,6 +9,7 @@ from ..models import PaymentRecord, Vehicle, Resident, User, OperationLog, Vehic
 from dateutil.relativedelta import relativedelta
 from ..deps import require_role, require_login
 from ..jinja import templates
+from ..utils import calculate_payment_amount, build_contract_remark
 
 router = APIRouter()
 
@@ -46,7 +47,6 @@ async def payment_form(request: Request, user: dict = Depends(require_login)):
     if plate_number:
         vehicle = db.query(Vehicle).filter_by(plate_number=plate_number).first()
         if vehicle:
-            from ..utils import calculate_payment_amount
             amount_info = calculate_payment_amount(vehicle, period_type, months, db)
             period_end = calc_period_end(date.today(), period_type, months)
     
@@ -118,7 +118,7 @@ async def calculate_amount(request: Request, user: dict = Depends(require_login)
             "today": date.today()
         })
     
-    from ..utils import calculate_payment_amount, check_period_overlap
+    from ..utils import check_period_overlap
     amount_info = calculate_payment_amount(vehicle, period_type, months, db, pause_months)
     warnings = check_period_overlap(vehicle.id, period_start, period_end, db)
     
@@ -156,7 +156,7 @@ async def pay(request: Request, user: dict = Depends(require_login)):
     months = int(form_data.get("months"))
     period_start_str = form_data.get("period_start", "")
     payment_method = form_data.get("payment_method")
-    remark = form_data.get("remark")
+    remark = (form_data.get("remark") or "").strip()
     receipt_date_str = form_data.get("receipt_date", "")
     receipt_number = form_data.get("receipt_number", "")
     pause_start_str = form_data.get("pause_start", "")
@@ -179,6 +179,9 @@ async def pay(request: Request, user: dict = Depends(require_login)):
             "error": "车辆不存在",
             "today": date.today()
         })
+    
+    if not remark:
+        remark = build_contract_remark(vehicle)
     
     pause_records = db.query(VehiclePause).filter_by(vehicle_id=vehicle.id).order_by(VehiclePause.pause_start).all()
     
@@ -218,7 +221,6 @@ async def pay(request: Request, user: dict = Depends(require_login)):
                 "today": date.today()
             })
     
-    from ..utils import calculate_payment_amount
     amount_info = calculate_payment_amount(vehicle, period_type, months, db, pause_months)
     amount = amount_info["amount"]
     
