@@ -305,10 +305,12 @@ async def payment_logs(request: Request, user: dict = Depends(require_login)):
         query = query.filter(PaymentRecord.receipt_date >= datetime.strptime(start_date, "%Y-%m-%d"))
     if end_date:
         query = query.filter(PaymentRecord.receipt_date <= datetime.strptime(end_date, "%Y-%m-%d") + relativedelta(days=1))
+    if plate_number or room_number:
+        query = query.join(Vehicle)
     if plate_number:
-        query = query.join(Vehicle).filter(Vehicle.plate_number.ilike(f"%{plate_number}%"))
+        query = query.filter(Vehicle.plate_number.ilike(f"%{plate_number}%"))
     if room_number:
-        query = query.join(Vehicle).join(Resident).filter(Resident.room_number.ilike(f"%{room_number}%"))
+        query = query.join(Resident).filter(Resident.room_number.ilike(f"%{room_number}%"))
     if payment_method:
         query = query.filter(PaymentRecord.payment_method == payment_method)
     

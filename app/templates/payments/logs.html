@@ -7,6 +7,10 @@
 <style>
     .table-scroll { max-height: calc(100vh - 280px); overflow-y: auto; overflow-x: auto; }
     .table-scroll thead th { position: sticky; top: 0; background: white; z-index: 1; }
+    .filter-bar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .filter-col-date { flex: 0 0 145px; }
+    .filter-col-text { flex: 0 0 135px; }
+    .filter-col-select { flex: 0 0 130px; }
 </style>
 <div class="row">
     <div class="col">
@@ -16,20 +20,26 @@
             </div>
             <div class="card-body">
                 <form method="get" class="mb-4">
-                    <div class="row">
-                        <div class="col-md-2">
+                    <div class="filter-bar">
+                        <div class="filter-col-date">
                             <input type="date" name="start_date" class="form-control" value="{{ start_date }}">
                         </div>
-                        <div class="col-md-2">
+                        <div class="filter-col-date">
                             <input type="date" name="end_date" class="form-control" value="{{ end_date }}">
                         </div>
-                        <div class="col-md-2">
-                            <input type="text" name="plate_number" class="form-control" placeholder="车牌号" value="{{ plate_number }}">
+                        <div class="filter-col-text">
+                            <div class="filter-input-wrap">
+                                <input type="text" name="plate_number" class="form-control" placeholder="车牌号" value="{{ plate_number }}">
+                                <button type="button" class="filter-clear-btn" onclick="clearFilterInput(this)" aria-label="清除车牌号">&times;</button>
+                            </div>
                         </div>
-                        <div class="col-md-2">
-                            <input type="text" name="room_number" class="form-control" placeholder="房号" value="{{ room_number }}">
+                        <div class="filter-col-text">
+                            <div class="filter-input-wrap">
+                                <input type="text" name="room_number" class="form-control" placeholder="房号" value="{{ room_number }}">
+                                <button type="button" class="filter-clear-btn" onclick="clearFilterInput(this)" aria-label="清除房号">&times;</button>
+                            </div>
                         </div>
-                        <div class="col-md-2">
+                        <div class="filter-col-select">
                             <select name="payment_method" class="form-control">
                                 <option value="">全部方式</option>
                                 <option value="现金">现金</option>
@@ -38,7 +48,7 @@
                                 <option value="转账">转账</option>
                             </select>
                         </div>
-                        <div class="col-md-2">
+                        <div>
                             <button type="submit" class="btn btn-primary">筛选</button>
                         </div>
                     </div>

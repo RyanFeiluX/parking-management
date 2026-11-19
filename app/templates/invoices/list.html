@@ -14,10 +14,10 @@
     .table-invoice .col-invoice-no,
     .table-invoice .col-email { min-width: 4ch; word-break: break-word; white-space: normal; }
     .filter-bar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-    .filter-col-status { flex: 0 0 12%; }
+    .filter-col-status { flex: 0 0 11%; }
     .filter-col-type { flex: 0 0 10%; }
     .filter-col-date { flex: 0 0 10.4%; }
-    .filter-col-plate { flex: 0 0 10%; }
+    .filter-col-plate { flex: 0 0 12%; }
     .filter-col-btns { flex: 1; }
     .table-scroll { max-height: calc(100vh - 280px); overflow-y: auto; }
     .table-scroll thead th { position: sticky; top: 0; background: white; z-index: 1; }
@@ -54,7 +54,10 @@
                             <input type="date" name="end_date" class="form-control form-control-sm" value="{{ end_date }}">
                         </div>
                         <div class="filter-col-plate">
-                            <input type="text" name="plate_number" class="form-control form-control-sm" placeholder="车牌号" value="{{ plate_number }}">
+                            <div class="filter-input-wrap">
+                                <input type="text" name="plate_number" class="form-control form-control-sm" placeholder="车牌号" value="{{ plate_number }}">
+                                <button type="button" class="filter-clear-btn" onclick="clearFilterInput(this)" aria-label="清除车牌号">&times;</button>
+                            </div>
                         </div>
                         <div class="filter-col-btns">
                             <button type="submit" class="btn btn-primary btn-sm">筛选</button>
